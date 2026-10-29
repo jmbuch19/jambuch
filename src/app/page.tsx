@@ -368,7 +368,7 @@ function buildSections(c: HomeContent, t: (key: string) => string): (Section | n
 
     {
       id: "ideas",
-      nav: "Share an idea",
+      nav: "Share your idea",
       key: "ideas",
       split: true,
       cta: true,
