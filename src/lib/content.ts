@@ -29,6 +29,7 @@ export type ReadingItem = {
 
 export type Work = {
   id: string;
+  slug: string | null;
   title: string;
   title_gu: string | null;
   description: string | null;
@@ -117,7 +118,7 @@ export async function loadHome(): Promise<HomeContent> {
       .order("sort_order"),
     db
       .from("works")
-      .select("id, title, title_gu, description, status_label, link, link_label, upcoming, readable")
+      .select("id, slug, title, title_gu, description, status_label, link, link_label, upcoming, readable")
       .order("sort_order"),
     db.from("workshop").select("id, kind, title, stage").order("sort_order"),
     db.from("recordings").select("id, title, details, duration, link").order("sort_order"),

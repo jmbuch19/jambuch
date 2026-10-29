@@ -14,6 +14,10 @@ function readField(f: Field, form: FormData): unknown {
     if (Number.isNaN(n)) throw new Error(`${f.label} must be a whole number.`);
     return n;
   }
+  if (f.type === "ref") {
+    if (!/^[0-9a-f-]{36}$/i.test(raw)) throw new Error(`Pick a ${f.label.toLowerCase()}.`);
+    return raw;
+  }
   if (f.type === "select") {
     if (!f.options?.some((o) => o.value === raw)) throw new Error(`Pick a value for ${f.label}.`);
     return raw;
@@ -52,7 +56,8 @@ export async function saveRow(table: string, id: string, form: FormData) {
     : await db.from(table).update(row).eq(cfg.key, id).select(cfg.key).single();
   if (res.error) redirect(`${back}?error=${encodeURIComponent(res.error.message)}`);
 
-  revalidatePath("/");
+  // Every public page (homepage, book and chapter pages) reads this content.
+  revalidatePath("/", "layout");
   redirect(`/admin/${table}?saved=1`);
 }
 
@@ -62,6 +67,6 @@ export async function deleteRow(table: string, id: string) {
   const { db } = await requireAdmin();
   const { error } = await db.from(table).delete().eq(cfg.key, id);
   if (error) redirect(`/admin/${table}/${encodeURIComponent(id)}?error=${encodeURIComponent(error.message)}`);
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   redirect(`/admin/${table}?deleted=1`);
 }

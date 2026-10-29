@@ -20,11 +20,22 @@ export default async function TableList({
   let query = db.from(table).select([cfg.key, ...cfg.list].join(", "));
   for (const o of cfg.order) query = query.order(o.column, { ascending: o.ascending });
   // Search the first text column (titles, names), mainly for the ~1,000 books.
-  const searchCol = cfg.list.find((c) => cfg.fields.find((f) => f.name === c)?.type !== "bool");
+  const searchCol = cfg.list.find((c) => {
+    const type = cfg.fields.find((f) => f.name === c)?.type ?? "text";
+    return type === "text" || type === "textarea";
+  });
   const needle = q?.trim().replace(/[%_,()]/g, "");
   if (needle && searchCol) query = query.ilike(searchCol, `%${needle}%`);
   const { data, error } = await query.limit(500);
   const rows = (data ?? []) as unknown as Record<string, unknown>[];
+
+  // Show "ref" columns by the other row's label instead of its id.
+  for (const f of cfg.fields) {
+    if (f.type !== "ref" || !f.ref || !cfg.list.includes(f.name)) continue;
+    const { data: refs } = await db.from(f.ref.table).select(`id, ${f.ref.label}`);
+    const names = new Map(((refs ?? []) as unknown as Record<string, string>[]).map((r) => [r.id, r[f.ref!.label]]));
+    for (const r of rows) r[f.name] = names.get(String(r[f.name])) ?? r[f.name];
+  }
 
   return (
     <>

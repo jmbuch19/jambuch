@@ -81,7 +81,14 @@ export default async function Home() {
               <ul className={s.deskList}>
                 {c.desk.map((d) => (
                   <li key={d.id}>
-                    <span>{d.link ? <a {...linkProps(d.link)}>{inline(d.text)}</a> : inline(d.text)}</span>
+                    {d.link ? (
+                      <a {...linkProps(d.link)} className={s.deskLink}>
+                        {inline(d.text)}
+                        <span className={s.deskGo}>{d.link.startsWith("/library/") ? "Read" : "Open"} →</span>
+                      </a>
+                    ) : (
+                      <span>{inline(d.text)}</span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -250,7 +257,9 @@ function buildSections(c: HomeContent, t: (key: string) => string): (Section | n
             <div className={s.gridWorks}>
               {c.works.map((w, i) => {
                 // Rights rule: a read link is shown only once rights are granted or public domain.
-                const showLink = w.readable && w.link;
+                // Without an explicit link, a work with a slug opens its own book page.
+                const href = w.link || (w.slug ? `/library/${w.slug}` : null);
+                const showLink = w.readable && href;
                 return (
                   <article key={w.id} className={w.upcoming ? `${s.work} ${s.workUpcoming}` : s.work}>
                     {!w.upcoming && <div className={i === 0 ? `${s.workBar} ${s.workBarAccent}` : s.workBar} />}
@@ -264,7 +273,7 @@ function buildSections(c: HomeContent, t: (key: string) => string): (Section | n
                       )}
                       <p className={s.workDesc}>{inline(w.description)}</p>
                       {showLink ? (
-                        <a {...linkProps(w.link!)} className={s.workLink}>
+                        <a {...linkProps(href)} className={s.workLink}>
                           {w.link_label || "Read"} →
                         </a>
                       ) : (

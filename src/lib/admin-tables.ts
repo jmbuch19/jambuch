@@ -4,8 +4,10 @@
 export type Field = {
   name: string;
   label: string;
-  type: "text" | "textarea" | "url" | "int" | "bool" | "select";
+  type: "text" | "textarea" | "url" | "int" | "bool" | "select" | "ref";
   options?: { value: string; label: string }[];
+  ref?: { table: string; label: string }; // for "ref": pick a row of another table
+  rows?: number; // textarea height
   required?: boolean;
   readOnly?: boolean;
   hint?: string;
@@ -143,6 +145,47 @@ export const TABLES: TableConfig[] = [
     ],
     list: ["title", "rights_status", "upcoming", "published"],
     order: byOrder,
+    canCreate: true,
+    canDelete: true,
+  },
+  {
+    table: "chapters",
+    label: "Chapters",
+    key: "id",
+    intro:
+      "Visitors can read a chapter only when it’s Ready and its translation’s rights are Granted or Public domain. Leave the text empty while a chapter is still being translated.",
+    fields: [
+      { name: "work_id", label: "Translation", type: "ref", ref: { table: "works", label: "title" }, required: true },
+      { name: "number", label: "Chapter number", type: "int", required: true },
+      { name: "title", label: "Title (Gujarati)", type: "text", required: true },
+      { name: "title_original", label: "Original title", type: "text" },
+      {
+        name: "status",
+        label: "Status",
+        type: "select",
+        options: [
+          { value: "ready", label: "Ready to read" },
+          { value: "drafting", label: "On the translator’s desk" },
+          { value: "later", label: "Still ahead" },
+        ],
+      },
+      { name: "expected", label: "Expected", type: "text", hint: "Shown while drafting, e.g. Expected June" },
+      {
+        name: "body",
+        label: "Chapter text",
+        type: "textarea",
+        rows: 20,
+        hint: "Leave a blank line between paragraphs. Start a paragraph with “> ” to set it as a pulled quote.",
+      },
+      { name: "translator_note", label: "Translator’s note", type: "textarea" },
+      { name: "audio_url", label: "Read-aloud audio URL", type: "url" },
+      published,
+    ],
+    list: ["number", "title", "work_id", "status", "published"],
+    order: [
+      { column: "work_id", ascending: true },
+      { column: "number", ascending: true },
+    ],
     canCreate: true,
     canDelete: true,
   },

@@ -164,6 +164,26 @@
   margin-top: 8px;
 }
 
+.deskLink {
+  display: block;
+  color: var(--ink);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  margin: -4px -8px;
+  padding: 4px 8px;
+}
+.deskLink:hover {
+  background: var(--accent-tint);
+  color: var(--ink);
+}
+.deskGo {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
 /* ------------------------------------------------------------ sections */
 .section {
   border-top: 1px solid var(--border);

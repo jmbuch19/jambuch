@@ -33,6 +33,19 @@ export default async function EditRow({
     }
   }
 
+  // "ref" fields become a dropdown of the other table's rows.
+  const fields = await Promise.all(
+    cfg.fields.map(async (f) => {
+      if (f.type !== "ref" || !f.ref) return f;
+      const { data } = await db.from(f.ref.table).select(`id, ${f.ref.label}`).order(f.ref.label);
+      const options = ((data ?? []) as unknown as Record<string, string>[]).map((r) => ({
+        value: r.id,
+        label: r[f.ref!.label],
+      }));
+      return { ...f, options };
+    }),
+  );
+
   return (
     <>
       <p className={a.crumb}>
@@ -46,7 +59,7 @@ export default async function EditRow({
       )}
 
       <form action={saveRow.bind(null, table, id)} className={a.form}>
-        {cfg.fields.map((f) => {
+        {fields.map((f) => {
           const value = row[f.name];
           if (f.readOnly) {
             if (isNew) return null;
@@ -81,8 +94,8 @@ export default async function EditRow({
                 {f.required && " *"}
               </span>
               {f.type === "textarea" ? (
-                <textarea name={f.name} defaultValue={String(value ?? "")} rows={4} required={f.required} />
-              ) : f.type === "select" ? (
+                <textarea name={f.name} defaultValue={String(value ?? "")} rows={f.rows ?? 4} required={f.required} />
+              ) : f.type === "select" || f.type === "ref" ? (
                 <select name={f.name} defaultValue={String(value ?? f.options?.[0]?.value ?? "")}>
                   {f.options?.map((o) => (
                     <option key={o.value} value={o.value}>
