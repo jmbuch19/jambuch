@@ -76,5 +76,52 @@ export async function submitIdea(_prev: IdeaState, form: FormData): Promise<Idea
     console.error("ideas insert failed:", err instanceof Error ? err.message : err);
     return { status: "error", message: "Something went wrong on my side. Please try again in a little while." };
   }
+
+  // The idea is already saved, so a failed email never fails the visitor.
+  await notifyByEmail({ name, email, category, message });
   return { status: "sent" };
+}
+
+const CATEGORY_LABELS: Record<Category, string> = {
+  book_to_translate: "A book to translate",
+  app: "An app or website",
+  civic: "A civic or social idea",
+  other: "Something else",
+};
+
+// Emails each new idea to ADMIN_EMAIL through Resend. Plain text only, so
+// nothing a visitor types can turn into HTML. Replying goes to the visitor.
+async function notifyByEmail(idea: { name: string; email: string; category: Category; message: string }) {
+  const key = process.env.RESEND_API_KEY;
+  const to = process.env.ADMIN_EMAIL;
+  if (!key || !to) return;
+  // jambuch.in is a verified sending domain in Resend.
+  const from = process.env.RESEND_FROM || "jambuch.in <ideas@jambuch.in>";
+  const who = idea.name || "Someone";
+  const text = [
+    `${who}${idea.email ? ` <${idea.email}>` : ""} shared an idea on jambuch.in.`,
+    `Kind: ${CATEGORY_LABELS[idea.category]}`,
+    "",
+    idea.message,
+    "",
+    "Inbox: https://jambuch.in/admin/ideas",
+  ].join("\n");
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from,
+        to,
+        subject: `New idea from ${who.replace(/[\r\n]+/g, " ").slice(0, 80)}`,
+        text,
+        ...(idea.email ? { reply_to: idea.email } : {}),
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) console.error("idea email failed:", res.status, await res.text());
+  } catch (err) {
+    console.error("idea email failed:", err instanceof Error ? err.message : err);
+  }
 }
