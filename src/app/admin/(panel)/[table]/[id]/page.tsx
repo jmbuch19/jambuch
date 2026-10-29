@@ -1,0 +1,128 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { requireAdmin } from "@/lib/admin";
+import { formatCell, tableConfig } from "@/lib/admin-tables";
+import { deleteRow, saveRow } from "../../../actions";
+import a from "../../../admin.module.css";
+
+export default async function EditRow({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ table: string; id: string }>;
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { table, id: rawId } = await params;
+  const { error } = await searchParams;
+  const id = decodeURIComponent(rawId);
+  const cfg = tableConfig(table);
+  if (!cfg) notFound();
+  const isNew = id === "new";
+  if (isNew && !cfg.canCreate) notFound();
+  const { db } = await requireAdmin();
+
+  let row: Record<string, unknown> = { published: true, sort_order: 0 };
+  if (!isNew) {
+    const { data } = await db.from(table).select("*").eq(cfg.key, id).maybeSingle();
+    if (!data) notFound();
+    row = data;
+    // Opening an idea marks it read.
+    if (table === "ideas" && !row.is_read) {
+      await db.from("ideas").update({ is_read: true }).eq("id", id);
+      row.is_read = true;
+    }
+  }
+
+  return (
+    <>
+      <p className={a.crumb}>
+        <Link href={`/admin/${table}`}>← {cfg.label}</Link>
+      </p>
+      <h1 className={a.title}>{isNew ? "Add new" : "Edit"}</h1>
+      {error && (
+        <p className={a.error} role="alert">
+          {error}
+        </p>
+      )}
+
+      <form action={saveRow.bind(null, table, id)} className={a.form}>
+        {cfg.fields.map((f) => {
+          const value = row[f.name];
+          if (f.readOnly) {
+            if (isNew) return null;
+            return (
+              <div key={f.name} className={a.field}>
+                {f.label}
+                <div className={a.readOnly}>
+                  {f.name === "email" && value ? (
+                    <a href={`mailto:${value}`}>{String(value)}</a>
+                  ) : (
+                    formatCell(cfg, f.name, value, true) || "—"
+                  )}
+                </div>
+              </div>
+            );
+          }
+          if (f.type === "bool") {
+            return (
+              <label key={f.name} className={a.check}>
+                <input type="checkbox" name={f.name} defaultChecked={!!value} />
+                <span>
+                  {f.label}
+                  {f.hint && <small>{f.hint}</small>}
+                </span>
+              </label>
+            );
+          }
+          return (
+            <label key={f.name} className={a.field}>
+              <span>
+                {f.label}
+                {f.required && " *"}
+              </span>
+              {f.type === "textarea" ? (
+                <textarea name={f.name} defaultValue={String(value ?? "")} rows={4} required={f.required} />
+              ) : f.type === "select" ? (
+                <select name={f.name} defaultValue={String(value ?? f.options?.[0]?.value ?? "")}>
+                  {f.options?.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type={f.type === "int" ? "number" : f.type === "url" ? "url" : "text"}
+                  name={f.name}
+                  defaultValue={value == null ? "" : String(value)}
+                  required={f.required}
+                />
+              )}
+              {f.hint && <small>{f.hint}</small>}
+            </label>
+          );
+        })}
+        <div className={a.actions}>
+          <button type="submit" className={a.primary}>
+            Save
+          </button>
+          <Link href={`/admin/${table}`} className={a.secondary}>
+            Cancel
+          </Link>
+        </div>
+      </form>
+
+      {!isNew && cfg.canDelete && (
+        <details className={a.danger}>
+          <summary>Delete this {table === "ideas" ? "idea" : "item"}</summary>
+          <form action={deleteRow.bind(null, table, id)}>
+            <p>This can’t be undone.</p>
+            <button type="submit" className={a.dangerButton}>
+              Yes, delete it
+            </button>
+          </form>
+        </details>
+      )}
+    </>
+  );
+}

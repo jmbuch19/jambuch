@@ -8,7 +8,7 @@ import s from "./home.module.css";
 declare global {
   interface Window {
     turnstile?: {
-      render: (el: HTMLElement, opts: { sitekey: string }) => string;
+      render: (el: HTMLElement, opts: { sitekey: string; action?: string }) => string;
       reset: (id?: string) => void;
     };
   }
@@ -24,7 +24,8 @@ export default function IdeaForm() {
   // The widget adds a hidden "cf-turnstile-response" input to the form.
   function renderWidget() {
     if (!window.turnstile || !widgetEl.current || widgetId.current !== null) return;
-    widgetId.current = window.turnstile.render(widgetEl.current, { sitekey: SITE_KEY });
+    // The server checks this action, so tokens from other widgets don't count.
+    widgetId.current = window.turnstile.render(widgetEl.current, { sitekey: SITE_KEY, action: "idea" });
   }
 
   useEffect(renderWidget, []);

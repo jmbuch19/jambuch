@@ -1,0 +1,329 @@
+/* Admin: plain and practical, using the site's tokens. */
+
+.logo {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+.logo span {
+  color: var(--accent);
+}
+
+/* ------------------------------------------------------------ login */
+.loginWrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px var(--gutter);
+}
+.loginCard {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.loginTitle {
+  margin: 0;
+  font-size: 32px;
+}
+
+/* ------------------------------------------------------------ shell */
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-wrap: wrap;
+}
+.side {
+  flex: 0 0 230px;
+  border-right: 1px solid var(--border);
+  background: var(--paper-alt);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.sideNav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 15px;
+}
+.sideNav a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+}
+.sideNav a:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+.sideFoot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.main {
+  flex: 1 1 560px;
+  min-width: 0;
+  padding: 32px var(--gutter) 64px;
+  max-width: 1000px;
+}
+@media (max-width: 800px) {
+  .side {
+    flex-basis: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .sideNav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+/* ------------------------------------------------------------ text */
+.title {
+  margin: 0 0 16px;
+  font-size: 32px;
+}
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.intro {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.crumb {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.notice {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-tint);
+  color: var(--accent-hover);
+  font-size: 14px;
+}
+.error {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  background: #f6e3df;
+  color: #8a2a1c;
+  font-size: 14px;
+}
+
+/* ------------------------------------------------------------ buttons */
+.primary,
+.secondary,
+.dangerButton {
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.primary {
+  background: var(--ink);
+  color: #fff;
+}
+.primary:hover {
+  background: var(--ink-mid);
+  color: #fff;
+}
+.primary:disabled {
+  opacity: 0.6;
+}
+.secondary {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--ink);
+}
+.secondary:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.dangerButton {
+  background: #8a2a1c;
+  color: #fff;
+}
+.linkButton {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ------------------------------------------------------------ dashboard */
+.tiles {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr));
+}
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.tile:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+.tileCount {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------ list */
+.search {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 16px;
+}
+.search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  background: var(--surface);
+}
+.tableWrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.table th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--row-line);
+  vertical-align: top;
+}
+.table tr:last-child td {
+  border-bottom: none;
+}
+.unread td {
+  font-weight: 600;
+}
+.empty {
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ------------------------------------------------------------ form */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 680px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.field input,
+.field select,
+.field textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 400;
+  background: var(--input-bg);
+  color: var(--ink);
+}
+.field textarea {
+  resize: vertical;
+}
+.field small,
+.check small {
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.readOnly {
+  font-weight: 400;
+  white-space: pre-wrap;
+  padding: 10px 12px;
+  background: var(--paper-alt);
+  border-radius: var(--radius-sm);
+}
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.check input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+.actions {
+  display: flex;
+  gap: 12px;
+}
+.danger {
+  margin-top: 48px;
+  max-width: 680px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  font-size: 14px;
+}
+.danger summary {
+  cursor: pointer;
+  color: #8a2a1c;
+}

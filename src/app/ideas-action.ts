@@ -8,16 +8,36 @@ export type IdeaState = { status: "idle" | "sent" | "error"; message?: string };
 const CATEGORIES = ["book_to_translate", "app", "civic", "other"] as const;
 type Category = (typeof CATEGORIES)[number];
 
+// Must match the action passed to turnstile.render in idea-form.tsx.
+const TURNSTILE_ACTION = "idea";
+
+// A token counts only if Cloudflare says it passed, it was issued for this
+// form, and it was solved on one of our own hostnames (TURNSTILE_HOSTNAMES,
+// comma-separated; never include localhost in production).
 async function passesTurnstile(token: string): Promise<boolean> {
   const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret || !token) return false;
-  const ip = (await headers()).get("cf-connecting-ip") ?? (await headers()).get("x-forwarded-for")?.split(",")[0];
+  const hostnames = new Set(
+    (process.env.TURNSTILE_HOSTNAMES ?? "")
+      .split(",")
+      .map((h) => h.trim())
+      .filter(Boolean),
+  );
+  if (!secret || hostnames.size === 0 || !token || token.length > 2048) return false;
+
+  const h = await headers();
+  const ip = h.get("cf-connecting-ip") ?? h.get("x-forwarded-for")?.split(",")[0];
   const body = new URLSearchParams({ secret, response: token });
   if (ip) body.set("remoteip", ip.trim());
   try {
-    const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body });
-    const data = (await res.json()) as { success?: boolean };
-    return data.success === true;
+    const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) return false;
+    const data = (await res.json()) as { success?: boolean; action?: string; hostname?: string };
+    return data.success === true && data.action === TURNSTILE_ACTION && hostnames.has(data.hostname ?? "");
   } catch {
     return false;
   }
