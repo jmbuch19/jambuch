@@ -44,3 +44,4 @@ next-env.d.ts
 # supabase cli
 supabase/.temp
 supabase/.branches
+.gstack/
