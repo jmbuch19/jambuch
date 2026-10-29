@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Courtyard — guest creators</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Noto+Serif+Gujarati:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F5F3EE}
+a{color:#1E5C57}a:hover{color:#123B37}
+input,textarea,select,button{font-family:inherit}
+</style>
+</helmet>
+<div style="background: #F5F3EE; color: #1B1F1E; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 16px; line-height: 1.6">
+
+<header style="border-bottom: 1px solid #DAD6CC">
+<nav style="max-width: 1160px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+<a href="Main.dc.html" style="font-family: 'Newsreader', Georgia, serif; font-size: 24px; font-weight: 600; color: #1B1F1E; text-decoration: none">jambuch<span style="color: #1E5C57">.</span></a>
+<div style="display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 14px; font-weight: 500">
+<a href="Book.dc.html" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Moving library</a>
+<a href="Journey.dc.html" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Journey</a>
+<a href="Courtyard.dc.html" style="color: #1B1F1E; text-decoration: underline; text-underline-offset: 6px; padding: 10px 0">Courtyard</a>
+<a href="Ledger.dc.html" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Promises</a>
+</div>
+</nav>
+</header>
+
+<section style="max-width: 1160px; margin: 0 auto; padding: 64px 24px 40px">
+<p style="margin: 0 0 8px; font-family: 'Noto Serif Gujarati', serif; font-size: 24px; color: #9A5418">આંગણું</p>
+<h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 56px; line-height: 1.1">The Courtyard</h1>
+<p style="margin: 16px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 23px; color: #2E3735; max-width: 720px">Friends, cousins and colleagues who make beautiful things but have nowhere to put them. Each has a room of their own here — and every word, photo and note in it belongs to them.</p>
+</section>
+
+<!-- CREATORS -->
+<section style="max-width: 1160px; margin: 0 auto; padding: 0 24px 64px">
+<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="5">
+<sc-if value="{{f.on}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{f.pick}}" style="min-height: 44px; padding: 0 18px; border-radius: 22px; border: 1px solid #1B1F1E; background: #1B1F1E; color: #FFFFFF; font-size: 14px; cursor: pointer">{{f.label}}</button></sc-if>
+<sc-if value="{{f.off}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{f.pick}}" style="min-height: 44px; padding: 0 18px; border-radius: 22px; border: 1px solid #B5AFA2; background: #FFFFFF; color: #1B1F1E; font-size: 14px; cursor: pointer">{{f.label}}</button></sc-if>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px">
+<sc-for list="{{creators}}" as="c" hint-placeholder-count="4">
+<a href="Guest.dc.html" style="display: flex; flex-direction: column; gap: 14px; background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 12px; padding: 24px; text-decoration: none; color: #1B1F1E">
+<span style="width: 64px; height: 64px; border-radius: 32px; background: {{c.tint}}; display: flex; align-items: center; justify-content: center; font-family: 'Newsreader', Georgia, serif; font-size: 24px; color: #1B1F1E">{{c.initials}}</span>
+<span>
+<span style="display: block; font-family: 'Newsreader', Georgia, serif; font-size: 23px">{{c.name}}</span>
+<span style="display: block; font-size: 14px; color: #55605D">{{c.craft}} · {{c.place}}</span>
+</span>
+<span style="font-size: 15px; color: #3F4A47; flex-grow: 1">{{c.line}}</span>
+<span style="font-size: 14px; font-weight: 500; color: #1E5C57">Visit their room →</span>
+</a>
+</sc-for>
+</div>
+</section>
+
+<!-- HOW IT WORKS + PROMISE -->
+<section style="border-top: 1px solid #DAD6CC; background: #EDEAE2">
+<div style="max-width: 1160px; margin: 0 auto; padding: 64px 24px; display: flex; flex-wrap: wrap; gap: 40px">
+<div style="flex: 999 1 520px; min-width: 0">
+<h2 style="margin: 0 0 24px; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 34px">How a room is made</h2>
+<div style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; gap: 18px"><span style="flex: none; width: 40px; height: 40px; border-radius: 20px; background: #1B1F1E; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 600">1</span><div><p style="margin: 0; font-weight: 600">You send your work, however you have it</p><p style="margin: 2px 0 0; color: #3F4A47">WhatsApp, email, a Drive folder, a notebook photographed page by page. No design skills needed.</p></div></div>
+<div style="display: flex; gap: 18px"><span style="flex: none; width: 40px; height: 40px; border-radius: 20px; background: #1B1F1E; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 600">2</span><div><p style="margin: 0; font-weight: 600">I shape it into your room</p><p style="margin: 2px 0 0; color: #3F4A47">Your name, your words about yourself, your colour. I show you a preview first.</p></div></div>
+<div style="display: flex; gap: 18px"><span style="flex: none; width: 40px; height: 40px; border-radius: 20px; background: #1B1F1E; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 600">3</span><div><p style="margin: 0; font-weight: 600">Nothing goes public until you say yes</p><p style="margin: 2px 0 0; color: #3F4A47">Later, you can add new work yourself from your phone — or keep sending it to me.</p></div></div>
+</div>
+</div>
+<div style="flex: 1 1 340px; min-width: 0; background: #FFFFFF; border-radius: 12px; padding: 28px">
+<p style="margin: 0 0 14px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #9A5418">My promise to every guest</p>
+<div style="display: flex; flex-direction: column; gap: 12px; font-size: 15px">
+<p style="margin: 0">Your name is on every piece. Credit always goes to you, never to this site.</p>
+<p style="margin: 0">Your work stays yours. You choose how others may use it.</p>
+<p style="margin: 0">No ads, and no money is made from your work here.</p>
+<p style="margin: 0">Leave any time. Your room comes down and every file comes back to you.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- INVITE -->
+<section style="border-top: 1px solid #DAD6CC">
+<div style="max-width: 1160px; margin: 0 auto; padding: 64px 24px 80px; display: flex; flex-wrap: wrap; gap: 40px">
+<div style="flex: 1 1 320px; min-width: 0">
+<h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 34px">Want a room, or know someone who deserves one?</h2>
+<p style="margin: 12px 0 0; color: #3F4A47">Rooms are by invitation, for people I know. Tell me about them and I’ll get in touch.</p>
+</div>
+<div style="flex: 999 1 480px; min-width: 0; background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 12px; padding: 28px">
+<sc-if value="{{sent}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; padding: 32px 0; text-align: center; font-family: 'Newsreader', Georgia, serif; font-size: 26px">Thank you — I’ll call or write soon.</p>
+</sc-if>
+<sc-if value="{{notSent}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+<label style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Creator’s name<input type="text" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"></label>
+<label style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">How do they know Jaydeep?<input type="text" placeholder="cousin, colleague, friend…" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"></label>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">What do they make?<select style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"><option>Writing or poetry</option><option>Photography</option><option>Music</option><option>Art or craft</option><option>Something else</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">A line about their work, or a link to a sample<textarea rows="3" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7; resize: vertical"></textarea></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Your phone or email<input type="text" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"></label>
+<button type="button" onClick="{{send}}" style="align-self: flex-start; background: #1B1F1E; color: #FFFFFF; border: none; padding: 13px 24px; border-radius: 6px; font-size: 15px; font-weight: 500; cursor: pointer">Send</button>
+</div>
+</sc-if>
+</div>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2500}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { f: 'All', sent: false };
+  }
+  renderVals() {
+    const all = [
+      { initials: 'A', name: '[Guest name]', craft: 'Poetry', place: '[City]', line: '[One line in their own words about what they make.]', tint: '#F6E7D6' },
+      { initials: 'B', name: '[Guest name]', craft: 'Photography', place: '[City]', line: '[One line in their own words about what they make.]', tint: '#DCE6E4' },
+      { initials: 'C', name: '[Guest name]', craft: 'Music', place: '[City]', line: '[One line in their own words about what they make.]', tint: '#E1DFE6' },
+      { initials: 'D', name: '[Guest name]', craft: 'Art', place: '[City]', line: '[One line in their own words about what they make.]', tint: '#E6E1D3' }
+    ];
+    const f = this.state.f;
+    const creators = all.filter(c => f === 'All' || c.craft === f);
+    const filters = ['All', 'Poetry', 'Photography', 'Music', 'Art'].map(label => ({
+      label, on: f === label, off: f !== label, pick: () => this.setState({ f: label })
+    }));
+    return {
+      creators, filters,
+      sent: this.state.sent, notSent: !this.state.sent,
+      send: () => this.setState({ sent: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

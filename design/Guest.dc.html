@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A guest creator’s room — The Courtyard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Noto+Serif+Gujarati:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FBFAF7}
+a{color:#1B1F1E}
+input,textarea,button{font-family:inherit}
+</style>
+</helmet>
+<div style="background: #FBFAF7; color: #1B1F1E; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 16px; line-height: 1.6">
+
+<!-- HOST BAR: quiet, so the guest is the star -->
+<div style="background: #1B1F1E; color: #CFD8D6; font-size: 13px">
+<div style="max-width: 1160px; margin: 0 auto; padding: 6px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px">
+<span>A room in <span style="font-family: 'Noto Serif Gujarati', serif">આંગણું</span> · The Courtyard at jambuch.in</span>
+<a href="Courtyard.dc.html" style="color: #F5F3EE; text-decoration: none; padding: 8px 0">← All guest rooms</a>
+</div>
+</div>
+
+<!-- GUEST HERO in their colour -->
+<section style="background: {{guestColor}}">
+<div style="max-width: 1160px; margin: 0 auto; padding: 72px 24px 56px; display: flex; flex-wrap: wrap; gap: 36px; align-items: flex-end">
+<div style="flex: none; width: 140px; height: 140px; border-radius: 70px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #55605D; text-align: center">[Their photo]</div>
+<div style="flex: 999 1 480px; min-width: 0">
+<p style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3F4A47">[Craft] · [City]</p>
+<h1 style="margin: 6px 0 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 60px; line-height: 1.05">[Guest’s full name]</h1>
+<p style="margin: 6px 0 0; font-family: 'Noto Serif Gujarati', serif; font-size: 22px; color: #2E3735">[નામ ગુજરાતીમાં]</p>
+<p style="margin: 18px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 22px; color: #1B1F1E; max-width: 640px">“[A few lines about themselves and their work — in their own words, not mine.]”</p>
+</div>
+</div>
+</section>
+
+<!-- CREDIT BAND -->
+<section style="border-bottom: 1px solid #DAD6CC; background: #FFFFFF">
+<div style="max-width: 1160px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; font-size: 14px">
+<span style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M14.5 9.5a3.5 3.5 0 1 0 0 5"></path></svg>All work in this room © [Year] [Guest’s full name]</span>
+<span style="color: #3F4A47">{{licence}}</span>
+<span style="color: #55605D">Shared here with their permission · member since [month year]</span>
+</div>
+</section>
+
+<!-- WORKS -->
+<section style="max-width: 1160px; margin: 0 auto; padding: 48px 24px 64px">
+<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 32px" role="tablist">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+<sc-if value="{{t.on}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{t.pick}}" style="min-height: 44px; padding: 0 20px; border-radius: 22px; border: 1px solid #1B1F1E; background: #1B1F1E; color: #FFFFFF; font-size: 15px; cursor: pointer">{{t.label}}</button></sc-if>
+<sc-if value="{{t.off}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{t.pick}}" style="min-height: 44px; padding: 0 20px; border-radius: 22px; border: 1px solid #B5AFA2; background: #FFFFFF; color: #1B1F1E; font-size: 15px; cursor: pointer">{{t.label}}</button></sc-if>
+</sc-for>
+</div>
+
+<sc-if value="{{showWriting}}" hint-placeholder-val="{{ true }}">
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px">
+<article style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 12px; padding: 28px">
+<p style="margin: 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #55605D">Poem · [date]</p>
+<h3 style="margin: 6px 0 12px; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 24px">[Title]</h3>
+<p style="margin: 0; font-family: 'Noto Serif Gujarati', serif; font-size: 18px; line-height: 1.8; white-space: pre-line">[પહેલી પંક્તિ
+બીજી પંક્તિ]</p>
+<a href="#" style="display: inline-block; margin-top: 12px; padding: 6px 0; font-weight: 500; font-size: 14px">Read in full →</a>
+</article>
+<article style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 12px; padding: 28px">
+<p style="margin: 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #55605D">Essay · [date]</p>
+<h3 style="margin: 6px 0 12px; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 24px">[Title]</h3>
+<p style="margin: 0; color: #3F4A47">[The opening lines of the piece.]</p>
+<a href="#" style="display: inline-block; margin-top: 12px; padding: 6px 0; font-weight: 500; font-size: 14px">Read in full →</a>
+</article>
+</div>
+</sc-if>
+
+<sc-if value="{{showPhotos}}" hint-placeholder-val="{{ false }}">
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px">
+<div style="aspect-ratio: 1 / 1; background: {{guestColor}}; border-radius: 10px; display: flex; align-items: flex-end; padding: 12px; font-size: 13px">[Photo · caption]</div>
+<div style="aspect-ratio: 1 / 1; background: {{guestColor}}; border-radius: 10px; display: flex; align-items: flex-end; padding: 12px; font-size: 13px">[Photo · caption]</div>
+<div style="aspect-ratio: 1 / 1; background: {{guestColor}}; border-radius: 10px; display: flex; align-items: flex-end; padding: 12px; font-size: 13px">[Photo · caption]</div>
+<div style="aspect-ratio: 1 / 1; background: {{guestColor}}; border-radius: 10px; display: flex; align-items: flex-end; padding: 12px; font-size: 13px">[Photo · caption]</div>
+</div>
+</sc-if>
+
+<sc-if value="{{showMusic}}" hint-placeholder-val="{{ false }}">
+<div style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 12px">
+<div style="display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-bottom: 1px solid #ECE9E1">
+<button type="button" aria-label="Play" style="flex: none; width: 44px; height: 44px; border-radius: 22px; border: 1px solid #B5AFA2; background: #FFFFFF; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="#1B1F1E" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg></button>
+<div style="flex: 1; min-width: 0"><div style="font-family: 'Newsreader', Georgia, serif; font-size: 19px">[Recording title]</div><div style="font-size: 13px; color: #55605D">[Details]</div></div>
+<span style="font-size: 13px; color: #55605D">[0:00]</span>
+</div>
+<div style="display: flex; align-items: center; gap: 16px; padding: 16px 20px">
+<button type="button" aria-label="Play" style="flex: none; width: 44px; height: 44px; border-radius: 22px; border: 1px solid #B5AFA2; background: #FFFFFF; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="#1B1F1E" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg></button>
+<div style="flex: 1; min-width: 0"><div style="font-family: 'Newsreader', Georgia, serif; font-size: 19px">[Recording title]</div><div style="font-size: 13px; color: #55605D">[Details]</div></div>
+<span style="font-size: 13px; color: #55605D">[0:00]</span>
+</div>
+</div>
+</sc-if>
+</section>
+
+<!-- WRITE TO THE GUEST -->
+<section style="border-top: 1px solid #DAD6CC; background: #FFFFFF">
+<div style="max-width: 1160px; margin: 0 auto; padding: 56px 24px; display: flex; flex-wrap: wrap; gap: 32px">
+<div style="flex: 1 1 300px; min-width: 0">
+<h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 30px">Write to [first name]</h2>
+<p style="margin: 8px 0 0; color: #3F4A47">Your note goes straight to them. Their email and number stay private.</p>
+</div>
+<div style="flex: 999 1 460px; min-width: 0">
+<sc-if value="{{sent}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 24px">Sent — [first name] will see it.</p></sc-if>
+<sc-if value="{{notSent}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Your name and email<input type="text" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Message<textarea rows="3" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7; resize: vertical"></textarea></label>
+<button type="button" onClick="{{send}}" style="align-self: flex-start; background: #1B1F1E; color: #FFFFFF; border: none; padding: 13px 24px; border-radius: 6px; font-size: 15px; font-weight: 500; cursor: pointer">Send</button>
+</div>
+</sc-if>
+</div>
+</div>
+</section>
+
+<footer style="background: #1B1F1E; color: #B8C4C1">
+<div style="max-width: 1160px; margin: 0 auto; padding: 28px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font-size: 14px">
+<span>Room hosted by <a href="Main.dc.html" style="color: #F5F3EE">Jaydeep Buch</a> in the Courtyard at jambuch.in</span>
+<span>Credit for everything on this page belongs to [Guest’s full name].</span>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"guestColor":{"editor":"color","default":"#F6E7D6","options":["#F6E7D6","#DCE6E4","#E1DFE6","#E6E1D3"]},"licence":{"editor":"enum","options":["All rights reserved","Share with credit (CC BY-NC)"],"default":"All rights reserved"},"$preview":{"width":1280,"height":2700}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'Writing', sent: false };
+  }
+  renderVals() {
+    const tab = this.state.tab;
+    const tabs = ['Writing', 'Photos', 'Music'].map(label => ({
+      label, on: tab === label, off: tab !== label, pick: () => this.setState({ tab: label })
+    }));
+    return {
+      guestColor: this.props.guestColor ?? '#F6E7D6',
+      licence: this.props.licence ?? 'All rights reserved',
+      tabs,
+      showWriting: tab === 'Writing',
+      showPhotos: tab === 'Photos',
+      showMusic: tab === 'Music',
+      sent: this.state.sent, notSent: !this.state.sent,
+      send: () => this.setState({ sent: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

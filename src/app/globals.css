@@ -1,0 +1,93 @@
+/* Design tokens from design/Main.dc.html (approved mockup). */
+:root {
+  /* Core palette from the brief */
+  --paper: #f5f3ee;
+  --ink: #1b1f1e;
+  --accent: #1e5c57;
+  --muted: #55605d;
+  --border: #dad6cc;
+  --saffron: #9a5418;
+
+  /* Supporting shades used in the mockup */
+  --paper-alt: #edeae2;      /* alternating section background */
+  --surface: #ffffff;        /* cards */
+  --input-bg: #fbfaf7;
+  --ink-soft: #3f4a47;       /* secondary text, nav links */
+  --ink-mid: #2e3735;
+  --accent-hover: #123b37;
+  --accent-tint: #e3ecea;
+  --border-strong: #b5afa2;  /* inputs, chips, dashed cards */
+  --row-line: #ece9e1;       /* table/list dividers */
+  --on-dark-muted: #b8c4c1;  /* text on ink backgrounds */
+  --on-dark-accent: #8fc1bb;
+
+  /* Font variables are set by next/font in layout.tsx */
+  --font-heading: var(--font-newsreader), Georgia, serif;
+  --font-body: var(--font-plex), system-ui, sans-serif;
+  --font-gujarati: var(--font-noto-gujarati), serif;
+
+  --max-width: 1160px;
+  --gutter: 24px;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+}
+a:hover {
+  color: var(--accent-hover);
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading);
+  font-weight: 500;
+}
+
+.gu {
+  font-family: var(--font-gujarati);
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+}
+
+@media (max-width: 600px) {
+  :root {
+    --gutter: 16px;
+  }
+}

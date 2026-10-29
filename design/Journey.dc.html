@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Journey — photos and videos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Noto+Serif+Gujarati:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F5F3EE}
+a{color:#1E5C57}a:hover{color:#123B37}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="background: #F5F3EE; color: #1B1F1E; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 16px; line-height: 1.6">
+
+<header style="border-bottom: 1px solid #DAD6CC">
+<nav style="max-width: 1160px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+<a href="Main.dc.html" style="font-family: 'Newsreader', Georgia, serif; font-size: 24px; font-weight: 600; color: #1B1F1E; text-decoration: none">jambuch<span style="color: #1E5C57">.</span></a>
+<div style="display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 14px; font-weight: 500">
+<a href="Book.dc.html" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Moving library</a>
+<a href="Journey.dc.html" style="color: #1B1F1E; text-decoration: underline; text-underline-offset: 6px; padding: 10px 0">Journey</a>
+<a href="Ledger.dc.html" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Promises</a>
+</div>
+</nav>
+</header>
+
+<section style="max-width: 1160px; margin: 0 auto; padding: 64px 24px 32px">
+<p style="margin: 0 0 8px; font-family: 'Noto Serif Gujarati', serif; font-size: 22px; color: #55605D">યાત્રા</p>
+<h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 56px; line-height: 1.1">The journey</h1>
+<p style="margin: 16px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 22px; color: #2E3735; max-width: 680px">Monsoon ghats, mountain trails and the making of things — in photographs and film, newest first.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+<sc-if value="{{f.on}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{f.pick}}" style="min-height: 44px; padding: 0 18px; border-radius: 22px; border: 1px solid #1B1F1E; background: #1B1F1E; color: #FFFFFF; font-size: 14px; cursor: pointer">{{f.label}}</button></sc-if>
+<sc-if value="{{f.off}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{f.pick}}" style="min-height: 44px; padding: 0 18px; border-radius: 22px; border: 1px solid #B5AFA2; background: #FFFFFF; color: #1B1F1E; font-size: 14px; cursor: pointer">{{f.label}}</button></sc-if>
+</sc-for>
+</div>
+</section>
+
+<section style="max-width: 1160px; margin: 0 auto; padding: 16px 24px 80px; display: flex; flex-direction: column; gap: 64px">
+<sc-for list="{{entries}}" as="e" hint-placeholder-count="4">
+<article style="display: flex; flex-wrap: wrap; gap: 24px 48px">
+<div style="flex: 1 1 240px; min-width: 0">
+<p style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #9A5418">{{e.when}}</p>
+<h2 style="margin: 6px 0 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 32px; line-height: 1.2">{{e.title}}</h2>
+<p style="margin: 4px 0 0; font-family: 'Noto Serif Gujarati', serif; color: #55605D; font-size: 17px">{{e.gu}}</p>
+<p style="margin: 14px 0 0; color: #3F4A47">{{e.caption}}</p>
+<sc-if value="{{e.hasLink}}" hint-placeholder-val="{{ false }}"><a href="#" style="display: inline-block; margin-top: 10px; padding: 8px 0; font-weight: 500; text-decoration: none">{{e.linkLabel}} →</a></sc-if>
+</div>
+<div style="flex: 999 1 600px; min-width: 0">
+<sc-if value="{{e.isVideo}}" hint-placeholder-val="{{ false }}">
+<div style="position: relative; aspect-ratio: 16 / 9; background: #1B1F1E; border-radius: 10px; display: flex; align-items: center; justify-content: center">
+<button type="button" aria-label="Play video" style="width: 72px; height: 72px; border-radius: 36px; border: none; background: #F5F3EE; color: #1B1F1E; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg></button>
+<span style="position: absolute; left: 16px; bottom: 14px; font-size: 13px; color: #CFD8D6">[Video] {{e.title}} · [length]</span>
+</div>
+</sc-if>
+<sc-if value="{{e.isPhotos}}" hint-placeholder-val="{{ true }}">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+<div style="grid-column: span 2; grid-row: span 2; aspect-ratio: 4 / 3; background: {{e.tint}}; border-radius: 10px; display: flex; align-items: flex-end; padding: 14px; font-size: 13px; color: #1B1F1E">[Photo]</div>
+<div style="aspect-ratio: 1 / 1; background: {{e.tint}}; border-radius: 10px; display: flex; align-items: flex-end; padding: 10px; font-size: 13px; color: #1B1F1E">[Photo]</div>
+<div style="aspect-ratio: 1 / 1; background: {{e.tint}}; border-radius: 10px; display: flex; align-items: flex-end; padding: 10px; font-size: 13px; color: #1B1F1E">[Photo]</div>
+</div>
+<p style="margin: 10px 0 0; font-size: 13px; color: #55605D">[n] photos in this album · full-resolution downloads for the Reading Circle</p>
+</sc-if>
+</div>
+</article>
+</sc-for>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":3100}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { f: 'All' };
+  }
+  renderVals() {
+    const all = [
+      { type: 'Photos', when: '[Date] · Uttarakhand', title: 'Kedarnath, on foot', gu: 'કેદારનાથ યાત્રા', caption: 'The 16 km trek, walked — not flown. [One line about the climb.]', tint: '#E1DFE6', link: '' },
+      { type: 'Photos', when: 'August 2026 · Uttarakhand', title: 'Valley of Flowers', gu: 'ફૂલોની ઘાટી', caption: '[One line about the day in the valley.]', tint: '#E6E1D3', link: '' },
+      { type: 'Videos', when: 'Monsoon 2026 · Sahyadri', title: 'Matheran in Mist — A Pluviophile’s Journey', gu: 'ધુમ્મસમાં માથેરાન', caption: 'Rain, ghats and Malshej, for my channel Digital दिग्दर्शक.', tint: '', link: 'Watch on YouTube' },
+      { type: 'Photos', when: 'Monsoon 2026 · Malshej Ghat', title: 'The ghat in full rain', gu: 'માળશેજ ઘાટ', caption: '[One line about the road and the waterfalls.]', tint: '#DCE6E4', link: '' },
+      { type: 'Videos', when: '[Date] · Ahmedabad', title: 'Making “Ratanbabu and That Man”', gu: 'ફિલ્મ બને છે', caption: 'Behind the scenes of turning a translation into a film.', tint: '', link: 'Watch the making-of' }
+    ];
+    const f = this.state.f;
+    const entries = all.filter(e => f === 'All' || e.type === f).map(e => ({
+      ...e,
+      isVideo: e.type === 'Videos',
+      isPhotos: e.type === 'Photos',
+      hasLink: !!e.link,
+      linkLabel: e.link
+    }));
+    const filters = ['All', 'Photos', 'Videos'].map(label => ({
+      label, on: f === label, off: f !== label, pick: () => this.setState({ f: label })
+    }));
+    return { entries, filters };
+  }
+}
+</script>
+</body>
+</html>

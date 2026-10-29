@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Promises and progress</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Noto+Serif+Gujarati:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F5F3EE}
+a{color:#1E5C57}a:hover{color:#123B37}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="background: #F5F3EE; color: #1B1F1E; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 16px; line-height: 1.6">
+
+<header style="border-bottom: 1px solid #DAD6CC">
+<nav style="max-width: 1160px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+<a href="Main.dc.html" style="font-family: 'Newsreader', Georgia, serif; font-size: 24px; font-weight: 600; color: #1B1F1E; text-decoration: none">jambuch<span style="color: #1E5C57">.</span></a>
+<div style="display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 14px; font-weight: 500">
+<a href="Book.dc.html" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Moving library</a>
+<a href="Journey.dc.html" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Journey</a>
+<a href="Ledger.dc.html" style="color: #1B1F1E; text-decoration: underline; text-underline-offset: 6px; padding: 10px 0">Promises</a>
+</div>
+</nav>
+</header>
+
+<section style="max-width: 1160px; margin: 0 auto; padding: 64px 24px 24px; display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-end; justify-content: space-between">
+<div style="flex: 999 1 560px; min-width: 0">
+<p style="margin: 0 0 8px; font-family: 'Noto Serif Gujarati', serif; font-size: 22px; color: #55605D">વચન અને હિસાબ</p>
+<h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 56px; line-height: 1.1">Promises &amp; progress</h1>
+<p style="margin: 16px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 22px; color: #2E3735; max-width: 680px">Everything I’ve promised someone, and where it honestly stands. If this page looks stale, ask me why.</p>
+</div>
+<div style="flex: 1 1 260px; background: #1B1F1E; color: #F5F3EE; border-radius: 10px; padding: 22px 24px">
+<p style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #B8C4C1">Last updated</p>
+<p style="margin: 4px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 30px">[Date]</p>
+<p style="margin: 4px 0 0; font-size: 13px; color: #B8C4C1">I review this page every [Sunday].</p>
+</div>
+</section>
+
+<section style="max-width: 1160px; margin: 0 auto; padding: 24px 24px 0">
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px">
+<div style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px; padding: 16px 18px"><p style="margin: 0; font-size: 32px; font-family: 'Newsreader', Georgia, serif">{{nOnTrack}}</p><p style="margin: 0; font-size: 14px; color: #1E5C57; font-weight: 500">On track</p></div>
+<div style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px; padding: 16px 18px"><p style="margin: 0; font-size: 32px; font-family: 'Newsreader', Georgia, serif">{{nWaiting}}</p><p style="margin: 0; font-size: 14px; color: #7A3E12; font-weight: 500">Waiting or delayed</p></div>
+<div style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px; padding: 16px 18px"><p style="margin: 0; font-size: 32px; font-family: 'Newsreader', Georgia, serif">{{nDone}}</p><p style="margin: 0; font-size: 14px; color: #3F4A47; font-weight: 500">Kept</p></div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+<sc-if value="{{f.on}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{f.pick}}" style="min-height: 44px; padding: 0 18px; border-radius: 22px; border: 1px solid #1B1F1E; background: #1B1F1E; color: #FFFFFF; font-size: 14px; cursor: pointer">{{f.label}}</button></sc-if>
+<sc-if value="{{f.off}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{f.pick}}" style="min-height: 44px; padding: 0 18px; border-radius: 22px; border: 1px solid #B5AFA2; background: #FFFFFF; color: #1B1F1E; font-size: 14px; cursor: pointer">{{f.label}}</button></sc-if>
+</sc-for>
+</div>
+</section>
+
+<section style="max-width: 1160px; margin: 0 auto; padding: 20px 24px 40px; display: flex; flex-direction: column; gap: 14px">
+<sc-for list="{{items}}" as="it" hint-placeholder-count="6">
+<article style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px">
+<button type="button" onClick="{{it.toggle}}" style="width: 100%; text-align: left; background: transparent; border: none; padding: 20px 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; cursor: pointer; color: #1B1F1E; font-size: 16px">
+<span style="flex: 1 1 320px; min-width: 0">
+<span style="display: block; font-family: 'Newsreader', Georgia, serif; font-size: 22px">{{it.title}}</span>
+<span style="display: block; font-size: 14px; color: #55605D">Promised to {{it.to}} · next: {{it.next}}</span>
+</span>
+<sc-if value="{{it.private}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; font-weight: 500; color: #3F4A47; border: 1px solid #B5AFA2; padding: 3px 10px; border-radius: 12px">Family circle only</span></sc-if>
+<sc-if value="{{it.isOn}}" hint-placeholder-val="{{ true }}"><span style="font-size: 13px; font-weight: 600; color: #1E5C57; background: #E3ECEA; padding: 5px 12px; border-radius: 14px">On track</span></sc-if>
+<sc-if value="{{it.isWait}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; font-weight: 600; color: #7A3E12; background: #F6E7D6; padding: 5px 12px; border-radius: 14px">{{it.statusLabel}}</span></sc-if>
+<sc-if value="{{it.isDone}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; font-weight: 600; color: #FFFFFF; background: #3F4A47; padding: 5px 12px; border-radius: 14px">Kept</span></sc-if>
+<span style="font-size: 13px; color: #55605D; width: 120px">Updated {{it.updated}}</span>
+</button>
+<sc-if value="{{it.open}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 0 22px 20px; border-top: 1px solid #ECE9E1">
+<p style="margin: 16px 0 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3F4A47">Update log</p>
+<div style="display: flex; flex-direction: column; gap: 10px; font-size: 15px">
+<div style="display: flex; gap: 16px"><span style="flex: none; width: 90px; color: #55605D">[Date]</span><span>[What moved, in one honest line.]</span></div>
+<div style="display: flex; gap: 16px"><span style="flex: none; width: 90px; color: #55605D">[Date]</span><span>[What moved, in one honest line.]</span></div>
+</div>
+</div>
+</sc-if>
+</article>
+</sc-for>
+</section>
+
+<section style="max-width: 1160px; margin: 0 auto; padding: 0 24px 80px">
+<div style="border: 1px dashed #B5AFA2; border-radius: 10px; padding: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div style="flex: 1 1 420px; min-width: 0">
+<p style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 22px">Family and friends see a little more.</p>
+<p style="margin: 4px 0 0; color: #3F4A47; font-size: 15px">Private commitments show only to people I’ve invited to the family circle. Sign in with the email I have for you.</p>
+</div>
+<a href="#" style="min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; padding: 0 20px; border-radius: 6px; background: #1B1F1E; color: #FFFFFF; text-decoration: none; font-size: 15px; font-weight: 500">Family sign-in</a>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2700}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { open: 0, f: 'All' };
+  }
+  renderVals() {
+    const raw = [
+      { title: 'Print edition of Nalinkant Chhaya’s Gujarati Ramayana', to: 'the Chhaya family', next: 'scholar review and second proofread', s: 'on', label: '', updated: '[date]', group: 'Family', priv: false },
+      { title: 'Hand over EdUmeetup to IAES', to: 'IAES', next: '[handover date]', s: 'wait', label: 'Handover pending', updated: '[date]', group: 'Work', priv: false },
+      { title: 'Clinic software, gifted to a doctor friend', to: 'a friend', next: '[next phase]', s: 'on', label: '', updated: '[date]', group: 'Friends', priv: false },
+      { title: 'Chasing the Monsoon — next chapter', to: 'my readers', next: 'Chapter [5]', s: 'on', label: '', updated: '[date]', group: 'Public', priv: false },
+      { title: 'Ratanbabu and That Man — the film', to: 'my readers', next: '[next stage]', s: 'wait', label: 'Delayed', updated: '[date]', group: 'Public', priv: false },
+      { title: '[A private family commitment]', to: '[family member]', next: '[next step]', s: 'on', label: '', updated: '[date]', group: 'Family', priv: true },
+      { title: '[A promise already kept]', to: '[person]', next: '—', s: 'done', label: '', updated: '[date]', group: 'Friends', priv: false }
+    ];
+    const f = this.state.f;
+    const items = raw.map((r, i) => ({ ...r, i })).filter(r => f === 'All' || r.group === f).map(r => ({
+      ...r,
+      isOn: r.s === 'on', isWait: r.s === 'wait', isDone: r.s === 'done',
+      statusLabel: r.label, private: r.priv,
+      open: this.state.open === r.i,
+      toggle: () => this.setState({ open: this.state.open === r.i ? -1 : r.i })
+    }));
+    const filters = ['All', 'Family', 'Friends', 'Work', 'Public'].map(label => ({
+      label, on: f === label, off: f !== label, pick: () => this.setState({ f: label })
+    }));
+    return {
+      items, filters,
+      nOnTrack: raw.filter(r => r.s === 'on').length,
+      nWaiting: raw.filter(r => r.s === 'wait').length,
+      nDone: raw.filter(r => r.s === 'done').length
+    };
+  }
+}
+</script>
+</body>
+</html>

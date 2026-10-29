@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>jambuch.in — Homepage</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Noto+Serif+Gujarati:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F5F3EE}
+a{color:#1E5C57}a:hover{color:#123B37}
+input,textarea,select,button{font-family:inherit}
+</style>
+</helmet>
+
+<div style="background: #F5F3EE; color: #1B1F1E; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 16px; line-height: 1.6">
+
+<!-- NAV -->
+<header style="border-bottom: 1px solid #DAD6CC; background: #F5F3EE">
+<nav style="max-width: 1160px; margin: 0 auto; padding: 18px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<a href="#top" style="font-family: 'Newsreader', Georgia, serif; font-size: 26px; font-weight: 600; color: #1B1F1E; text-decoration: none; letter-spacing: -0.01em">jambuch<span style="color: {{accent}}">.</span></a>
+<div style="display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 14px; font-weight: 500">
+<a href="#projects" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Projects</a>
+<a href="#reading" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Reading</a>
+<a href="#translations" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Translations</a>
+<a href="#wip" style="color: #3F4A47; text-decoration: none; padding: 10px 0">In progress</a>
+<a href="#advising" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Advising</a>
+<a href="#music" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Music</a>
+<a href="#library" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Library</a>
+<a href="Journey.dc.html" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Journey</a>
+<a href="Courtyard.dc.html" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Courtyard</a>
+<a href="Ledger.dc.html" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Promises</a>
+<a href="#ideas" style="color: #FFFFFF; background: {{accent}}; text-decoration: none; padding: 10px 16px; border-radius: 6px">Share an idea</a>
+</div>
+</nav>
+</header>
+
+<!-- HERO -->
+<section id="top" style="max-width: 1160px; margin: 0 auto; padding: 88px 24px 72px; display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-end">
+<div style="flex: 999 1 560px; min-width: 0">
+<p style="margin: 0 0 12px; font-family: 'Noto Serif Gujarati', serif; font-size: 20px; color: #55605D">જયદીપ બૂચ</p>
+<h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 64px; line-height: 1.05; letter-spacing: -0.02em">Jaydeep Buch</h1>
+<p style="margin: 24px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 26px; line-height: 1.4; color: #2E3735; max-width: 640px">I carry world literature into Gujarati, guide students toward study abroad, and build software for the causes I care about. From Ahmedabad.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px">
+<a href="#projects" style="background: #1B1F1E; color: #FFFFFF; text-decoration: none; padding: 13px 22px; border-radius: 6px; font-weight: 500; font-size: 15px">See what I build</a>
+<a href="#advising" style="border: 1px solid #1B1F1E; color: #1B1F1E; text-decoration: none; padding: 12px 22px; border-radius: 6px; font-weight: 500; font-size: 15px">Study-abroad advising</a>
+</div>
+</div>
+<aside style="flex: 1 1 300px; min-width: 0; background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px; padding: 24px">
+<p style="margin: 0 0 14px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #55605D">On my desk now</p>
+<div style="display: flex; flex-direction: column; gap: 14px; font-size: 15px">
+<div style="display: flex; gap: 12px"><span style="flex: none; width: 8px; height: 8px; border-radius: 4px; background: {{accent}}; margin-top: 8px"></span><span>Translating Alexander Frater’s <em>Chasing the Monsoon</em>, instalment by instalment</span></div>
+<div style="display: flex; gap: 12px"><span style="flex: none; width: 8px; height: 8px; border-radius: 4px; background: {{accent}}; margin-top: 8px"></span><span>Readying my late uncle Nalinkant Chhaya’s Gujarati Ramayana for print</span></div>
+<div style="display: flex; gap: 12px"><span style="flex: none; width: 8px; height: 8px; border-radius: 4px; background: {{accent}}; margin-top: 8px"></span><span>Turning Satyajit Ray’s <em>Ratanbabu and That Man</em> into a film</span></div>
+</div>
+</aside>
+</section>
+
+<!-- 01 PROJECTS -->
+<section id="projects" style="border-top: 1px solid #DAD6CC">
+<div style="max-width: 1160px; margin: 0 auto; padding: 72px 24px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; margin-bottom: 8px">
+<span style="font-size: 13px; font-weight: 600; color: {{accent}}">01</span>
+<h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 40px; letter-spacing: -0.01em">Web projects</h2>
+<span style="font-family: 'Noto Serif Gujarati', serif; font-size: 20px; color: #55605D">સર્જન</span>
+</div>
+<p style="margin: 0 0 36px; color: #55605D; max-width: 640px">Platforms I conceived and built, and a few I built for people I believe in.</p>
+
+<h3 style="margin: 0 0 16px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3F4A47">My platforms</h3>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px">
+<sc-for list="{{mine}}" as="p" hint-placeholder-count="6">
+<article style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px; padding: 24px; display: flex; flex-direction: column; gap: 10px; min-height: 210px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px">
+<h4 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 600; font-size: 24px">{{p.name}}</h4>
+<span style="font-size: 12px; font-weight: 500; color: #1E5C57; background: #E3ECEA; padding: 3px 10px; border-radius: 20px; white-space: nowrap">{{p.status}}</span>
+</div>
+<p style="margin: 0; color: #3F4A47; font-size: 15px; flex-grow: 1">{{p.desc}}</p>
+<a href="{{p.url}}" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500; font-size: 15px; padding: 10px 0; text-decoration: none; color: {{accent}}">Visit {{p.domain}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg></a>
+</article>
+</sc-for>
+</div>
+
+<h3 style="margin: 48px 0 16px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3F4A47">Built for others</h3>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px">
+<sc-for list="{{others}}" as="p" hint-placeholder-count="6">
+<article style="border: 1px solid #DAD6CC; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 8px">
+<h4 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 600; font-size: 20px">{{p.name}}</h4>
+<p style="margin: 0; color: #3F4A47; font-size: 14px; flex-grow: 1">{{p.desc}}</p>
+<a href="{{p.url}}" style="font-size: 14px; font-weight: 500; padding: 8px 0; text-decoration: none; color: {{accent}}">{{p.domain}} →</a>
+</article>
+</sc-for>
+</div>
+</div>
+</section>
+
+<!-- 02 READING -->
+<section id="reading" style="border-top: 1px solid #DAD6CC; background: #EDEAE2">
+<div style="max-width: 1160px; margin: 0 auto; padding: 72px 24px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; margin-bottom: 36px">
+<span style="font-size: 13px; font-weight: 600; color: {{accent}}">02</span>
+<h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 40px">Reading</h2>
+<span style="font-family: 'Noto Serif Gujarati', serif; font-size: 20px; color: #55605D">વાચન</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 24px">
+<div style="flex: 1 1 320px; min-width: 0; background: #1B1F1E; color: #F5F3EE; border-radius: 10px; padding: 32px; display: flex; flex-direction: column; gap: 12px">
+<p style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #B8C4C1">Currently reading</p>
+<div style="width: 96px; height: 140px; background: #2E3735; border: 1px solid #55605D; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #B8C4C1; text-align: center">[cover]</div>
+<h3 style="margin: 8px 0 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 28px; line-height: 1.2">[Book title]</h3>
+<p style="margin: 0; color: #B8C4C1">[Author]</p>
+<p style="margin: 8px 0 0; font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 18px; color: #E3E0D8">“[One line on why this book, why now.]”</p>
+</div>
+<div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<p style="margin: 0 0 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3F4A47">I recommend</p>
+<div style="background: #FFFFFF; border-radius: 10px; padding: 20px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px">
+<div style="min-width: 0"><span style="font-size: 12px; font-weight: 600; color: #9A5418; text-transform: uppercase; letter-spacing: 0.06em">Book</span><h4 style="margin: 2px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 21px; font-weight: 500">[Title] — [Author]</h4><p style="margin: 4px 0 0; font-size: 14px; color: #55605D">[Why it matters to me, in one sentence]</p></div>
+</div>
+<div style="background: #FFFFFF; border-radius: 10px; padding: 20px 24px">
+<span style="font-size: 12px; font-weight: 600; color: #9A5418; text-transform: uppercase; letter-spacing: 0.06em">Article</span><h4 style="margin: 2px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 21px; font-weight: 500">[Article headline] — [Publication]</h4><p style="margin: 4px 0 0; font-size: 14px; color: #55605D">[Why it matters to me, in one sentence]</p>
+</div>
+<div style="background: #FFFFFF; border-radius: 10px; padding: 20px 24px">
+<span style="font-size: 12px; font-weight: 600; color: #9A5418; text-transform: uppercase; letter-spacing: 0.06em">Book</span><h4 style="margin: 2px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 21px; font-weight: 500">[Title] — [Author]</h4><p style="margin: 4px 0 0; font-size: 14px; color: #55605D">[Why it matters to me, in one sentence]</p>
+</div>
+<a href="#library" style="font-weight: 500; font-size: 15px; padding: 10px 0; text-decoration: none; color: {{accent}}">Browse the whole library →</a>
+</div>
+</div>
+</div>
+</section>
+
+<!-- 03 TRANSLATIONS -->
+<section id="translations" style="border-top: 1px solid #DAD6CC">
+<div style="max-width: 1160px; margin: 0 auto; padding: 72px 24px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; margin-bottom: 8px">
+<span style="font-size: 13px; font-weight: 600; color: {{accent}}">03</span>
+<h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 40px">Translations</h2>
+<span style="font-family: 'Noto Serif Gujarati', serif; font-size: 20px; color: #55605D">અનુવાદ</span>
+</div>
+<p style="margin: 0 0 36px; color: #55605D; max-width: 640px">Translating is how I live for a while inside another writer’s era and mind. These are the books I’ve lived in.</p>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px">
+<article style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column">
+<div style="height: 8px; background: {{accent}}"></div>
+<div style="padding: 22px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1">
+<p style="margin: 0; font-family: 'Noto Serif Gujarati', serif; font-size: 22px; font-weight: 600">રામાયણ</p>
+<p style="margin: 0; font-size: 14px; color: #3F4A47">C. Rajagopalachari’s <em>Ramayana</em>, translated by Nalinkant Ishwarlal Chhaya; completed and edited by me after his passing. 75 chapters.</p>
+<span style="margin-top: auto; font-size: 13px; font-weight: 500; color: #9A5418">Print edition in preparation</span>
+</div>
+</article>
+<article style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column">
+<div style="height: 8px; background: #3F4A47"></div>
+<div style="padding: 22px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1">
+<p style="margin: 0; font-family: 'Noto Serif Gujarati', serif; font-size: 22px; font-weight: 600">ચેસિંગ ધ મોન્સૂન</p>
+<p style="margin: 0; font-size: 14px; color: #3F4A47">Alexander Frater’s <em>Chasing the Monsoon</em> — a pluviophile translating a pluviophile. Serialised since April 2024.</p>
+<a href="Book.dc.html" style="margin-top: auto; font-size: 14px; font-weight: 500; padding: 8px 0; text-decoration: none; color: {{accent}}">Read chapter by chapter →</a>
+</div>
+</article>
+<article style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column">
+<div style="height: 8px; background: #3F4A47"></div>
+<div style="padding: 22px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1">
+<p style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 22px; font-weight: 600">Ratanbabu and That Man</p>
+<p style="margin: 0; font-size: 14px; color: #3F4A47">Satyajit Ray’s short story, translated and narrated — and now becoming an AI film.</p>
+<a href="#" style="margin-top: auto; font-size: 14px; font-weight: 500; padding: 8px 0; text-decoration: none; color: {{accent}}">Listen to the narration →</a>
+</div>
+</article>
+<article style="border: 1px dashed #B5AFA2; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column">
+<div style="padding: 30px 22px 22px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1">
+<p style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 22px; font-weight: 600">Sultana’s Dream</p>
+<p style="margin: 0; font-size: 14px; color: #3F4A47">Rokeya Sakhawat Hossain’s 1905 feminist utopia. No Gujarati translation exists yet.</p>
+<span style="margin-top: auto; font-size: 13px; font-weight: 500; color: #55605D">Next on the shelf</span>
+</div>
+</article>
+</div>
+</div>
+</section>
+
+<!-- 04 WORK IN PROGRESS -->
+<section id="wip" style="border-top: 1px solid #DAD6CC; background: #EDEAE2">
+<div style="max-width: 1160px; margin: 0 auto; padding: 72px 24px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; margin-bottom: 8px">
+<span style="font-size: 13px; font-weight: 600; color: {{accent}}">04</span>
+<h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 40px">The workshop</h2>
+<span style="font-family: 'Noto Serif Gujarati', serif; font-size: 20px; color: #55605D">ચાલુ કામ</span>
+</div>
+<p style="margin: 0 0 32px; color: #55605D; max-width: 640px">Unfinished on purpose. What’s on the bench, and how far along it is. <a href="Ledger.dc.html" style="font-weight: 500">See every promise and its status →</a></p>
+<div style="background: #FFFFFF; border-radius: 10px; overflow-x: auto">
+<sc-for list="{{wip}}" as="w" hint-placeholder-count="6">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; padding: 18px 24px; border-bottom: 1px solid #ECE9E1">
+<span style="flex: 0 0 auto; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #55605D; width: 110px">{{w.kind}}</span>
+<span style="flex: 1 1 260px; min-width: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px">{{w.title}}</span>
+<span style="flex: 0 1 280px; font-size: 14px; color: #1E5C57; background: #E3ECEA; padding: 4px 12px; border-radius: 20px">{{w.stage}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</section>
+
+<!-- 05 ADVISING -->
+<section id="advising" style="border-top: 1px solid #DAD6CC">
+<div style="max-width: 1160px; margin: 0 auto; padding: 72px 24px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; margin-bottom: 8px">
+<span style="font-size: 13px; font-weight: 600; color: {{accent}}">05</span>
+<h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 40px">Study-abroad advising</h2>
+<span style="font-family: 'Noto Serif Gujarati', serif; font-size: 20px; color: #55605D">માર્ગદર્શન</span>
+</div>
+<p style="margin: 0 0 24px; color: #55605D; max-width: 680px">Honest guidance for students and parents weighing an education abroad — from choosing where to apply to walking into the visa interview prepared.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 36px">
+<span style="font-size: 13px; font-weight: 500; border: 1px solid #B5AFA2; padding: 6px 14px; border-radius: 20px">Founder-Trustee, Indo American Education Society, Ahmedabad</span>
+<span style="font-size: 13px; font-weight: 500; border: 1px solid #B5AFA2; padding: 6px 14px; border-radius: 20px">EducationUSA Adviser</span>
+<span style="font-size: 13px; font-weight: 500; border: 1px solid #B5AFA2; padding: 6px 14px; border-radius: 20px">Presenter, “5 Steps to U.S. Study”</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px">
+<div style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px; padding: 28px; display: flex; flex-direction: column; gap: 10px">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1E5C57" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10L12 5 2 10l10 5 10-5z"></path><path d="M6 12v5c3 2 9 2 12 0v-5"></path></svg>
+<h3 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 24px">U.S. higher education</h3>
+<p style="margin: 0; font-size: 15px; color: #3F4A47">Undergraduate and graduate pathways: building a university list, tests, essays, funding and timelines.</p>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px; padding: 28px; display: flex; flex-direction: column; gap: 10px">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1E5C57" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"></rect><circle cx="12" cy="10" r="3"></circle><path d="M8 17h8"></path></svg>
+<h3 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 24px">Student visa guidance</h3>
+<p style="margin: 0; font-size: 15px; color: #3F4A47">Understanding the process, documents and what to expect at the interview — so you go in calm and truthful.</p>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px; padding: 28px; display: flex; flex-direction: column; gap: 10px">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1E5C57" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3c3 3 3 15 0 18"></path><path d="M12 3c-3 3-3 15 0 18"></path></svg>
+<h3 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 24px">Other countries</h3>
+<p style="margin: 0; font-size: 15px; color: #3F4A47">Comparing destinations beyond the U.S.: [countries you cover], with costs and outcomes side by side.</p>
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 28px">
+<a href="mailto:[advising@jambuch.in]" style="background: {{accent}}; color: #FFFFFF; text-decoration: none; padding: 13px 22px; border-radius: 6px; font-weight: 500; font-size: 15px">Book an advising session</a>
+<span style="font-size: 14px; color: #55605D">[Fees / free session note]</span>
+</div>
+</div>
+</section>
+
+<!-- 06 MUSIC -->
+<section id="music" style="border-top: 1px solid #DAD6CC; background: #1B1F1E; color: #F5F3EE">
+<div style="max-width: 1160px; margin: 0 auto; padding: 72px 24px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; margin-bottom: 32px">
+<span style="font-size: 13px; font-weight: 600; color: #8FC1BB">06</span>
+<h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 40px">Music recordings</h2>
+<span style="font-family: 'Noto Serif Gujarati', serif; font-size: 20px; color: #B8C4C1">સંગીત</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{tracks}}" as="t" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 18px; padding: 14px 8px; border-bottom: 1px solid #2E3735">
+<button type="button" onClick="{{t.toggle}}" aria-label="Play or pause" style="flex: none; width: 44px; height: 44px; border-radius: 22px; border: 1px solid #55605D; background: transparent; color: #F5F3EE; cursor: pointer; display: flex; align-items: center; justify-content: center">
+<sc-if value="{{t.playing}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14"></rect><rect x="14" y="5" width="4" height="14"></rect></svg></sc-if>
+<sc-if value="{{t.paused}}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg></sc-if>
+</button>
+<div style="flex: 1 1 auto; min-width: 0">
+<div style="font-family: 'Newsreader', Georgia, serif; font-size: 19px">{{t.title}}</div>
+<div style="font-size: 13px; color: #B8C4C1">{{t.meta}}</div>
+</div>
+<span style="font-size: 13px; color: #B8C4C1">{{t.len}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</section>
+
+<!-- 07 IDEAS -->
+<section id="ideas" style="border-top: 1px solid #DAD6CC">
+<div style="max-width: 1160px; margin: 0 auto; padding: 72px 24px; display: flex; flex-wrap: wrap; gap: 48px">
+<div style="flex: 1 1 320px; min-width: 0">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; margin-bottom: 16px">
+<span style="font-size: 13px; font-weight: 600; color: {{accent}}">07</span>
+<h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 40px">Give me an idea</h2>
+<span style="font-family: 'Noto Serif Gujarati', serif; font-size: 20px; color: #55605D">વિચાર</span>
+</div>
+<p style="margin: 0; color: #3F4A47; font-size: 17px">A book to translate, a problem worth an app, a civic itch nobody scratches. Several of my projects began as someone else’s passing remark.</p>
+</div>
+<div style="flex: 999 1 480px; min-width: 0; background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px; padding: 28px">
+<sc-if value="{{sent}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 40px 0; text-align: center">
+<p style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 28px">Thank you — it’s in the notebook.</p>
+<p style="margin: 8px 0 0; color: #55605D">I read every idea myself.</p>
+</div>
+</sc-if>
+<sc-if value="{{notSent}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+<label style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Your name<input type="text" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"></label>
+<label style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Email (optional)<input type="email" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"></label>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">What kind of idea?<select style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"><option>A book to translate</option><option>An app or website</option><option>A civic or social idea</option><option>Something else</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Your idea<textarea rows="4" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7; resize: vertical"></textarea></label>
+<button type="button" onClick="{{send}}" style="align-self: flex-start; background: #1B1F1E; color: #FFFFFF; border: none; padding: 13px 24px; border-radius: 6px; font-size: 15px; font-weight: 500; cursor: pointer">Send idea</button>
+</div>
+</sc-if>
+</div>
+</div>
+</section>
+
+<!-- 08 LIBRARY -->
+<section id="library" style="border-top: 1px solid #DAD6CC; background: #EDEAE2">
+<div style="max-width: 1160px; margin: 0 auto; padding: 72px 24px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; margin-bottom: 8px">
+<span style="font-size: 13px; font-weight: 600; color: {{accent}}">08</span>
+<h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 40px">My library</h2>
+<span style="font-family: 'Noto Serif Gujarati', serif; font-size: 20px; color: #55605D">ગ્રંથાલય</span>
+</div>
+<p style="margin: 0 0 28px; color: #55605D; max-width: 640px">Around 1,000 books — classics, philosophy, history, and the Gujarati shelf. Starred books carry a note on why they stay.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 20px">
+<label style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 500; color: #3F4A47">Search title or author<input type="search" value="{{q}}" onChange="{{onSearch}}" placeholder="e.g. Dostoevsky" style="padding: 12px 14px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FFFFFF"></label>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-self: flex-end">
+<sc-for list="{{cats}}" as="c" hint-placeholder-count="6">
+<sc-if value="{{c.on}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{c.pick}}" style="min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid #1B1F1E; background: #1B1F1E; color: #FFFFFF; font-size: 14px; cursor: pointer">{{c.label}}</button></sc-if>
+<sc-if value="{{c.off}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{c.pick}}" style="min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid #B5AFA2; background: #FFFFFF; color: #1B1F1E; font-size: 14px; cursor: pointer">{{c.label}}</button></sc-if>
+</sc-for>
+</div>
+</div>
+<div style="background: #FFFFFF; border-radius: 10px; overflow-x: auto">
+<table style="width: 100%; min-width: 640px; border-collapse: collapse; font-size: 15px">
+<thead>
+<tr style="text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: #55605D">
+<th style="padding: 14px 20px; border-bottom: 1px solid #DAD6CC; font-weight: 600">Title</th>
+<th style="padding: 14px 20px; border-bottom: 1px solid #DAD6CC; font-weight: 600">Author</th>
+<th style="padding: 14px 20px; border-bottom: 1px solid #DAD6CC; font-weight: 600">Shelf</th>
+<th style="padding: 14px 20px; border-bottom: 1px solid #DAD6CC; font-weight: 600">Language</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{books}}" as="b" hint-placeholder-count="8">
+<tr>
+<td style="padding: 13px 20px; border-bottom: 1px solid #ECE9E1; font-family: 'Newsreader', Georgia, serif; font-size: 17px">{{b.title}} <span style="color: #9A5418">{{b.star}}</span></td>
+<td style="padding: 13px 20px; border-bottom: 1px solid #ECE9E1; color: #3F4A47">{{b.author}}</td>
+<td style="padding: 13px 20px; border-bottom: 1px solid #ECE9E1; color: #3F4A47">{{b.cat}}</td>
+<td style="padding: 13px 20px; border-bottom: 1px solid #ECE9E1; color: #3F4A47">{{b.lang}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<p style="margin: 14px 0 0; font-size: 14px; color: #55605D">Showing {{count}} sample entries · full catalogue of ~1,000 books loads here</p>
+</div>
+</section>
+
+<!-- 09 NOTEBOOK / JOURNEY -->
+<section id="notebook" style="border-top: 1px solid #DAD6CC">
+<div style="max-width: 1160px; margin: 0 auto; padding: 72px 24px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; margin-bottom: 8px">
+<span style="font-size: 13px; font-weight: 600; color: {{accent}}">09</span>
+<h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 40px">Notebook</h2>
+<span style="font-family: 'Noto Serif Gujarati', serif; font-size: 20px; color: #55605D">નોંધપોથી</span>
+</div>
+<p style="margin: 0 0 32px; color: #55605D; max-width: 640px">Poems, photographs, essays and whatever the next creative turn brings.</p>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px">
+<div style="aspect-ratio: 4 / 3; background: #DCE6E4; border-radius: 10px; display: flex; align-items: flex-end; padding: 16px; font-size: 14px; color: #1E3A37">[Photo] Matheran in mist</div>
+<div style="aspect-ratio: 4 / 3; background: #E6E1D3; border-radius: 10px; display: flex; align-items: flex-end; padding: 16px; font-size: 14px; color: #4A3F25">[Photo] Valley of Flowers</div>
+<div style="aspect-ratio: 4 / 3; background: #E1DFE6; border-radius: 10px; display: flex; align-items: flex-end; padding: 16px; font-size: 14px; color: #33304A">[Photo] The trek to Kedarnath</div>
+<div style="aspect-ratio: 4 / 3; background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between">
+<span style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #9A5418">Poem</span>
+<p style="margin: 0; font-family: 'Noto Serif Gujarati', serif; font-size: 18px; line-height: 1.6">[પંક્તિ — a couplet from the monsoon sequence]</p>
+<a href="#" style="font-size: 14px; font-weight: 500; text-decoration: none; padding: 6px 0; color: {{accent}}">All poems →</a>
+</div>
+</div>
+<div style="margin-top: 24px; border: 1px dashed #B5AFA2; border-radius: 10px; padding: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<p style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 22px">The next chapter goes here.</p>
+<span style="font-size: 14px; color: #55605D">Space reserved for what comes next</span>
+</div>
+</div>
+</section>
+
+<!-- FOOTER -->
+<footer style="border-top: 1px solid #DAD6CC; background: #1B1F1E; color: #B8C4C1">
+<div style="max-width: 1160px; margin: 0 auto; padding: 40px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; font-size: 14px">
+<span><span style="font-family: 'Newsreader', Georgia, serif; font-size: 20px; color: #F5F3EE">jambuch.in</span> · Ahmedabad</span>
+<div style="display: flex; flex-wrap: wrap; gap: 20px">
+<a href="#" style="color: #DCE6E4; padding: 6px 0">YouTube · Digital दिग्दर्शक</a>
+<a href="#" style="color: #DCE6E4; padding: 6px 0">LinkedIn</a>
+<a href="mailto:[hello@jambuch.in]" style="color: #DCE6E4; padding: 6px 0">[hello@jambuch.in]</a>
+</div>
+</div>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1E5C57","options":["#1E5C57","#7A3E12","#2B3F6B","#1B1F1E"]},"$preview":{"width":1280,"height":7400}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { q: '', cat: 'All', playing: -1, sent: false };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#1E5C57';
+    const mine = [
+      { name: 'EdUsaathiAI', domain: 'edusaathiai.in', url: 'https://edusaathiai.in', status: 'Live', desc: 'An AI study companion for Indian students — subject Saathis that learn how each student thinks, at a price students can afford.' },
+      { name: 'fixmysite', domain: 'fixmysite.in', url: 'https://fixmysite.in', status: 'Live', desc: 'A website health scanner for Indian small businesses. A free first scan, then a deep report on demand.' },
+      { name: 'PaisaJaag', domain: 'paisajaag.in', url: 'https://paisajaag.in', status: 'Live', desc: 'Personal-finance awareness for Indian families, because wealth is lost in silence. Information, never advice.' },
+      { name: 'NearDear', domain: 'neardear.in', url: 'https://neardear.in', status: 'Phase 1', desc: 'Verified human companions for elders living alone, starting in Ahmedabad and Gandhinagar.' },
+      { name: 'Jay Hatkesh', domain: 'jayhatkesh.in', url: 'https://jayhatkesh.in', status: 'Live', desc: 'A heritage and community platform for the Nagar Brahmin community — a connector, never a cashier.' },
+      { name: 'KanoonSathi', domain: 'kanoonsathi.co.in', url: 'https://kanoonsathi.co.in', status: 'Module', desc: 'A study companion for law students, co-created with an LLB student; now part of EdUsaathiAI.' }
+    ];
+    const others = [
+      { name: 'EdUmeetup', domain: 'edumeetup.com', url: 'https://edumeetup.com', desc: 'Connects Indian students, international universities and Indian institutions. Built for IAES.' },
+      { name: 'IAES Fairs', domain: 'fair.iaesgujarat.org', url: 'https://fair.iaesgujarat.org', desc: 'Education-fair management for the Indo American Education Society.' },
+      { name: 'Naadvidya', domain: 'naadvidya.com', url: 'https://naadvidya.com', desc: 'Indian classical music lessons, run by my wife, Amee.' },
+      { name: 'Dronagiri Herbal', domain: 'dronagiriherbal.in', url: 'https://dronagiriherbal.in', desc: 'A direct-to-customer home for an Ayurvedic hair and skin care brand.' },
+      { name: 'SLK Tours', domain: 'slktours.in', url: 'https://slktours.in', desc: 'A travel agency site with bookings and a trilingual AI travel assistant.' },
+      { name: 'Shivam Medicare', domain: 'shivammedicare.in', url: 'https://shivammedicare.in', desc: 'Clinic management software, built as a gift for a doctor friend.' }
+    ];
+    const wip = [
+      { kind: 'Book', title: 'Gujarati Ramayana — print edition', stage: 'Scholar review, second proofread' },
+      { kind: 'Translation', title: 'Chasing the Monsoon', stage: 'Drafting, published in instalments' },
+      { kind: 'Film', title: 'Ratanbabu and That Man', stage: 'Narration done · testing opening credits' },
+      { kind: 'Video', title: 'Matheran in Mist — A Pluviophile’s Journey', stage: 'In production for Digital दिग्दर्शक' },
+      { kind: 'Platform', title: 'Shram Setu — village civic works', stage: 'Prototype' },
+      { kind: 'Archive', title: 'Cataloguing my library', stage: 'Under way' }
+    ];
+    const rawTracks = [
+      { title: '[Recording title]', meta: '[Raag / genre · where recorded]', len: '[0:00]' },
+      { title: '[Recording title]', meta: '[Raag / genre · where recorded]', len: '[0:00]' },
+      { title: '[Recording title]', meta: '[Raag / genre · where recorded]', len: '[0:00]' },
+      { title: '[Recording title]', meta: '[Raag / genre · where recorded]', len: '[0:00]' }
+    ];
+    const tracks = rawTracks.map((t, i) => ({
+      ...t,
+      playing: this.state.playing === i,
+      paused: this.state.playing !== i,
+      toggle: () => this.setState({ playing: this.state.playing === i ? -1 : i })
+    }));
+    const allBooks = [
+      { title: 'The Odyssey', author: 'Homer', cat: 'Classics', lang: 'English', star: '★' },
+      { title: 'The Divine Comedy', author: 'Dante Alighieri', cat: 'Classics', lang: 'English', star: '' },
+      { title: 'The Brothers Karamazov', author: 'Fyodor Dostoevsky', cat: 'Fiction', lang: 'English', star: '★' },
+      { title: 'Crime and Punishment', author: 'Fyodor Dostoevsky', cat: 'Fiction', lang: 'English', star: '' },
+      { title: 'Nicomachean Ethics', author: 'Aristotle', cat: 'Philosophy', lang: 'English', star: '' },
+      { title: 'Mere Christianity', author: 'C. S. Lewis', cat: 'Philosophy', lang: 'English', star: '' },
+      { title: 'Orthodoxy', author: 'G. K. Chesterton', cat: 'Philosophy', lang: 'English', star: '' },
+      { title: 'Chasing the Monsoon', author: 'Alexander Frater', cat: 'Travel', lang: 'English', star: '★' },
+      { title: '[Gujarati title]', author: '[Author]', cat: 'Gujarati', lang: 'Gujarati', star: '' },
+      { title: '[History title]', author: '[Author]', cat: 'History', lang: 'English', star: '' }
+    ];
+    const q = this.state.q.trim().toLowerCase();
+    const books = allBooks.filter(b =>
+      (this.state.cat === 'All' || b.cat === this.state.cat) &&
+      (!q || b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q))
+    );
+    const cats = ['All', 'Classics', 'Fiction', 'Philosophy', 'History', 'Travel', 'Gujarati'].map(label => ({
+      label,
+      on: this.state.cat === label,
+      off: this.state.cat !== label,
+      pick: () => this.setState({ cat: label })
+    }));
+    return {
+      accent, mine, others, wip, tracks, books, cats,
+      count: books.length,
+      q: this.state.q,
+      onSearch: (e) => this.setState({ q: e.target.value }),
+      sent: this.state.sent,
+      notSent: !this.state.sent,
+      send: () => this.setState({ sent: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

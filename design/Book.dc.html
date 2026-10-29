@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Moving library — Chasing the Monsoon</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Noto+Serif+Gujarati:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F5F3EE}
+a{color:#1E5C57}a:hover{color:#123B37}
+input,button{font-family:inherit}
+</style>
+</helmet>
+<div style="background: #F5F3EE; color: #1B1F1E; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 16px; line-height: 1.6">
+
+<header style="border-bottom: 1px solid #DAD6CC">
+<nav style="max-width: 1160px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+<a href="Main.dc.html" style="font-family: 'Newsreader', Georgia, serif; font-size: 24px; font-weight: 600; color: #1B1F1E; text-decoration: none">jambuch<span style="color: #1E5C57">.</span></a>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; font-size: 14px; font-weight: 500">
+<a href="Main.dc.html#translations" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Moving library</a>
+<a href="Journey.dc.html" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Journey</a>
+<a href="Ledger.dc.html" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Promises</a>
+<a href="#notify" style="color: #1B1F1E; border: 1px solid #1B1F1E; text-decoration: none; padding: 9px 16px; border-radius: 6px">Join the Reading Circle</a>
+</div>
+</nav>
+</header>
+
+<!-- BOOK HERO -->
+<section style="max-width: 1160px; margin: 0 auto; padding: 64px 24px 40px; display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-end">
+<div style="flex: 0 0 200px; height: 290px; background: #1E5C57; border-radius: 4px 10px 10px 4px; padding: 24px 20px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; color: #F5F3EE">
+<p style="margin: 0; font-family: 'Noto Serif Gujarati', serif; font-size: 26px; font-weight: 600; line-height: 1.3">ચેસિંગ ધ મોન્સૂન</p>
+<p style="margin: 0; font-size: 12px; color: #CFE0DD">એલેક્ઝાન્ડર ફ્રેટર<br>અનુવાદ: જયદીપ બૂચ</p>
+</div>
+<div style="flex: 999 1 520px; min-width: 0">
+<p style="margin: 0 0 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #9A5418">Moving library · <span style="font-family: 'Noto Serif Gujarati', serif; text-transform: none; letter-spacing: 0">ચાલતું પુસ્તકાલય</span></p>
+<h1 style="margin: 0; font-family: 'Noto Serif Gujarati', serif; font-weight: 600; font-size: 48px; line-height: 1.2">ચેસિંગ ધ મોન્સૂન</h1>
+<p style="margin: 8px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 22px; color: #2E3735">Alexander Frater’s <em>Chasing the Monsoon</em>, translated into Gujarati one chapter at a time. Read each one the week it’s finished.</p>
+<div style="margin-top: 28px; max-width: 560px">
+<div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px"><span style="font-weight: 600">{{readyCount}} chapters ready</span><span style="color: #55605D">of [total chapters]</span></div>
+<div style="display: flex; gap: 4px">
+<sc-for list="{{chapters}}" as="c" hint-placeholder-count="8">
+<sc-if value="{{c.ready}}" hint-placeholder-val="{{ true }}"><span style="flex: 1; height: 10px; border-radius: 3px; background: #1E5C57"></span></sc-if>
+<sc-if value="{{c.drafting}}" hint-placeholder-val="{{ false }}"><span style="flex: 1; height: 10px; border-radius: 3px; background: #D9A26B"></span></sc-if>
+<sc-if value="{{c.later}}" hint-placeholder-val="{{ false }}"><span style="flex: 1; height: 10px; border-radius: 3px; background: #DAD6CC"></span></sc-if>
+</sc-for>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 10px; font-size: 13px; color: #3F4A47">
+<span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #1E5C57"></span>Ready to read</span>
+<span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #D9A26B"></span>On the translator’s desk</span>
+<span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #DAD6CC"></span>Still ahead</span>
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px">
+<a href="Chapter.dc.html" style="background: #1E5C57; color: #FFFFFF; text-decoration: none; padding: 13px 22px; border-radius: 6px; font-weight: 500; font-size: 15px">Start reading — Chapter 1</a>
+<a href="#notify" style="border: 1px solid #1B1F1E; color: #1B1F1E; text-decoration: none; padding: 12px 22px; border-radius: 6px; font-weight: 500; font-size: 15px">Notify me of the next chapter</a>
+</div>
+</div>
+</section>
+
+<!-- CHAPTERS + SIDEBAR -->
+<section style="max-width: 1160px; margin: 0 auto; padding: 24px 24px 72px; display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start">
+<div style="flex: 999 1 600px; min-width: 0">
+<h2 style="margin: 0 0 16px; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 32px">Chapters</h2>
+<div style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px">
+<sc-for list="{{chapters}}" as="c" hint-placeholder-count="8">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding: 18px 22px; border-bottom: 1px solid #ECE9E1">
+<span style="flex: none; width: 40px; font-family: 'Noto Serif Gujarati', serif; font-size: 22px; color: #55605D">{{c.num}}</span>
+<div style="flex: 1 1 220px; min-width: 0">
+<div style="font-family: 'Newsreader', Georgia, serif; font-size: 20px">{{c.title}}</div>
+<div style="font-size: 13px; color: #55605D">{{c.note}}</div>
+</div>
+<sc-if value="{{c.ready}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<button type="button" onClick="{{c.toggle}}" aria-label="Listen — read aloud by Jaydeep" style="min-height: 44px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; border: 1px solid #B5AFA2; border-radius: 22px; background: #FFFFFF; color: #1B1F1E; font-size: 14px; cursor: pointer">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1E5C57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>
+<span>{{c.listenLabel}}</span>
+</button>
+<a href="Chapter.dc.html" style="min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; padding: 0 18px; border-radius: 22px; background: #1B1F1E; color: #FFFFFF; text-decoration: none; font-size: 14px; font-weight: 500">Read it here</a>
+</div>
+</sc-if>
+<sc-if value="{{c.drafting}}" hint-placeholder-val="{{ false }}">
+<a href="#notify" style="min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 22px; background: #F6E7D6; color: #7A3E12; text-decoration: none; font-size: 14px; font-weight: 500">Being translated · notify me</a>
+</sc-if>
+<sc-if value="{{c.later}}" hint-placeholder-val="{{ false }}">
+<span style="font-size: 14px; color: #55605D; padding: 0 6px">Still ahead</span>
+</sc-if>
+</div>
+</sc-for>
+</div>
+<p style="margin: 14px 0 0; font-size: 13px; color: #55605D">Every ready chapter is read aloud by me. Look for the microphone.</p>
+
+<!-- TRANSLATOR'S DESK -->
+<h2 style="margin: 56px 0 16px; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 32px">From the translator’s desk</h2>
+<div style="display: flex; flex-direction: column; gap: 0; border-left: 2px solid #DAD6CC; margin-left: 6px">
+<div style="position: relative; padding: 0 0 28px 28px">
+<span style="position: absolute; left: -7px; top: 6px; width: 12px; height: 12px; border-radius: 6px; background: #1E5C57"></span>
+<p style="margin: 0; font-size: 13px; font-weight: 600; color: #55605D">[Date]</p>
+<p style="margin: 4px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 19px">[Finished Chapter 4. A note on the hardest word to carry into Gujarati, and how I chose.]</p>
+</div>
+<div style="position: relative; padding: 0 0 28px 28px">
+<span style="position: absolute; left: -7px; top: 6px; width: 12px; height: 12px; border-radius: 6px; background: #B5AFA2"></span>
+<p style="margin: 0; font-size: 13px; font-weight: 600; color: #55605D">[Date]</p>
+<p style="margin: 4px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 19px">[Recorded the narration for Chapter 3 — a line about the first rain of the season.]</p>
+</div>
+<div style="position: relative; padding: 0 0 0 28px">
+<span style="position: absolute; left: -7px; top: 6px; width: 12px; height: 12px; border-radius: 6px; background: #B5AFA2"></span>
+<p style="margin: 0; font-size: 13px; font-weight: 600; color: #55605D">April 2024</p>
+<p style="margin: 4px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 19px">Began translating, one instalment at a time.</p>
+</div>
+</div>
+</div>
+
+<!-- SIDEBAR -->
+<aside style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+<div id="notify" style="background: #1B1F1E; color: #F5F3EE; border-radius: 10px; padding: 28px">
+<sc-if value="{{joined}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 26px; line-height: 1.3">You’re on the list.</p>
+<p style="margin: 10px 0 0; color: #CFD8D6">The day Chapter {{nextNum}} is ready, you’ll hear from me — with the link and the recording.</p>
+</sc-if>
+<sc-if value="{{notJoined}}" hint-placeholder-val="{{ true }}">
+<p style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #E8B98A">Next chapter</p>
+<p style="margin: 8px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 26px; line-height: 1.3">Chapter {{nextNum}} is on my desk now.</p>
+<p style="margin: 8px 0 18px; color: #CFD8D6; font-size: 15px">Sign the reading sheet and I’ll tell you the day it’s ready. [n] readers are waiting.</p>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Your name<input type="text" style="padding: 12px; border: 1px solid #55605D; border-radius: 6px; font-size: 15px; background: #2A302E; color: #F5F3EE"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Email or WhatsApp number<input type="text" style="padding: 12px; border: 1px solid #55605D; border-radius: 6px; font-size: 15px; background: #2A302E; color: #F5F3EE"></label>
+<label style="display: flex; align-items: center; gap: 10px; font-size: 14px; min-height: 44px"><input type="checkbox" style="width: 18px; height: 18px"> Tell me about every new chapter, in any book</label>
+<button type="button" onClick="{{join}}" style="background: #F5F3EE; color: #1B1F1E; border: none; padding: 13px 20px; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer">Sign the reading sheet</button>
+</div>
+</sc-if>
+</div>
+
+<div style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px; padding: 24px">
+<p style="margin: 0 0 14px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3F4A47">Two ways to read</p>
+<div style="display: flex; flex-direction: column; gap: 16px; font-size: 15px">
+<div>
+<p style="margin: 0; font-weight: 600">Visitor</p>
+<p style="margin: 2px 0 0; color: #3F4A47">Read and listen online, free. No copying or downloads.</p>
+</div>
+<div style="border-top: 1px solid #ECE9E1; padding-top: 16px">
+<p style="margin: 0; font-weight: 600">Reading Circle member <span style="font-weight: 500; font-size: 12px; color: #1E5C57; background: #E3ECEA; padding: 2px 8px; border-radius: 10px">free</span></p>
+<p style="margin: 2px 0 0; color: #3F4A47">Download chapters as PDF and audio, get new-chapter alerts, and pick up where you left off.</p>
+</div>
+</div>
+<a href="#notify" style="display: inline-block; margin-top: 14px; font-weight: 500; font-size: 15px; padding: 8px 0; text-decoration: none">Join with your email →</a>
+</div>
+
+<p style="margin: 0; font-size: 13px; color: #55605D">Translation published with the permission of [rights holder].</p>
+</aside>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2700}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { playing: -1, joined: false };
+  }
+  renderVals() {
+    const raw = [
+      { num: '૧', title: '[Chapter 1 title]', note: 'Ready · [length] read aloud', s: 'ready' },
+      { num: '૨', title: '[Chapter 2 title]', note: 'Ready · [length] read aloud', s: 'ready' },
+      { num: '૩', title: '[Chapter 3 title]', note: 'Ready · [length] read aloud', s: 'ready' },
+      { num: '૪', title: '[Chapter 4 title]', note: 'Ready · [length] read aloud', s: 'ready' },
+      { num: '૫', title: '[Chapter 5 title]', note: 'Expected [month]', s: 'drafting' },
+      { num: '૬', title: '[Chapter 6 title]', note: '', s: 'later' },
+      { num: '૭', title: '[Chapter 7 title]', note: '', s: 'later' },
+      { num: '૮', title: '[Chapter 8 title]', note: '', s: 'later' }
+    ];
+    const chapters = raw.map((c, i) => ({
+      ...c,
+      ready: c.s === 'ready',
+      drafting: c.s === 'drafting',
+      later: c.s === 'later',
+      listenLabel: this.state.playing === i ? 'Playing…' : 'Listen',
+      toggle: () => this.setState({ playing: this.state.playing === i ? -1 : i })
+    }));
+    const readyCount = raw.filter(c => c.s === 'ready').length;
+    return {
+      chapters,
+      readyCount,
+      nextNum: readyCount + 1,
+      joined: this.state.joined,
+      notJoined: !this.state.joined,
+      join: () => this.setState({ joined: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

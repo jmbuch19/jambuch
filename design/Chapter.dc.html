@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="gu">
+<head>
+<meta charset="utf-8">
+<title>Chapter reader — Chasing the Monsoon, Chapter 1</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Noto+Serif+Gujarati:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F5F3EE}
+a{color:#1E5C57}a:hover{color:#123B37}
+input,button{font-family:inherit}
+</style>
+</helmet>
+<div style="background: #F5F3EE; color: #1B1F1E; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 16px; line-height: 1.6">
+
+<!-- READER BAR -->
+<header style="border-bottom: 1px solid #DAD6CC; background: #FBFAF7">
+<div style="max-width: 1160px; margin: 0 auto; padding: 10px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+<a href="Book.dc.html" style="display: inline-flex; align-items: center; gap: 8px; color: #1B1F1E; text-decoration: none; min-height: 44px; font-size: 15px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg><span style="font-family: 'Noto Serif Gujarati', serif">ચેસિંગ ધ મોન્સૂન</span><span style="color: #55605D">· Chapter 1</span></a>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<button type="button" onClick="{{smaller}}" aria-label="Smaller text" style="width: 44px; height: 44px; border: 1px solid #DAD6CC; border-radius: 6px; background: #FFFFFF; color: #1B1F1E; font-size: 14px; cursor: pointer">A−</button>
+<button type="button" onClick="{{bigger}}" aria-label="Larger text" style="width: 44px; height: 44px; border: 1px solid #DAD6CC; border-radius: 6px; background: #FFFFFF; color: #1B1F1E; font-size: 18px; cursor: pointer">A+</button>
+<sc-if value="{{member}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; font-weight: 500; color: #1E5C57; background: #E3ECEA; padding: 6px 12px; border-radius: 16px">Reading Circle · [member name]</span></sc-if>
+<sc-if value="{{visitor}}" hint-placeholder-val="{{ true }}"><a href="#downloads" style="font-size: 14px; font-weight: 500; padding: 10px 4px; text-decoration: none">Sign in</a></sc-if>
+</div>
+</div>
+</header>
+
+<main style="max-width: 720px; margin: 0 auto; padding: 48px 24px 72px">
+<p style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #9A5418">Chapter 1 · <span style="font-family: 'Noto Serif Gujarati', serif; letter-spacing: 0; text-transform: none">પ્રકરણ ૧</span></p>
+<h1 style="margin: 8px 0 4px; font-family: 'Noto Serif Gujarati', serif; font-weight: 600; font-size: 40px; line-height: 1.3">[પ્રકરણનું શીર્ષક]</h1>
+<p style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 18px; color: #55605D">[Original chapter title] · translated [date]</p>
+
+<!-- READ ALOUD PLAYER -->
+<div style="margin: 32px 0; background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 12px; padding: 16px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px">
+<button type="button" onClick="{{togglePlay}}" aria-label="Play or pause the read-aloud" style="flex: none; width: 52px; height: 52px; border-radius: 26px; border: none; background: #1E5C57; color: #FFFFFF; cursor: pointer; display: flex; align-items: center; justify-content: center">
+<sc-if value="{{playing}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14"></rect><rect x="14" y="5" width="4" height="14"></rect></svg></sc-if>
+<sc-if value="{{paused}}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg></sc-if>
+</button>
+<div style="flex: 1 1 260px; min-width: 0">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1E5C57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>
+Read aloud by Jaydeep
+</div>
+<div style="margin-top: 8px; height: 6px; background: #ECE9E1; border-radius: 3px"><div style="width: {{progress}}; height: 6px; background: #1E5C57; border-radius: 3px"></div></div>
+<div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 12px; color: #55605D"><span>{{elapsed}}</span><span>[length]</span></div>
+</div>
+<button type="button" onClick="{{cycleSpeed}}" aria-label="Playback speed" style="min-width: 56px; height: 44px; border: 1px solid #DAD6CC; border-radius: 22px; background: #FFFFFF; color: #1B1F1E; font-size: 14px; font-weight: 500; cursor: pointer">{{speed}}</button>
+</div>
+
+<!-- TEXT -->
+<article style="font-family: 'Noto Serif Gujarati', serif; font-size: {{fontSize}}; line-height: 1.9; user-select: {{selectMode}}">
+<p style="margin: 0 0 22px">[અહીં પ્રકરણનો ગુજરાતી પાઠ આવશે. The finished chapter text goes here, set in Noto Serif Gujarati, one comfortable column wide.]</p>
+<div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px" aria-hidden="true">
+<div style="height: 12px; width: 100%; background: #E4E0D6; border-radius: 6px"></div>
+<div style="height: 12px; width: 96%; background: #E4E0D6; border-radius: 6px"></div>
+<div style="height: 12px; width: 99%; background: #E4E0D6; border-radius: 6px"></div>
+<div style="height: 12px; width: 72%; background: #E4E0D6; border-radius: 6px"></div>
+</div>
+<blockquote style="margin: 0 0 28px; padding: 4px 0 4px 20px; border-left: 3px solid #D9A26B; font-size: 1.1em; color: #2E3735">[A passage worth pausing on — pulled out the way a book would.]</blockquote>
+<div style="display: flex; flex-direction: column; gap: 14px" aria-hidden="true">
+<div style="height: 12px; width: 98%; background: #E4E0D6; border-radius: 6px"></div>
+<div style="height: 12px; width: 100%; background: #E4E0D6; border-radius: 6px"></div>
+<div style="height: 12px; width: 93%; background: #E4E0D6; border-radius: 6px"></div>
+<div style="height: 12px; width: 97%; background: #E4E0D6; border-radius: 6px"></div>
+<div style="height: 12px; width: 60%; background: #E4E0D6; border-radius: 6px"></div>
+</div>
+</article>
+
+<!-- TRANSLATOR NOTE -->
+<aside style="margin-top: 40px; background: #EDEAE2; border-radius: 10px; padding: 20px 24px">
+<p style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3F4A47">Translator’s note</p>
+<p style="margin: 6px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px">[Why a word or a place name was rendered the way it was.]</p>
+</aside>
+
+<!-- DOWNLOADS / GATE -->
+<section id="downloads" style="margin-top: 32px; border: 1px solid #DAD6CC; background: #FFFFFF; border-radius: 10px; padding: 24px">
+<sc-if value="{{member}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0 0 14px; font-weight: 600">Keep this chapter</p>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<a href="#" style="min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; padding: 0 18px; border-radius: 6px; background: #1B1F1E; color: #FFFFFF; text-decoration: none; font-size: 15px">Download PDF</a>
+<a href="#" style="min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; padding: 0 18px; border-radius: 6px; border: 1px solid #1B1F1E; color: #1B1F1E; text-decoration: none; font-size: 15px">Download audio (MP3)</a>
+</div>
+<p style="margin: 12px 0 0; font-size: 13px; color: #55605D">Each copy carries your name: “Downloaded for [member name] from jambuch.in”.</p>
+</sc-if>
+<sc-if value="{{visitor}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9A5418" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+<div style="flex: 1 1 360px; min-width: 0">
+<p style="margin: 0; font-weight: 600">Downloads and copying are for the Reading Circle</p>
+<p style="margin: 4px 0 14px; color: #3F4A47; font-size: 15px">Reading and listening here stay free for everyone. Join free to keep the PDF and the recording.</p>
+<sc-if value="{{linkSent}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; color: #1E5C57; font-weight: 500">Check your inbox — your sign-in link is on its way.</p></sc-if>
+<sc-if value="{{noLink}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end">
+<label style="flex: 1 1 240px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Email<input type="email" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"></label>
+<button type="button" onClick="{{sendLink}}" style="min-height: 46px; padding: 0 18px; border: none; border-radius: 6px; background: #1E5C57; color: #FFFFFF; font-size: 15px; font-weight: 500; cursor: pointer">Send me a sign-in link</button>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+</section>
+
+<!-- NEXT -->
+<nav style="margin-top: 32px; display: flex; flex-wrap: wrap; gap: 16px">
+<a href="Chapter.dc.html" style="flex: 1 1 260px; text-decoration: none; color: #1B1F1E; border: 1px solid #DAD6CC; border-radius: 10px; padding: 18px 20px; background: #FFFFFF">
+<span style="display: block; font-size: 13px; color: #55605D">Next — ready</span>
+<span style="font-family: 'Newsreader', Georgia, serif; font-size: 20px">Chapter 2 →</span>
+</a>
+<a href="Book.dc.html#notify" style="flex: 1 1 260px; text-decoration: none; color: #1B1F1E; border: 1px dashed #B5AFA2; border-radius: 10px; padding: 18px 20px">
+<span style="display: block; font-size: 13px; color: #55605D">Chapter 5 is on my desk</span>
+<span style="font-family: 'Newsreader', Georgia, serif; font-size: 20px">Sign the reading sheet →</span>
+</a>
+</nav>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"member":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":2500}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { size: 20, playing: false, speedIdx: 0, linkSent: false };
+  }
+  renderVals() {
+    const member = this.props.member ?? false;
+    const speeds = ['1×', '1.25×', '1.5×', '0.75×'];
+    return {
+      member,
+      visitor: !member,
+      selectMode: member ? 'text' : 'none',
+      fontSize: this.state.size + 'px',
+      smaller: () => this.setState({ size: Math.max(16, this.state.size - 2) }),
+      bigger: () => this.setState({ size: Math.min(28, this.state.size + 2) }),
+      playing: this.state.playing,
+      paused: !this.state.playing,
+      progress: this.state.playing ? '18%' : '0%',
+      elapsed: this.state.playing ? 'Playing…' : '0:00',
+      togglePlay: () => this.setState({ playing: !this.state.playing }),
+      speed: speeds[this.state.speedIdx],
+      cycleSpeed: () => this.setState({ speedIdx: (this.state.speedIdx + 1) % speeds.length }),
+      linkSent: this.state.linkSent,
+      noLink: !this.state.linkSent,
+      sendLink: () => this.setState({ linkSent: true })
+    };
+  }
+}
+</script>
+</body>
+</html>
