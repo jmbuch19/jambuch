@@ -59,6 +59,13 @@ export const TABLES: TableConfig[] = [
       { name: "domain", label: "Domain", type: "text", hint: "Shown on the link, e.g. fixmysite.in" },
       { name: "url", label: "URL", type: "url" },
       { name: "status", label: "Status", type: "text", hint: "Short badge, e.g. Live, Phase 1" },
+      {
+        name: "logo_url",
+        label: "Logo",
+        type: "text",
+        hint: "A file in /logos (e.g. /logos/fixmysite.png) or a full image URL. Empty shows the first letter.",
+      },
+      { name: "color", label: "Brand colour", type: "text", hint: "Hex, e.g. #0F6E56. Shown as a band on the card." },
       { name: "description", label: "Description", type: "textarea", hint: emHint },
       {
         name: "project_group",

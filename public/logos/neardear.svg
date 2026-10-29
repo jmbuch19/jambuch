@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 169" width="64" height="64" aria-label="NearDear">
+  <!-- Three overlapping circles — NearDear mark -->
+  <circle cx="62"  cy="107" r="62" fill="#E07B2F" opacity="0.82"/>
+  <circle cx="114" cy="107" r="62" fill="#1A6B7A" opacity="0.82"/>
+  <circle cx="88"  cy="62"  r="62" fill="#4A8C6F" opacity="0.82"/>
+</svg>

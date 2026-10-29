@@ -260,6 +260,31 @@
   font-weight: 600;
   font-size: 24px;
 }
+.branded {
+  border-top: 4px solid var(--brand, var(--border));
+}
+.cardName {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.mark {
+  flex: none;
+  border-radius: 8px;
+  object-fit: contain;
+  background: #fff;
+}
+.markLetter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--brand, var(--accent));
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 600;
+}
 .pill {
   font-size: 12px;
   font-weight: 500;

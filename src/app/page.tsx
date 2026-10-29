@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { loadHome, type HomeContent } from "@/lib/content";
+import { loadHome, type HomeContent, type Project } from "@/lib/content";
 import { inline } from "@/lib/inline";
 import IdeaForm from "./idea-form";
 import LibraryTable from "./library-table";
@@ -152,9 +152,12 @@ function buildSections(c: HomeContent, t: (key: string) => string): (Section | n
                   <h3 className={s.subhead}>My platforms</h3>
                   <div className={s.gridMine}>
                     {mine.map((p) => (
-                      <article key={p.id} className={`${s.card} ${s.cardMine}`}>
+                      <article key={p.id} className={`${s.card} ${s.cardMine} ${s.branded}`} style={brand(p)}>
                         <div className={s.cardTop}>
-                          <h4>{p.name}</h4>
+                          <div className={s.cardName}>
+                            <ProjectMark p={p} size={40} />
+                            <h4>{p.name}</h4>
+                          </div>
                           {p.status && <span className={s.pill}>{p.status}</span>}
                         </div>
                         <p className={s.cardText}>{inline(p.description)}</p>
@@ -174,8 +177,11 @@ function buildSections(c: HomeContent, t: (key: string) => string): (Section | n
                   <h3 className={`${s.subhead} ${mine.length ? s.gapTop : ""}`}>Built for others</h3>
                   <div className={s.gridOthers}>
                     {others.map((p) => (
-                      <article key={p.id} className={s.cardOther}>
-                        <h4>{p.name}</h4>
+                      <article key={p.id} className={`${s.cardOther} ${s.branded}`} style={brand(p)}>
+                        <div className={s.cardName}>
+                          <ProjectMark p={p} size={32} />
+                          <h4>{p.name}</h4>
+                        </div>
                         <p>{inline(p.description)}</p>
                         {p.url && (
                           <a {...linkProps(p.url)} className={s.smallLink}>
@@ -459,6 +465,26 @@ function Footer({ t, g }: { t: (key: string) => string; g: (key: string) => stri
         </div>
       </div>
     </footer>
+  );
+}
+
+// The project's brand colour, used for the card's top band and letter badge.
+function brand(p: Project) {
+  return p.color ? ({ "--brand": p.color } as React.CSSProperties) : undefined;
+}
+
+// The project's own logo, or its first letter when there is none.
+function ProjectMark({ p, size }: { p: Project; size: number }) {
+  if (p.logo_url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={p.logo_url} alt="" width={size} height={size} className={s.mark} loading="lazy" />
+    );
+  }
+  return (
+    <span className={`${s.mark} ${s.markLetter}`} style={{ width: size, height: size, fontSize: size * 0.5 }} aria-hidden="true">
+      {p.name.charAt(0).toUpperCase()}
+    </span>
   );
 }
 

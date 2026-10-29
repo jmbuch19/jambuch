@@ -12,6 +12,8 @@ export type Project = {
   status: string | null;
   description: string | null;
   project_group: "mine" | "built_for_others";
+  logo_url: string | null;
+  color: string | null;
 };
 
 export type ReadingItem = {
@@ -105,7 +107,10 @@ export async function loadHome(): Promise<HomeContent> {
   const [text, desk, projects, reading, works, workshop, recordings, notebook, books] = await Promise.all([
     db.from("site_text").select("key, en, gu"),
     db.from("desk_now").select("id, text, link").order("sort_order"),
-    db.from("projects").select("id, name, domain, url, status, description, project_group").order("sort_order"),
+    db
+      .from("projects")
+      .select("id, name, domain, url, status, description, project_group, logo_url, color")
+      .order("sort_order"),
     db
       .from("reading")
       .select("id, type, title, author, why, cover_url, link, is_current")
