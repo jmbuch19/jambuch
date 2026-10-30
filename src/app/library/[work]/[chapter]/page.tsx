@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { inline } from "@/lib/inline";
-import { guNumber, loadChapter, paragraphs } from "@/lib/library";
+import { guNumber, loadChapter, paragraphs, readingSeconds } from "@/lib/library";
 import LibraryHeader from "../../header";
+import ReadTracker from "../../read-tracker";
 import { READER_BOOT_SCRIPT } from "../../reader-settings";
 import ReaderText from "../../reader-text";
 import l from "../../library.module.css";
@@ -54,6 +55,18 @@ export default async function ChapterPage({ params }: Props) {
         </h1>
         {chapter.title_original && <p className={l.original}>{chapter.title_original}</p>}
 
+        {chapter.opening_image_url && (
+          // The chapter picture always opens the chapter, right under its title.
+          <figure className={`${l.figure} ${l.opening}`}>
+            {/* Tapping opens the full picture, where phones can zoom. */}
+            <a href={chapter.opening_image_url} target="_blank" rel="noopener">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={chapter.opening_image_url} alt={chapter.opening_caption ?? ""} fetchPriority="high" decoding="async" />
+            </a>
+            {chapter.opening_caption && <figcaption className="gu">{inline(chapter.opening_caption)}</figcaption>}
+          </figure>
+        )}
+
         {chapter.audio_url && (
           <div className={l.audio}>
             <p>Read aloud by Jaydeep</p>
@@ -65,22 +78,11 @@ export default async function ChapterPage({ params }: Props) {
 
         <ReaderText>
           {paragraphs(chapter.body).map((b, i) =>
-            b.kind === "image" ? (
-              <figure key={i} className={l.figure}>
-                {/* Tapping opens the full picture, where phones can zoom. */}
-                <a href={b.src} target="_blank" rel="noopener">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={b.src} alt={b.caption} loading="lazy" decoding="async" />
-                </a>
-                {b.caption && <figcaption>{inline(b.caption)}</figcaption>}
-              </figure>
-            ) : b.kind === "quote" ? (
-              <blockquote key={i}>{inline(b.text)}</blockquote>
-            ) : (
-              <p key={i}>{inline(b.text)}</p>
-            ),
+            b.kind === "quote" ? <blockquote key={i}>{inline(b.text)}</blockquote> : <p key={i}>{inline(b.text)}</p>,
           )}
         </ReaderText>
+        {/* Sits at the end of the text: reaching it after real reading counts as finished. */}
+        <ReadTracker chapterId={chapter.id} minSeconds={Math.max(20, Math.round(readingSeconds(chapter.body) / 3))} />
 
         {chapter.translator_note && (
           <aside className={l.note}>
@@ -117,6 +119,10 @@ export default async function ChapterPage({ params }: Props) {
             </div>
           )}
         </nav>
+        <p className={l.privacy}>
+          This library counts reading anonymously (chapters opened and finished) to learn what readers enjoy. No names,
+          emails or locations are collected.
+        </p>
       </main>
     </>
   );

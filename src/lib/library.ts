@@ -27,6 +27,8 @@ export type ChapterFull = Chapter & {
   body: string | null;
   translator_note: string | null;
   audio_url: string | null;
+  opening_image_url: string | null;
+  opening_caption: string | null;
 };
 
 const CHAPTER_COLS = "id, number, title, title_original, status, expected";
@@ -57,7 +59,7 @@ export async function loadChapter(slug: string, number: number) {
   if (!found) return null;
   const { data: chapter, error } = await publicClient()
     .from("chapters")
-    .select(`${CHAPTER_COLS}, body, translator_note, audio_url`)
+    .select(`${CHAPTER_COLS}, body, translator_note, audio_url, opening_image_url, opening_caption`)
     .eq("work_id", found.work.id)
     .eq("number", number)
     .eq("status", "ready")
@@ -82,35 +84,26 @@ export function guNumber(n: number) {
   return String(n).replace(/\d/g, (d) => GU_DIGITS[Number(d)]);
 }
 
-export type Block =
-  | { kind: "text"; text: string }
-  | { kind: "quote"; text: string }
-  | { kind: "image"; src: string; caption: string };
+export type Block = { kind: "text" | "quote"; text: string };
 
+// An old-style picture line inside the text. Pictures now have their own
+// field and always open the chapter, so these lines are never shown.
 const IMAGE_LINE = /^!\[([^\]]*)\]\((\S+)\)$/;
 
-// Only pictures in our own media bucket are shown; any other link is dropped.
-function isMediaUrl(src: string) {
-  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.trim().replace(/\/+$/, "");
-  return !!base && src.startsWith(`${base}/`);
-}
-
 // Chapter text: paragraphs are separated by a blank line; a paragraph that
-// starts with "> " is a pulled quote; a paragraph that is only
-// ![caption](link) is an image.
+// starts with "> " is a pulled quote.
 export function paragraphs(body: string | null): Block[] {
   return (body ?? "")
     .replace(/\r\n/g, "\n")
     .split(/\n\s*\n/)
     .map((p) => p.trim())
-    .filter(Boolean)
-    .flatMap((p): Block[] => {
-      const img = p.match(IMAGE_LINE);
-      if (img) {
-        const caption = img[1].trim() === "Caption" ? "" : img[1].trim();
-        return isMediaUrl(img[2]) ? [{ kind: "image", src: img[2], caption }] : [];
-      }
-      if (p.startsWith("> ")) return [{ kind: "quote", text: p.replace(/^>\s?/gm, "") }];
-      return [{ kind: "text", text: p }];
-    });
+    .filter((p) => p && !IMAGE_LINE.test(p))
+    .map((p) => (p.startsWith("> ") ? { kind: "quote", text: p.replace(/^>\s?/gm, "") } : { kind: "text", text: p }));
+}
+
+// Rough reading time for a chapter, used to decide when a reader has really
+// read it rather than scrolled past (about 120 Gujarati words a minute).
+export function readingSeconds(body: string | null) {
+  const words = (body ?? "").split(/\s+/).filter(Boolean).length;
+  return Math.round((words / 120) * 60);
 }

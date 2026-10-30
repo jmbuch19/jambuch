@@ -20,6 +20,13 @@ export function textProblems(text: string): string[] {
     );
   }
 
+  if (/!\[[^\]]*\]\(\S+\)|media\.jambuch\.in\//.test(body)) {
+    problems.push(
+      "There is a picture link in the text. Pictures inside the text aren’t shown; " +
+        "upload it in “Chapter picture” instead, and remove the link line from the text.",
+    );
+  }
+
   const lineBreaks = body.match(/\n/g)?.length ?? 0;
   if (lineBreaks >= 3 && !/\n\s*\n/.test(body)) {
     problems.push(

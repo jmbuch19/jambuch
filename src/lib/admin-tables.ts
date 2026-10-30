@@ -12,7 +12,6 @@ export type Field = {
   readOnly?: boolean;
   hint?: string;
   checkText?: boolean; // textarea: warn about PDF-pasted Gujarati and missing blank lines
-  images?: boolean; // textarea: "Insert image" button that uploads and adds an image line
 };
 
 export type TableConfig = {
@@ -195,10 +194,16 @@ export const TABLES: TableConfig[] = [
         label: "Chapter text",
         type: "textarea",
         rows: 20,
-        hint: "Leave a blank line between paragraphs. Start a paragraph with “> ” to set it as a pulled quote. “Insert image” places a picture where the cursor is; change the words in [ ] to set its caption.",
+        hint: "Leave a blank line between paragraphs. Start a paragraph with “> ” to set it as a pulled quote. Pictures go in “Chapter picture” below.",
         checkText: true,
-        images: true,
       },
+      {
+        name: "opening_image_url",
+        label: "Chapter picture",
+        type: "image",
+        hint: "Always shown at the top of the chapter, under its title. A wide picture works best, at least 1600 pixels across.",
+      },
+      { name: "opening_caption", label: "Picture caption", type: "text", hint: "Optional, e.g. પુત્રકામેષ્ટિ યજ્ઞ" },
       { name: "translator_note", label: "Translator’s note", type: "textarea", checkText: true },
       { name: "audio_url", label: "Read-aloud audio URL", type: "url" },
       published,

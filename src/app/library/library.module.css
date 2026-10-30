@@ -576,6 +576,21 @@
 :global(html[data-reader-theme="night"]) .figure img {
   filter: brightness(0.85);
 }
+/* The chapter picture, right under the title. */
+.opening {
+  margin: 28px 0 0;
+}
+.opening figcaption {
+  font-size: 15px;
+  font-style: normal;
+}
+.privacy {
+  margin: 32px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+  text-align: center;
+}
 .text blockquote {
   margin: 1em 0;
   padding: 2px 0 2px 1em;

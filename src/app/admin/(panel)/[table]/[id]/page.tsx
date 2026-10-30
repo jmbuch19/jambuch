@@ -114,13 +114,7 @@ export default async function EditRow({
                 {f.required && " *"}
               </span>
               {f.type === "textarea" && f.checkText ? (
-                <CheckedTextarea
-                  name={f.name}
-                  defaultValue={String(value ?? "")}
-                  rows={f.rows ?? 4}
-                  required={f.required}
-                  images={f.images ? table : undefined}
-                />
+                <CheckedTextarea name={f.name} defaultValue={String(value ?? "")} rows={f.rows ?? 4} required={f.required} />
               ) : f.type === "textarea" ? (
                 <textarea name={f.name} defaultValue={String(value ?? "")} rows={f.rows ?? 4} required={f.required} />
               ) : f.type === "select" || f.type === "ref" ? (

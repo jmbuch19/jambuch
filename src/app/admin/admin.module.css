@@ -178,6 +178,54 @@
   text-decoration: underline;
 }
 
+/* ------------------------------------------------------------ readers */
+.readersBook {
+  margin-top: 36px;
+}
+.readersTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin: 0 0 12px;
+  font-size: 24px;
+}
+.readersTitle small {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--muted);
+}
+.barCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+.barFill {
+  height: 8px;
+  min-width: 2px;
+  max-width: 100px;
+  border-radius: 4px;
+  background: var(--accent);
+}
+.mutedSmall {
+  color: var(--muted);
+  font-size: 12px;
+}
+.readersHow {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 20px;
+  margin: 0;
+  font-size: 14px;
+}
+.readersHow dt {
+  color: var(--muted);
+}
+.readersHow dd {
+  margin: 0;
+}
+
 /* ------------------------------------------------------------ images */
 .imageField {
   display: flex;
