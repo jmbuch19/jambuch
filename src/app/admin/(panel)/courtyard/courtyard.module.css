@@ -330,6 +330,9 @@ a.name:hover {
   border-radius: 10px;
   margin-right: 8px;
 }
+.badgeAfter {
+  margin: 0 0 0 8px;
+}
 .chips {
   display: flex;
   flex-wrap: wrap;

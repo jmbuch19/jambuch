@@ -21,7 +21,7 @@ export default async function CourtyardPage({ searchParams }: { searchParams: Pr
     db
       .from("courtyard_submissions")
       .select(
-        "id, kind, status, name, email, city, category, title, body, file_url, file_type, file_name, links, about, creator_name, relation, why, invite_id, created_at, published_at",
+        "id, kind, status, name, email, city, category, title, body, file_url, file_type, file_name, links, about, creator_name, relation, why, invite_id, family_only, thread_from, created_at, published_at",
       )
       .neq("status", "unconfirmed")
       .is("deleted_at", null)
@@ -31,9 +31,20 @@ export default async function CourtyardPage({ searchParams }: { searchParams: Pr
   ]);
 
   const invites = (invitesRes.data ?? []) as InviteRow[];
-  const submissions = ((subsRes.data ?? []) as (Omit<SubmissionRow, "has_file"> & { file_url: string | null })[]).map(
-    ({ file_url, ...s }) => ({ ...s, has_file: !!file_url }),
-  );
+  type Raw = Omit<SubmissionRow, "has_file" | "thread_from_title"> & { file_url: string | null; thread_from: string | null };
+  const raw = (subsRes.data ?? []) as Raw[];
+  // Names the piece each one picks up the thread from.
+  const parentIds = [...new Set(raw.map((s) => s.thread_from).filter((x): x is string => !!x))];
+  const parents = new Map<string, string>();
+  if (parentIds.length) {
+    const { data } = await db.from("courtyard_submissions").select("id, name, title").in("id", parentIds);
+    for (const p of data ?? []) parents.set(p.id, `${p.name}’s “${p.title ?? "piece"}”`);
+  }
+  const submissions: SubmissionRow[] = raw.map(({ file_url, thread_from, ...s }) => ({
+    ...s,
+    has_file: !!file_url,
+    thread_from_title: thread_from ? (parents.get(thread_from) ?? "an earlier piece") : null,
+  }));
   const limit = Number(limitRes.data?.value ?? 5) || 5;
   const yearStart = `${new Date().getFullYear()}-01-01`;
   const used = invites.filter(

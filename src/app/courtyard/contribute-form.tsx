@@ -3,7 +3,7 @@
 import Script from "next/script";
 import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 import { shrinkImage } from "@/app/admin/(panel)/[table]/[id]/shrink-image";
-import { CATEGORIES, DOOR_HASH, MAX_FILE_BYTES, type SubmissionKind } from "@/lib/courtyard";
+import { CATEGORIES, DOOR_HASH, MAX_FILE_BYTES, REPLY_HASH, type SubmissionKind } from "@/lib/courtyard";
 import { submitContribution, type ContributeState } from "./actions";
 import y from "./courtyard.module.css";
 
@@ -16,9 +16,12 @@ const DOORS: { kind: SubmissionKind; label: string; send: string; thanks: string
 ];
 
 // One form, three doors: a single piece, a room request, or a suggestion.
-export default function ContributeForm() {
+// threads: the pieces on the public thread, so "Pick up this thread" can name them.
+export default function ContributeForm({ threads }: { threads: { id: string; label: string }[] }) {
   const [state, action, pending] = useActionState<ContributeState, FormData>(submitContribution, { status: "idle" });
   const [kind, setKind] = useState<SubmissionKind>("single_piece");
+  const [threadFrom, setThreadFrom] = useState<string | null>(null);
+  const threadLabel = threads.find((t) => t.id === threadFrom)?.label;
   const [sentKind, setSentKind] = useState<SubmissionKind>("single_piece");
   const [fileError, setFileError] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
@@ -45,9 +48,15 @@ export default function ContributeForm() {
   useEffect(() => {
     function fromHash() {
       const hash = window.location.hash.slice(1);
-      const match = (Object.keys(DOOR_HASH) as SubmissionKind[]).find((k) => DOOR_HASH[k] === hash);
-      if (!match) return;
-      setKind(match);
+      if (hash.startsWith(REPLY_HASH)) {
+        // "Pick up this thread": a single piece that answers an earlier one.
+        setKind("single_piece");
+        setThreadFrom(hash.slice(REPLY_HASH.length));
+      } else {
+        const match = (Object.keys(DOOR_HASH) as SubmissionKind[]).find((k) => DOOR_HASH[k] === hash);
+        if (!match) return;
+        setKind(match);
+      }
       formTop.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
     fromHash();
@@ -122,6 +131,17 @@ export default function ContributeForm() {
               onLoad={renderWidget}
             />
             <input type="hidden" name="kind" value={kind} />
+            {piece && threadFrom && threadLabel && (
+              <>
+                <input type="hidden" name="thread_from" value={threadFrom} />
+                <p className={y.threadNote}>
+                  ↳ Picking up the thread from {threadLabel}
+                  <button type="button" onClick={() => setThreadFrom(null)}>
+                    Start a new thread instead
+                  </button>
+                </p>
+              </>
+            )}
 
             {suggestion && (
               <div className={y.row}>
@@ -223,6 +243,10 @@ export default function ContributeForm() {
                 <label>
                   <input type="checkbox" name="permission" required />
                   <span>Jaydeep may publish it here under my name, and remove it if he needs to.</span>
+                </label>
+                <label>
+                  <input type="checkbox" name="family_only" />
+                  <span>Show it only to my family circle for now. I can make it public later.</span>
                 </label>
               </div>
             ) : (

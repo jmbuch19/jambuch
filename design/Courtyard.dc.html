@@ -34,7 +34,8 @@ input,textarea,select,button{font-family:inherit}
 <section style="max-width: 1160px; margin: 0 auto; padding: 64px 24px 32px">
 <p style="margin: 0 0 8px; font-family: 'Noto Serif Gujarati', serif; font-size: 24px; color: #9A5418">આંગણું</p>
 <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 56px; line-height: 1.1">The Courtyard</h1>
-<p style="margin: 16px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 23px; color: #2E3735; max-width: 760px">Friends, family, colleagues — and you. A poem, a photograph, a lesson that helped a student, a small tool that saved someone an hour: if you made it and it’s worth sharing, there’s a place for it here. Credit always goes to the person who made it.</p>
+<p style="margin: 16px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 23px; color: #2E3735; max-width: 760px">Friends, family, colleagues — and you. A poem, a photograph, a lesson that helped a student, a small tool that saved someone an hour, a song an elder sang: if you made it, or are keeping it for your family, there’s a place for it here. Credit always goes to the person who made it.</p>
+<p style="margin: 22px 0 0; padding-left: 18px; border-left: 3px solid #D9A26B; font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 20px; color: #3F4A47; max-width: 700px">In the old courtyard, nobody competes. Someone begins a story and the others listen. When it ends, someone else picks up the thread. Just closeness, laughter and sharing.</p>
 </section>
 
 <!-- THREE DOORS -->
@@ -58,6 +59,21 @@ input,textarea,select,button{font-family:inherit}
 <span style="font-size: 15px; color: #3F4A47">A grandmother’s recipes, a colleague’s photographs, a teacher’s notes that deserve readers.</span>
 <span style="font-size: 14px; font-weight: 500; color: #1E5C57; margin-top: 4px">Suggest someone →</span>
 </button>
+</div>
+</section>
+
+<!-- WHY CONTRIBUTE -->
+<section style="border-top: 1px solid #DAD6CC; background: #F6E7D6">
+<div style="max-width: 1160px; margin: 0 auto; padding: 56px 24px">
+<h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 38px; line-height: 1.15; max-width: 760px">Your work deserves a better home than a WhatsApp forward.</h2>
+<p style="margin: 10px 0 28px; color: #3F4A47; max-width: 680px">Why share it here rather than anywhere else?</p>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px">
+<div style="background: #FFFFFF; border-radius: 10px; padding: 22px"><p style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 22px">A home, not a feed</p><p style="margin: 6px 0 0; font-size: 15px; color: #3F4A47">A post disappears in two days. Here your piece gets its own page with your name on it, still there years from now.</p></div>
+<div style="background: #FFFFFF; border-radius: 10px; padding: 22px"><p style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 22px">A real reader</p><p style="margin: 6px 0 0; font-size: 15px; color: #3F4A47">I read every word you send and write back myself, whether or not it goes up.</p></div>
+<div style="background: #FFFFFF; border-radius: 10px; padding: 22px"><p style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 22px">Something to point to</p><p style="margin: 6px 0 0; font-size: 15px; color: #3F4A47">For students and teachers: a published, credited link for your CV, portfolio or application.</p></div>
+<div style="background: #FFFFFF; border-radius: 10px; padding: 22px"><p style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 22px">Kept for the next generation</p><p style="margin: 6px 0 0; font-size: 15px; color: #3F4A47">Letters, recipes, songs an elder sang: safe from a broken phone, credited to the person who made them.</p></div>
+</div>
+<p style="margin: 22px 0 0; font-size: 15px; color: #3F4A47"><strong style="color: #1B1F1E">What I won’t promise:</strong> big numbers. <strong style="color: #1B1F1E">What I will:</strong> care, credit, and permanence.</p>
 </div>
 </section>
 
@@ -86,21 +102,33 @@ input,textarea,select,button{font-family:inherit}
 </div>
 </section>
 
-<!-- SINGLE PIECES -->
+<!-- THE THREAD -->
 <section style="border-top: 1px solid #DAD6CC; background: #EDEAE2">
-<div style="max-width: 1160px; margin: 0 auto; padding: 56px 24px">
-<h2 style="margin: 0 0 6px; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 34px">Shared by visitors</h2>
-<p style="margin: 0 0 22px; color: #55605D">Single pieces from people who stopped by. Each one read and approved before it appears.</p>
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px">
+<div style="max-width: 780px; margin: 0 auto; padding: 56px 24px">
+<p style="margin: 0 0 4px; font-family: 'Noto Serif Gujarati', serif; font-size: 20px; color: #9A5418">વાતનો દોર</p>
+<h2 style="margin: 0 0 6px; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 34px">The thread</h2>
+<p style="margin: 0 0 28px; color: #55605D">Pieces in the order they were shared, like turns around the courtyard. Each one can answer the one before. No likes, no counts, no rankings.</p>
+<div style="display: flex; flex-direction: column">
 <sc-for list="{{pieces}}" as="p" hint-placeholder-count="4">
-<article style="background: #FFFFFF; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 6px">
-<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #9A5418">{{p.cat}}</span>
-<h3 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 21px">{{p.title}}</h3>
-<p style="margin: 0; font-size: 14px; color: #3F4A47; flex-grow: 1">{{p.note}}</p>
-<p style="margin: 6px 0 0; font-size: 13px; color: #55605D">by {{p.by}}</p>
+<div style="display: flex; gap: 16px">
+<div style="flex: none; display: flex; flex-direction: column; align-items: center">
+<span style="width: 44px; height: 44px; border-radius: 22px; background: {{p.tint}}; display: flex; align-items: center; justify-content: center; font-family: 'Newsreader', Georgia, serif; font-size: 18px">{{p.initials}}</span>
+<span style="flex: 1; width: 2px; background: #C9C3B6; margin: 6px 0"></span>
+</div>
+<article style="flex: 1; min-width: 0; background: #FFFFFF; border-radius: 10px; padding: 18px 20px; margin-bottom: 18px">
+<sc-if value="{{p.hasFrom}}" hint-placeholder-val="{{ false }}"><p style="margin: 0 0 8px; font-size: 13px; color: #55605D">↳ picked up the thread from {{p.from}}</p></sc-if>
+<p style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #9A5418">{{p.cat}}</p>
+<h3 style="margin: 4px 0 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 22px">{{p.title}}</h3>
+<p style="margin: 6px 0 0; font-size: 15px; color: #3F4A47">{{p.note}}</p>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px">
+<span style="font-size: 13px; color: #55605D">{{p.by}} · {{p.when}}</span>
+<button type="button" onClick="{{goPiece}}" style="min-height: 40px; padding: 0 14px; border: 1px solid #B5AFA2; border-radius: 20px; background: #FFFFFF; color: #1B1F1E; font-size: 13px; cursor: pointer">Pick up this thread</button>
+</div>
 </article>
+</div>
 </sc-for>
 </div>
+<button type="button" onClick="{{goPiece}}" style="margin-left: 60px; min-height: 48px; padding: 0 22px; border: 1px dashed #9A8F7C; border-radius: 10px; background: transparent; color: #1B1F1E; font-size: 15px; font-weight: 500; cursor: pointer">Your turn — add to the thread →</button>
 </div>
 </section>
 
@@ -121,6 +149,7 @@ input,textarea,select,button{font-family:inherit}
 <p style="margin: 0">Your name is on every piece. Credit always goes to you.</p>
 <p style="margin: 0">Your work stays yours. You choose how others may use it.</p>
 <p style="margin: 0">No ads, and no money is made from your work here.</p>
+<p style="margin: 0">No likes, no rankings, no competition. Every turn is welcome.</p>
 <p style="margin: 0">Ask, and it comes down — with every file returned.</p>
 </div>
 </div>
@@ -131,7 +160,8 @@ input,textarea,select,button{font-family:inherit}
 <section id="contribute" style="border-top: 1px solid #DAD6CC; background: #1B1F1E; color: #F5F3EE">
 <div style="max-width: 860px; margin: 0 auto; padding: 64px 24px 80px">
 <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 38px">Contribute</h2>
-<p style="margin: 8px 0 24px; color: #CFD8D6">Pick a door. Every submission is read by Jaydeep before anything appears.</p>
+<p style="margin: 8px 0 18px; color: #CFD8D6">Pick a door. Every submission is read by Jaydeep before anything appears.</p>
+<a href="#" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 24px; padding: 16px 20px; border-radius: 10px; background: #2A302E; color: #F5F3EE; text-decoration: none"><span><span style="display: block; font-weight: 600">Forms not your thing? Just send it on WhatsApp.</span><span style="display: block; font-size: 14px; color: #CFD8D6">A voice note, a photo of a notebook page, a file. Tell me your name and I’ll do the rest.</span></span><span style="font-size: 15px; font-weight: 600; color: #8FC1BB; white-space: nowrap">WhatsApp [number] →</span></a>
 <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px">
 <sc-for list="{{doors}}" as="d" hint-placeholder-count="3">
 <sc-if value="{{d.on}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{d.pick}}" style="min-height: 44px; padding: 0 18px; border-radius: 22px; border: 1px solid #F5F3EE; background: #F5F3EE; color: #1B1F1E; font-size: 15px; font-weight: 500; cursor: pointer">{{d.label}}</button></sc-if>
@@ -161,7 +191,7 @@ input,textarea,select,button{font-family:inherit}
 <label style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Your email<input type="email" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"></label>
 </div>
 
-<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Category<select style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"><option>Writing &amp; poetry</option><option>Photography</option><option>Music</option><option>Art &amp; craft</option><option>Tech — tools, code, how-tos</option><option>Education — lessons, notes, guides</option><option>Something else</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Category<select style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"><option>Writing &amp; poetry</option><option>Photography</option><option>Music</option><option>Art &amp; craft</option><option>Tech — tools, code, how-tos</option><option>Education — lessons, notes, guides</option><option>Heirlooms — family letters, recipes, songs, photographs</option><option>Something else</option></select></label>
 
 <sc-if value="{{isPiece}}" hint-placeholder-val="{{ true }}">
 <div style="display: flex; flex-direction: column; gap: 16px">
@@ -189,6 +219,7 @@ input,textarea,select,button{font-family:inherit}
 <div style="display: flex; flex-direction: column; gap: 4px">
 <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 14px; min-height: 44px; padding-top: 10px"><input type="checkbox" style="width: 18px; height: 18px; margin-top: 2px; flex: none"> This is my own work and I have the right to share it.</label>
 <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 14px; min-height: 44px; padding-top: 10px"><input type="checkbox" style="width: 18px; height: 18px; margin-top: 2px; flex: none"> Jaydeep may publish it here under my name, and remove it if he needs to.</label>
+<label style="display: flex; align-items: flex-start; gap: 10px; font-size: 14px; min-height: 44px; padding-top: 10px"><input type="checkbox" style="width: 18px; height: 18px; margin-top: 2px; flex: none"> Show it only to my family circle for now. I can make it public later.</label>
 </div>
 </sc-if>
 <sc-if value="{{isSuggest}}" hint-placeholder-val="{{ false }}">
@@ -216,19 +247,20 @@ class Component extends DCLogic {
       { initials: 'C', name: '[Guest name]', craft: 'Music', place: '[City]', line: '[One line in their own words about what they make.]', tint: '#E1DFE6' },
       { initials: 'D', name: '[Guest name]', craft: 'Art', place: '[City]', line: '[One line in their own words about what they make.]', tint: '#E6E1D3' },
       { initials: 'E', name: '[Guest name]', craft: 'Tech', place: '[City]', line: '[Small tools and plain-language how-tos.]', tint: '#D8E2EE' },
-      { initials: 'F', name: '[Guest name]', craft: 'Education', place: '[City]', line: '[A teacher’s notes and lessons, shared for any student.]', tint: '#E4ECD8' }
+      { initials: 'F', name: '[Guest name]', craft: 'Education', place: '[City]', line: '[A teacher’s notes and lessons, shared for any student.]', tint: '#E4ECD8' },
+      { initials: 'G', name: '[Family name]', craft: 'Heirlooms', place: '[City]', line: '[A grandmother’s bhajans, recorded at home and kept for the grandchildren.]', tint: '#EFE3D0' }
     ];
     const f = this.state.f;
     const creators = all.filter(c => f === 'All' || c.craft === f);
-    const filters = ['All', 'Poetry', 'Photography', 'Music', 'Art', 'Tech', 'Education'].map(label => ({
+    const filters = ['All', 'Poetry', 'Photography', 'Music', 'Art', 'Tech', 'Education', 'Heirlooms'].map(label => ({
       label, on: f === label, off: f !== label, pick: () => this.setState({ f: label })
     }));
     const pieces = [
-      { cat: 'Education', title: '[A one-page guide to …]', note: '[What it helps a student do.]', by: '[Name], [City]' },
-      { cat: 'Tech', title: '[A small tool or how-to]', note: '[The problem it solves, in a line.]', by: '[Name], [City]' },
-      { cat: 'Photography', title: '[Photo title]', note: '[Where and when.]', by: '[Name], [City]' },
-      { cat: 'Writing', title: '[Poem title]', note: '[A line about it.]', by: '[Name], [City]' }
-    ];
+      { initials: 'A', tint: '#EFE3D0', cat: 'Heirlooms', title: '[A song my grandmother sang at dusk]', note: '[A home recording, and a line about where she learned it.]', by: '[Name], [City]', when: '[date]', from: '' },
+      { initials: 'B', tint: '#DCE6E4', cat: 'Photography', title: '[The courtyard of my mother’s house]', note: '[Photographs, and a memory the song brought back.]', by: '[Name], [City]', when: '[date]', from: '[Name]’s song' },
+      { initials: 'C', tint: '#F6E7D6', cat: 'Writing', title: '[A poem about evenings]', note: '[A few lines in Gujarati, written after seeing the photographs.]', by: '[Name], [City]', when: '[date]', from: '[Name]’s photographs' },
+      { initials: 'D', tint: '#E4ECD8', cat: 'Education', title: '[How I learned English at 40]', note: '[A one-page note for anyone starting late.]', by: '[Name], [City]', when: '[date]', from: '' }
+    ].map(p => ({ ...p, hasFrom: !!p.from }));
     const door = this.state.door;
     const go = d => () => this.setState({ door: d, sent: false });
     const doors = [['piece', 'Share one piece'], ['room', 'Ask for a room'], ['suggest', 'Suggest a creator']].map(([k, label]) => ({

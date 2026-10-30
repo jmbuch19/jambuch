@@ -64,6 +64,8 @@ export type SubmissionRow = {
   relation: string | null;
   why: string | null;
   invite_id: string | null;
+  family_only: boolean;
+  thread_from_title: string | null; // the piece it picks up the thread from
   created_at: string;
   published_at: string | null;
 };
@@ -88,7 +90,7 @@ type Panel =
 
 // The invite form's crafts (design/Invites.dc.html), and which one a
 // submission's category becomes.
-const CRAFTS = ["Poetry", "Photography", "Music", "Art", "Tech", "Education", "Other"];
+const CRAFTS = ["Poetry", "Photography", "Music", "Art", "Tech", "Education", "Heirlooms", "Other"];
 const CRAFT_OF: Record<(typeof CATEGORIES)[number]["value"], string> = {
   writing: "Poetry",
   photography: "Photography",
@@ -96,6 +98,7 @@ const CRAFT_OF: Record<(typeof CATEGORIES)[number]["value"], string> = {
   art: "Art",
   tech: "Tech",
   education: "Education",
+  heirlooms: "Heirlooms",
   other: "Other",
 };
 const craftOf = (category: string) => CRAFT_OF[category as keyof typeof CRAFT_OF] ?? "Other";
@@ -738,7 +741,9 @@ function SubmissionCard({ s, children }: { s: SubmissionRow; children: React.Rea
             · {categoryLabel(s.category)} · {from}
             {s.status !== "new" && ` · ${STATUS_LABELS[s.status]}`}
           </span>
+          {s.family_only && <span className={`${c.badge} ${c.badgeInline} ${c.toneAmber} ${c.badgeAfter}`}>Family circle only</span>}
         </div>
+        {s.thread_from_title && <div className={c.meta}>↳ picks up the thread from {s.thread_from_title}</div>}
         {note && <div className={c.about}>{note.length > 280 ? `${note.slice(0, 280)}…` : note}</div>}
         <div className={c.meta}>{s.email}{s.kind !== "suggestion" && s.city ? ` · ${s.city}` : ""}</div>
         {(s.links.length > 0 || s.has_file) && (
@@ -819,6 +824,13 @@ function ReviewPanel({
         </div>
       )}
       {s.category === "education" && <p className={a.warn}>It will show with: “{EDUCATION_NOTE}”</p>}
+      {s.family_only && (
+        <p className={a.warn}>
+          They asked to show it only to their family circle. Publishing approves it, but it stays off the public thread
+          until they say it may go public.
+        </p>
+      )}
+      {s.thread_from_title && <p className={c.meta}>↳ Picks up the thread from {s.thread_from_title}</p>}
       <p className={c.meta}>They ticked: own work, and permission to publish with their name.</p>
       {error && (
         <p className={a.error} role="alert">

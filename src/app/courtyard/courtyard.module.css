@@ -40,6 +40,230 @@
   color: var(--saffron);
 }
 
+.quote {
+  margin: 22px 0 0;
+  padding-left: 18px;
+  border-left: 3px solid #d9a26b;
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-size: clamp(18px, 2.6vw, 20px);
+  color: var(--ink-soft);
+  max-width: 700px;
+}
+
+/* why contribute */
+.bandWarm {
+  background: #f6e7d6;
+}
+.whyTitle {
+  margin: 0;
+  font-size: clamp(30px, 5.5vw, 38px);
+  line-height: 1.15;
+  max-width: 760px;
+}
+.whyLede {
+  margin: 10px 0 28px;
+  color: var(--ink-soft);
+  max-width: 680px;
+}
+.whyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+  gap: 16px;
+}
+.whyCard {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 22px;
+}
+.whyCard p {
+  margin: 6px 0 0;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+.whyCard p.whyCardTitle {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  color: var(--ink);
+}
+.whyFoot {
+  margin: 22px 0 0;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+.whyFoot strong {
+  color: var(--ink);
+}
+
+/* the thread */
+.threadWrap {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 56px var(--gutter);
+}
+.threadKicker {
+  margin: 0 0 4px;
+  font-size: 20px;
+  color: var(--saffron);
+}
+.thread {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.turn {
+  display: flex;
+  gap: 16px;
+  scroll-margin-top: 24px;
+}
+.turnRail {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  color: var(--ink);
+}
+.rail {
+  flex: 1;
+  width: 2px;
+  background: #c9c3b6;
+  margin: 6px 0;
+}
+.turnCard {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.turnCard h3 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.3;
+}
+.from {
+  margin: 0 0 2px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.from a {
+  color: var(--muted);
+}
+.turnFoot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.pickUp {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  text-decoration: none;
+}
+.pickUp:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.yourTurn {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 60px;
+  min-height: 48px;
+  padding: 0 22px;
+  border: 1px dashed #9a8f7c;
+  border-radius: var(--radius);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.yourTurn:hover {
+  border-style: solid;
+  color: var(--ink);
+}
+@media (max-width: 600px) {
+  .yourTurn {
+    margin-left: 0;
+  }
+}
+
+/* contribute: WhatsApp and thread notes */
+.whatsapp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  background: #2a302e;
+  color: var(--paper);
+  text-decoration: none;
+}
+.whatsapp:hover {
+  color: var(--paper);
+  background: #323937;
+}
+.whatsapp strong,
+.whatsapp span span {
+  display: block;
+}
+.whatsapp span span {
+  font-size: 14px;
+  color: #cfd8d6;
+}
+.whatsappGo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--on-dark-accent);
+  white-space: nowrap;
+}
+.threadNote {
+  margin: 0;
+  padding: 10px 14px;
+  background: var(--paper-alt);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.threadNote button {
+  margin-left: 10px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* three doors */
 .doorsWrap {
   max-width: var(--max-width);
@@ -261,7 +485,7 @@
   font-size: clamp(32px, 6vw, 38px);
 }
 .contributeLede {
-  margin: 8px 0 24px;
+  margin: 8px 0 18px;
   color: #cfd8d6;
 }
 .contributeInner {

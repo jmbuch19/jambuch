@@ -9,6 +9,7 @@ export const CATEGORIES = [
   { value: "art", label: "Art & craft", formLabel: "Art & craft" },
   { value: "tech", label: "Tech", formLabel: "Tech — tools, code, how-tos" },
   { value: "education", label: "Education", formLabel: "Education — lessons, notes, guides" },
+  { value: "heirlooms", label: "Heirlooms", formLabel: "Heirlooms — family letters, recipes, songs, photographs" },
   { value: "other", label: "Other", formLabel: "Something else" },
 ] as const;
 
@@ -42,6 +43,26 @@ export const DOOR_HASH: Record<SubmissionKind, string> = {
   room_request: "ask-room",
   suggestion: "suggest-creator",
 };
+
+// "Pick up this thread" links: /courtyard#reply-<piece id>.
+export const REPLY_HASH = "reply-";
+
+// Avatar colours in the thread, by category (from the design's tints).
+export const CATEGORY_TINT: Record<string, string> = {
+  writing: "#F6E7D6",
+  photography: "#DCE6E4",
+  music: "#E1DFE6",
+  art: "#E6E1D3",
+  tech: "#D8E2EE",
+  education: "#E4ECD8",
+  heirlooms: "#EFE3D0",
+  other: "#ECE9E1",
+};
+
+export function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase() || "•";
+}
 
 export const EDUCATION_NOTE = "Shared by a contributor; not advice from Jaydeep or IAES.";
 

@@ -89,6 +89,7 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
   if (kind !== "suggestion") {
     row.own_work = form.get("own_work") === "on";
     row.permission = form.get("permission") === "on";
+    row.family_only = form.get("family_only") === "on";
     if (!row.own_work || !row.permission) {
       return { status: "error", message: "Please tick both boxes: that it’s your own work, and that I may publish it." };
     }
@@ -107,6 +108,22 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
   }
 
   const db = adminClient();
+
+  // "Pick up this thread": only from a piece that is on the public thread.
+  const threadFrom = str("thread_from", 64);
+  if (kind === "single_piece" && /^[0-9a-f-]{36}$/i.test(threadFrom)) {
+    const { data: parent } = await db
+      .from("courtyard_submissions")
+      .select("id")
+      .eq("id", threadFrom)
+      .eq("kind", "single_piece")
+      .eq("status", "published")
+      .eq("family_only", false)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (parent) row.thread_from = parent.id;
+  }
+
   const h = await headers();
   const ip = h.get("cf-connecting-ip") ?? h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
   const ipHash = ip ? sha256(`${process.env.CRON_SECRET ?? ""}:${ip}`) : null;
