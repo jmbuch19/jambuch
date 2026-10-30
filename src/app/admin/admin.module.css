@@ -224,6 +224,13 @@
   border-radius: 4px;
   background: var(--accent);
 }
+.readersSub {
+  margin: 28px 0 6px;
+  font-size: 18px;
+}
+.gapTop {
+  margin-top: 16px;
+}
 .mutedSmall {
   color: var(--muted);
   font-size: 12px;

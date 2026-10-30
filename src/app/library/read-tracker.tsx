@@ -1,25 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { readerId } from "./reader-id";
 
-const READER_KEY = "reader-id";
 const IDLE_MS = 90_000; // no scroll, tap or key for this long: the reader has stepped away
 const SEND_EVERY_MS = 30_000;
-
-// A random code for this browser, so one reader is counted once per chapter.
-// It identifies nothing about the person.
-function readerId() {
-  try {
-    let id = localStorage.getItem(READER_KEY);
-    if (!id) {
-      id = crypto.randomUUID();
-      localStorage.setItem(READER_KEY, id);
-    }
-    return id;
-  } catch {
-    return crypto.randomUUID();
-  }
-}
 
 function device() {
   const w = window.innerWidth;

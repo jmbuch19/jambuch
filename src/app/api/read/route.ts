@@ -3,8 +3,9 @@ import { isAdminEmail } from "@/lib/admin";
 import { adminClient } from "@/lib/supabase-admin";
 import { sessionClient } from "@/lib/supabase-server";
 
-// Receives anonymous reading notes from the chapter reader (read-tracker.tsx)
-// and adds them to chapter_reads. The admin's own reading is not counted.
+// Receives anonymous notes from the chapter reader: reading (read-tracker.tsx,
+// into chapter_reads) and blocked copy/save/print attempts (reading-guard.tsx,
+// into protect_attempts). The admin's own visits are not counted.
 export const dynamic = "force-dynamic";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -38,6 +39,17 @@ export async function POST(request: Request) {
     return new Response(null, { status: 400 });
   }
   if (await isAdminVisit()) return new Response(null, { status: 204 });
+
+  // A note of blocked copy / save / print attempts (from reading-guard.tsx).
+  if (note.attempts && typeof note.attempts === "object") {
+    const { error } = await adminClient().rpc("record_attempts", {
+      p_chapter: chapterId,
+      p_reader: readerId,
+      p_counts: note.attempts,
+    });
+    if (error) console.error("record_attempts failed:", error.message);
+    return new Response(null, { status: 204 });
+  }
 
   const seconds = Math.min(120, Math.max(0, Math.round(Number(note.seconds) || 0)));
   const size = Number(note.size);

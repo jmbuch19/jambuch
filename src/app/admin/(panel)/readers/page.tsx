@@ -25,19 +25,40 @@ type Chapter = { id: string; work_id: string; number: number; title: string };
 
 const DAY = 24 * 60 * 60 * 1000;
 
+type Attempt = {
+  chapter_id: string;
+  reader_id: string;
+  work_id: string;
+  kind: AttemptKind;
+  count: number;
+  last_at: string;
+};
+type AttemptKind = "copy" | "select_all" | "save" | "print" | "right_click" | "drag" | "screenshot_key";
+
+const ATTEMPT_LABELS: Record<AttemptKind, string> = {
+  copy: "Copy",
+  select_all: "Select all",
+  save: "Save page",
+  print: "Print / PDF",
+  right_click: "Right-click / long-press",
+  drag: "Drag",
+  screenshot_key: "Screenshot key",
+};
+const ATTEMPT_KINDS = Object.keys(ATTEMPT_LABELS) as AttemptKind[];
+
 // Supabase returns at most 1,000 rows per request, so read in pages.
-async function allReads(db: SupabaseClient) {
-  const rows: Read[] = [];
+async function allRows<T>(db: SupabaseClient, table: string, columns: string) {
+  const rows: T[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await db
-      .from("chapter_reads")
-      .select("chapter_id, reader_id, work_id, first_seen, last_seen, visits, seconds, finished_at, device, theme, text_size, spacing")
-      .range(from, from + 999);
+    const { data, error } = await db.from(table).select(columns).range(from, from + 999);
     if (error) throw new Error(error.message);
-    rows.push(...((data ?? []) as Read[]));
+    rows.push(...((data ?? []) as T[]));
     if (!data || data.length < 1000) return rows;
   }
 }
+
+const when = (iso: string) =>
+  new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" });
 
 function median(values: number[]) {
   if (values.length === 0) return null;
@@ -78,8 +99,13 @@ function split(rows: Read[], key: "device" | "theme" | "text_size" | "spacing") 
 
 export default async function ReadersPage() {
   const { db } = await requireAdmin();
-  const [reads, worksRes, chaptersRes] = await Promise.all([
-    allReads(db),
+  const [reads, attempts, worksRes, chaptersRes] = await Promise.all([
+    allRows<Read>(
+      db,
+      "chapter_reads",
+      "chapter_id, reader_id, work_id, first_seen, last_seen, visits, seconds, finished_at, device, theme, text_size, spacing",
+    ),
+    allRows<Attempt>(db, "protect_attempts", "chapter_id, reader_id, work_id, kind, count, last_at"),
     db.from("works").select("id, title, title_gu").is("deleted_at", null).order("sort_order"),
     db.from("chapters").select("id, work_id, number, title").is("deleted_at", null).order("number"),
   ]);
@@ -210,6 +236,138 @@ export default async function ReadersPage() {
           </dl>
         </section>
       )}
+
+      <Attempts attempts={attempts} chapters={chapters} works={works} allReaders={allReaders} />
     </>
+  );
+}
+
+// Blocked copy / save / print attempts: what was tried, where, and whether
+// it's many people or one persistent reader.
+function Attempts({
+  attempts,
+  chapters,
+  works,
+  allReaders,
+}: {
+  attempts: Attempt[];
+  chapters: Chapter[];
+  works: Work[];
+  allReaders: number;
+}) {
+  const total = attempts.reduce((s, x) => s + x.count, 0);
+  const triers = new Set(attempts.map((x) => x.reader_id));
+  const chapterOf = new Map(chapters.map((c) => [c.id, c]));
+  const bookOf = new Map(works.map((w) => [w.id, w.title_gu ?? w.title]));
+
+  const byChapter = [...new Set(attempts.map((x) => x.chapter_id))]
+    .map((id) => {
+      const rows = attempts.filter((x) => x.chapter_id === id);
+      const counts = Object.fromEntries(
+        ATTEMPT_KINDS.map((k) => [k, rows.filter((x) => x.kind === k).reduce((s, x) => s + x.count, 0)]),
+      ) as Record<AttemptKind, number>;
+      return { id, row: rows[0], counts, readers: new Set(rows.map((x) => x.reader_id)).size };
+    })
+    .sort((x, y) => (chapterOf.get(x.id)?.number ?? 0) - (chapterOf.get(y.id)?.number ?? 0));
+
+  const persistent = [...triers]
+    .map((reader) => {
+      const rows = attempts.filter((x) => x.reader_id === reader);
+      return {
+        reader,
+        total: rows.reduce((s, x) => s + x.count, 0),
+        chapters: new Set(rows.map((x) => x.chapter_id)).size,
+        kinds: [...new Set(rows.map((x) => ATTEMPT_LABELS[x.kind]))].join(", "),
+        last: rows.reduce((m, x) => (x.last_at > m ? x.last_at : m), ""),
+      };
+    })
+    .sort((x, y) => y.total - x.total)
+    .slice(0, 10);
+
+  return (
+    <section className={a.readersBook}>
+      <h2 className={a.readersTitle}>
+        Copy and save attempts
+        <small>blocked on chapter pages; phone screenshots and screen recording can’t be detected</small>
+      </h2>
+      {total === 0 ? (
+        <p className={a.intro}>No attempts recorded yet.</p>
+      ) : (
+        <>
+          <div className={a.tiles}>
+            <div className={a.tile}>
+              <span className={a.tileCount}>{total}</span>
+              <span>Attempts blocked</span>
+            </div>
+            <div className={a.tile}>
+              <span className={a.tileCount}>{triers.size}</span>
+              <span>Readers who tried{allReaders ? ` (${pct(triers.size, allReaders)} of readers)` : ""}</span>
+            </div>
+          </div>
+
+          <div className={`${a.tableWrap} ${a.gapTop}`}>
+            <table className={a.table}>
+              <thead>
+                <tr>
+                  <th>Chapter</th>
+                  {ATTEMPT_KINDS.map((k) => (
+                    <th key={k}>{ATTEMPT_LABELS[k]}</th>
+                  ))}
+                  <th>Readers</th>
+                </tr>
+              </thead>
+              <tbody>
+                {byChapter.map(({ id, row, counts, readers }) => {
+                  const c = chapterOf.get(id);
+                  return (
+                    <tr key={id}>
+                      <td>
+                        <span className="gu">{bookOf.get(row.work_id) ?? ""}</span> · {c ? c.number : "?"}
+                      </td>
+                      {ATTEMPT_KINDS.map((k) => (
+                        <td key={k}>{counts[k] || ""}</td>
+                      ))}
+                      <td>{readers}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <h3 className={a.readersSub}>Most persistent readers</h3>
+          <p className={a.intro}>
+            Each code is one browser. The same code across many chapters or many attempts suggests one person trying
+            repeatedly rather than many curious readers.
+          </p>
+          <div className={a.tableWrap}>
+            <table className={a.table}>
+              <thead>
+                <tr>
+                  <th>Reader code</th>
+                  <th>Attempts</th>
+                  <th>Chapters</th>
+                  <th>What they tried</th>
+                  <th>Last attempt</th>
+                </tr>
+              </thead>
+              <tbody>
+                {persistent.map((p) => (
+                  <tr key={p.reader}>
+                    <td>
+                      <code>{p.reader.slice(0, 8)}</code>
+                    </td>
+                    <td>{p.total}</td>
+                    <td>{p.chapters}</td>
+                    <td>{p.kinds}</td>
+                    <td>{when(p.last)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </section>
   );
 }

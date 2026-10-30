@@ -48,7 +48,7 @@ export default async function ChapterPage({ params }: Props) {
       </div>
 
       <main id="reader" className={`${l.reader} ${l.guarded}`}>
-        <ReadingGuard targetId="reader" />
+        <ReadingGuard targetId="reader" chapterId={chapter.id} />
         <p className={l.printNote}>This chapter can be read online at jambuch.in{`/library/${work.slug}/${chapter.number}`}</p>
         <p className={l.eyebrow}>
           Chapter {chapter.number} · <span className="gu">પ્રકરણ {guNumber(chapter.number)}</span>
