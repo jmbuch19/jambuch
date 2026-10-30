@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
 import { formatCell, hasPublished, tableConfig } from "@/lib/admin-tables";
 import { saveRow } from "../../../actions";
+import { nextChapterNumber } from "@/lib/chapter-numbers";
 import ChapterNumberCheck, { type ChapterSlot } from "./chapter-number-check";
 import CheckedTextarea from "./checked-textarea";
 import ImageField from "./image-field";
@@ -54,7 +55,10 @@ export default async function EditRow({
   // Chapters: every chapter number already taken, for the live duplicate warning.
   let slots: { chapters: ChapterSlot[]; works: Record<string, string> } | null = null;
   if (table === "chapters") {
-    const { data } = await db.from("chapters").select("id, work_id, number, title, deleted_at");
+    const { data } = await db
+      .from("chapters")
+      .select("id, work_id, number, title, deleted_at, updated_at")
+      .order("updated_at", { ascending: false });
     const workField = fields.find((f) => f.name === "work_id");
     slots = {
       chapters: (data ?? []).map((c) => ({
@@ -66,6 +70,13 @@ export default async function EditRow({
       })),
       works: Object.fromEntries((workField?.options ?? []).map((o) => [o.value, o.label])),
     };
+    // A new chapter starts in the book worked on most recently, with that
+    // book's next chapter number, so the usual case needs no choosing.
+    if (isNew && data?.length) {
+      const work = data[0].work_id;
+      row.work_id = work;
+      row.number = nextChapterNumber(slots.chapters.filter((c) => c.work_id === work).map((c) => c.number));
+    }
   }
 
   return (

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { nextChapterNumber } from "@/lib/chapter-numbers";
 import a from "../../../admin.module.css";
 
 export type ChapterSlot = { id: string; work_id: string; number: number; title: string; trashed: boolean };
@@ -25,11 +26,20 @@ export default function ChapterNumberCheck({
   useEffect(() => {
     const form = ref.current?.closest("form");
     if (!form) return;
-    const read = () => {
-      const work = (form.elements.namedItem("work_id") as HTMLSelectElement | null)?.value ?? "";
-      const raw = (form.elements.namedItem("number") as HTMLInputElement | null)?.value ?? "";
-      const n = Number.parseInt(raw, 10);
-      setChoice({ work, number: Number.isNaN(n) ? null : n });
+    const workSelect = form.elements.namedItem("work_id") as HTMLSelectElement | null;
+    const numberInput = form.elements.namedItem("number") as HTMLInputElement | null;
+    // On a new chapter the number follows the chosen book until you type one yourself.
+    let typedNumber = false;
+
+    const read = (e?: Event) => {
+      if (e?.target === numberInput && e.isTrusted) typedNumber = true;
+      if (e?.target === workSelect && currentId === null && !typedNumber && numberInput && workSelect) {
+        numberInput.value = String(
+          nextChapterNumber(chapters.filter((c) => c.work_id === workSelect.value).map((c) => c.number)),
+        );
+      }
+      const n = Number.parseInt(numberInput?.value ?? "", 10);
+      setChoice({ work: workSelect?.value ?? "", number: Number.isNaN(n) ? null : n });
     };
     read();
     form.addEventListener("input", read);
@@ -38,14 +48,12 @@ export default function ChapterNumberCheck({
       form.removeEventListener("input", read);
       form.removeEventListener("change", read);
     };
-  }, []);
+  }, [chapters, currentId]);
 
   const others = chapters.filter((c) => c.work_id === choice.work && c.id !== currentId);
   const used = new Set(others.map((c) => c.number));
   const clash = choice.number == null ? null : others.find((c) => c.number === choice.number);
-  // The number that should come next: the first gap, else one after the last.
-  let nextFree = 1;
-  while (used.has(nextFree)) nextFree++;
+  const nextFree = nextChapterNumber(used);
   // Numbers left out before the one typed (e.g. typing 9 when only 1–7 exist leaves out 8).
   const skipped =
     clash || choice.number == null || choice.number < 1
