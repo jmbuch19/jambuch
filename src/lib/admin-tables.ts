@@ -11,6 +11,7 @@ export type Field = {
   required?: boolean;
   readOnly?: boolean;
   hint?: string;
+  checkText?: boolean; // textarea: warn about PDF-pasted Gujarati and missing blank lines
 };
 
 export type TableConfig = {
@@ -176,8 +177,9 @@ export const TABLES: TableConfig[] = [
         type: "textarea",
         rows: 20,
         hint: "Leave a blank line between paragraphs. Start a paragraph with “> ” to set it as a pulled quote.",
+        checkText: true,
       },
-      { name: "translator_note", label: "Translator’s note", type: "textarea" },
+      { name: "translator_note", label: "Translator’s note", type: "textarea", checkText: true },
       { name: "audio_url", label: "Read-aloud audio URL", type: "url" },
       published,
     ],

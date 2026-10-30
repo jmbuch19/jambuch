@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
 import { formatCell, hasPublished, tableConfig } from "@/lib/admin-tables";
 import { saveRow } from "../../../actions";
+import CheckedTextarea from "./checked-textarea";
 import ItemActions from "./item-actions";
 import a from "../../../admin.module.css";
 
@@ -101,7 +102,9 @@ export default async function EditRow({
                 {f.label}
                 {f.required && " *"}
               </span>
-              {f.type === "textarea" ? (
+              {f.type === "textarea" && f.checkText ? (
+                <CheckedTextarea name={f.name} defaultValue={String(value ?? "")} rows={f.rows ?? 4} required={f.required} />
+              ) : f.type === "textarea" ? (
                 <textarea name={f.name} defaultValue={String(value ?? "")} rows={f.rows ?? 4} required={f.required} />
               ) : f.type === "select" || f.type === "ref" ? (
                 <select name={f.name} defaultValue={String(value ?? f.options?.[0]?.value ?? "")}>
