@@ -178,6 +178,22 @@
   text-decoration: underline;
 }
 
+/* Live chapter-number warning; sits inside the field's label, so it uses spans. */
+.slot {
+  display: block;
+}
+.slot .warn {
+  display: block;
+  margin: 4px 0 0;
+  font-weight: 400;
+}
+.slot .warn > span {
+  display: block;
+}
+.slot .warn > span + span {
+  margin-top: 6px;
+}
+
 /* ------------------------------------------------------------ readers */
 .readersBook {
   margin-top: 36px;

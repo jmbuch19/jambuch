@@ -37,6 +37,19 @@ function isMediaUrl(value: string) {
   return !!base && value.startsWith(`${base}/`);
 }
 
+// Plain words for the database's "only one chapter per number" rule.
+async function duplicateChapterMessage(db: Awaited<ReturnType<typeof requireAdmin>>["db"], row: Record<string, unknown>) {
+  const { data: existing } = await db
+    .from("chapters")
+    .select("title, deleted_at")
+    .eq("work_id", row.work_id as string)
+    .eq("number", row.number as number)
+    .maybeSingle();
+  const where = existing?.deleted_at ? " It’s in the Trash: restore it, or delete it for good, to reuse the number." : "";
+  const title = existing ? ` (“${existing.title}”)` : "";
+  return `Not saved: this translation already has chapter ${row.number}${title}. Please choose another number.${where}`;
+}
+
 export async function saveRow(table: string, id: string, form: FormData) {
   const cfg = tableConfig(table);
   if (!cfg) throw new Error("Unknown table");
@@ -62,7 +75,11 @@ export async function saveRow(table: string, id: string, form: FormData) {
   const res = isNew
     ? await db.from(table).insert(row).select(cfg.key).single()
     : await db.from(table).update(row).eq(cfg.key, id).select(cfg.key).single();
-  if (res.error) redirect(`${back}?error=${encodeURIComponent(res.error.message)}`);
+  if (res.error) {
+    const message =
+      table === "chapters" && res.error.code === "23505" ? await duplicateChapterMessage(db, row) : res.error.message;
+    redirect(`${back}?error=${encodeURIComponent(message)}`);
+  }
 
   // Every public page (homepage, book and chapter pages) reads this content.
   revalidatePath("/", "layout");

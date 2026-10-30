@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
 import { formatCell, hasPublished, tableConfig } from "@/lib/admin-tables";
 import { saveRow } from "../../../actions";
+import ChapterNumberCheck, { type ChapterSlot } from "./chapter-number-check";
 import CheckedTextarea from "./checked-textarea";
 import ImageField from "./image-field";
 import ItemActions from "./item-actions";
@@ -49,6 +50,23 @@ export default async function EditRow({
     }),
   );
   const trashed = !isNew && row.deleted_at != null;
+
+  // Chapters: every chapter number already taken, for the live duplicate warning.
+  let slots: { chapters: ChapterSlot[]; works: Record<string, string> } | null = null;
+  if (table === "chapters") {
+    const { data } = await db.from("chapters").select("id, work_id, number, title, deleted_at");
+    const workField = fields.find((f) => f.name === "work_id");
+    slots = {
+      chapters: (data ?? []).map((c) => ({
+        id: c.id,
+        work_id: c.work_id,
+        number: c.number,
+        title: c.title,
+        trashed: c.deleted_at != null,
+      })),
+      works: Object.fromEntries((workField?.options ?? []).map((o) => [o.value, o.label])),
+    };
+  }
 
   return (
     <>
@@ -134,6 +152,9 @@ export default async function EditRow({
                 />
               )}
               {f.hint && <small>{f.hint}</small>}
+              {slots && f.name === "number" && (
+                <ChapterNumberCheck chapters={slots.chapters} works={slots.works} currentId={isNew ? null : id} />
+              )}
             </label>
           );
         })}
