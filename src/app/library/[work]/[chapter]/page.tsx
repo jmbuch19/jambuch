@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { inline } from "@/lib/inline";
 import { guNumber, loadChapter, paragraphs } from "@/lib/library";
 import LibraryHeader from "../../header";
+import { READER_BOOT_SCRIPT } from "../../reader-settings";
 import ReaderText from "../../reader-text";
 import l from "../../library.module.css";
 
@@ -32,6 +33,7 @@ export default async function ChapterPage({ params }: Props) {
 
   return (
     <>
+      <script dangerouslySetInnerHTML={{ __html: READER_BOOT_SCRIPT }} />
       <LibraryHeader />
       <div className={l.readerBar}>
         <Link href={base} className={l.backLink}>

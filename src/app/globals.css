@@ -91,3 +91,42 @@ h4 {
     --gutter: 16px;
   }
 }
+
+/* Reader page colours, chosen in the chapter reader's "Aa" panel.
+   "Paper" is the site's own palette, so it needs no override. */
+html[data-reader-theme="white"] {
+  --paper: #ffffff;
+  --paper-alt: #f3f3f1;
+  --surface: #ffffff;
+  --input-bg: #fafaf9;
+}
+html[data-reader-theme="sepia"] {
+  --paper: #f4e8d0;
+  --paper-alt: #ecdcbc;
+  --surface: #f9f0de;
+  --input-bg: #efe2c6;
+  --ink: #4a3a26;
+  --ink-mid: #4a3a26;
+  --ink-soft: #5c4a33;
+  --muted: #7a6650;
+  --border: #dccaa6;
+  --border-strong: #c7b28b;
+  --row-line: #e6d6b6;
+}
+html[data-reader-theme="night"] {
+  color-scheme: dark;
+  --paper: #121413;
+  --paper-alt: #1b1e1d;
+  --surface: #1a1d1c;
+  --input-bg: #161918;
+  --ink: #d8d4cb;
+  --ink-mid: #cbc7be;
+  --ink-soft: #b3afa6;
+  --muted: #8e938e;
+  --border: #2d3231;
+  --border-strong: #444a48;
+  --row-line: #252928;
+  --accent: #7fb8b1;
+  --accent-hover: #a5d2cc;
+  --saffron: #d9a26b;
+}
