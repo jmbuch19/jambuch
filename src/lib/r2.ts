@@ -72,30 +72,36 @@ function objectUrl(bucket: string, key: string) {
   return `https://${settings().account}.r2.cloudflarestorage.com/${bucket}/${path}`;
 }
 
+// Writes a file. Signs first, then sends the bytes directly: inside Next.js,
+// client.fetch() turns the body into a stream with no Content-Length, and R2
+// rejects that with 411 Length Required.
+async function put(url: string, body: ArrayBuffer, headers: Record<string, string>) {
+  const { client } = r2();
+  const signed = await client.sign(url, { method: "PUT", body, headers });
+  return fetch(signed.url, { method: "PUT", headers: signed.headers, body: new Uint8Array(body) });
+}
+
 // Copies an object between buckets. False when the source doesn't exist.
 async function copy(from: string, to: string, key: string) {
   const { client } = r2();
   const src = await client.fetch(objectUrl(from, key));
   if (src.status === 404) return false;
   if (!src.ok) throw new Error(`Couldn't read ${key} from R2 (${src.status}).`);
-  const put = await client.fetch(objectUrl(to, key), {
-    method: "PUT",
-    body: await src.arrayBuffer(),
-    headers: { "Content-Type": src.headers.get("content-type") ?? "application/octet-stream" },
+  const res = await put(objectUrl(to, key), await src.arrayBuffer(), {
+    "Content-Type": src.headers.get("content-type") ?? "application/octet-stream",
   });
-  if (!put.ok) throw new Error(`Couldn't write ${key} to R2 (${put.status}).`);
+  if (!res.ok) throw new Error(`Couldn't write ${key} to R2 (${res.status}).`);
   return true;
 }
 
 // Saves a new file in the public bucket and returns its media.jambuch.in link.
 export async function uploadPublic(key: string, body: ArrayBuffer, contentType: string) {
-  const { client, s } = r2();
+  const { s } = r2();
   const base = publicBase();
   if (!base) throw new Error("Can't upload: NEXT_PUBLIC_R2_PUBLIC_URL is not set.");
-  const res = await client.fetch(objectUrl(s.publicBucket!, key), {
-    method: "PUT",
-    body,
-    headers: { "Content-Type": contentType, "Cache-Control": "public, max-age=31536000, immutable" },
+  const res = await put(objectUrl(s.publicBucket!, key), body, {
+    "Content-Type": contentType,
+    "Cache-Control": "public, max-age=31536000, immutable",
   });
   if (!res.ok) throw new Error(`Couldn't upload to R2 (${res.status}).`);
   return `${base}/${key.split("/").map(encodeURIComponent).join("/")}`;
