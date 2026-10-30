@@ -8,7 +8,10 @@ import s from "./home.module.css";
 declare global {
   interface Window {
     turnstile?: {
-      render: (el: HTMLElement, opts: { sitekey: string; action?: string }) => string;
+      render: (
+        el: HTMLElement,
+        opts: { sitekey: string; action?: string; appearance?: "always" | "execute" | "interaction-only" },
+      ) => string;
       reset: (id?: string) => void;
     };
   }
@@ -25,7 +28,14 @@ export default function IdeaForm() {
   function renderWidget() {
     if (!window.turnstile || !widgetEl.current || widgetId.current !== null) return;
     // The server checks this action, so tokens from other widgets don't count.
-    widgetId.current = window.turnstile.render(widgetEl.current, { sitekey: SITE_KEY, action: "idea" });
+    // "interaction-only": the check runs unseen and shows itself only when the
+    // visitor must click something. Otherwise its "Success!" box looked as if
+    // the idea had already been sent.
+    widgetId.current = window.turnstile.render(widgetEl.current, {
+      sitekey: SITE_KEY,
+      action: "idea",
+      appearance: "interaction-only",
+    });
   }
 
   useEffect(renderWidget, []);
