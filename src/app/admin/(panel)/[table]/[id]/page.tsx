@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
-import { formatCell, tableConfig } from "@/lib/admin-tables";
-import { deleteRow, saveRow } from "../../../actions";
+import { formatCell, hasPublished, tableConfig } from "@/lib/admin-tables";
+import { saveRow } from "../../../actions";
+import ItemActions from "./item-actions";
 import a from "../../../admin.module.css";
 
 export default async function EditRow({
@@ -45,6 +46,7 @@ export default async function EditRow({
       return { ...f, options };
     }),
   );
+  const trashed = !isNew && row.deleted_at != null;
 
   return (
     <>
@@ -52,6 +54,12 @@ export default async function EditRow({
         <Link href={`/admin/${table}`}>← {cfg.label}</Link>
       </p>
       <h1 className={a.title}>{isNew ? "Add new" : "Edit"}</h1>
+      {trashed && (
+        <p className={a.warn}>
+          This item is in the Trash, so visitors can’t see it. <Link href="/admin/trash">Restore it from the Trash</Link>{" "}
+          to use it again.
+        </p>
+      )}
       {error && (
         <p className={a.error} role="alert">
           {error}
@@ -125,16 +133,8 @@ export default async function EditRow({
         </div>
       </form>
 
-      {!isNew && cfg.canDelete && (
-        <details className={a.danger}>
-          <summary>Delete this {table === "ideas" ? "idea" : "item"}</summary>
-          <form action={deleteRow.bind(null, table, id)}>
-            <p>This can’t be undone.</p>
-            <button type="submit" className={a.dangerButton}>
-              Yes, delete it
-            </button>
-          </form>
-        </details>
+      {!isNew && cfg.canDelete && !trashed && (
+        <ItemActions table={table} id={id} published={hasPublished(cfg) ? row.published === true : null} />
       )}
     </>
   );

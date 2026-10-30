@@ -307,6 +307,29 @@ export function tableConfig(name: string) {
   return TABLES.find((t) => t.table === name);
 }
 
+// For deletes and the Trash: which column names an item, which holds its
+// thumbnail, and which rows belong to it (they go to the Trash with it).
+// Every table with canDelete has deleted_at / deleted_by columns.
+export const ITEM_META: Record<
+  string,
+  { title: string; thumb?: string; children?: { table: string; fk: string }[] }
+> = {
+  desk_now: { title: "text" },
+  projects: { title: "name", thumb: "logo_url" },
+  reading: { title: "title", thumb: "cover_url" },
+  works: { title: "title", children: [{ table: "chapters", fk: "work_id" }] },
+  chapters: { title: "title" },
+  workshop: { title: "title" },
+  recordings: { title: "title" },
+  notebook: { title: "title", thumb: "image_url" },
+  books: { title: "title" },
+  ideas: { title: "message" },
+};
+
+export function hasPublished(cfg: TableConfig) {
+  return cfg.fields.some((f) => f.name === "published");
+}
+
 // How a value reads in a list cell or a read-only field.
 export function formatCell(cfg: TableConfig, column: string, value: unknown, full = false) {
   const field = cfg.fields.find((f) => f.name === column);

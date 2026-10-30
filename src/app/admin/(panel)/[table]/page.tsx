@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
-import { formatCell as cell, tableConfig } from "@/lib/admin-tables";
+import { formatCell as cell, hasPublished, tableConfig } from "@/lib/admin-tables";
+import ListTable, { type ListRow } from "./list-table";
 import a from "../../admin.module.css";
 
 export default async function TableList({
@@ -9,15 +10,19 @@ export default async function TableList({
   searchParams,
 }: {
   params: Promise<{ table: string }>;
-  searchParams: Promise<{ saved?: string; deleted?: string; q?: string }>;
+  searchParams: Promise<{ saved?: string; q?: string }>;
 }) {
   const { table } = await params;
-  const { saved, deleted, q } = await searchParams;
+  const { saved, q } = await searchParams;
   const cfg = tableConfig(table);
   if (!cfg) notFound();
   const { db } = await requireAdmin();
+  const canHide = hasPublished(cfg);
 
-  let query = db.from(table).select([cfg.key, ...cfg.list].join(", "));
+  const cols = [...new Set([cfg.key, ...cfg.list, ...(canHide ? ["published"] : []), ...(table === "ideas" ? ["is_read"] : [])])];
+  let query = db.from(table).select(cols.join(", "));
+  // Trashed items only appear in the Trash.
+  if (cfg.canDelete) query = query.is("deleted_at", null);
   for (const o of cfg.order) query = query.order(o.column, { ascending: o.ascending });
   // Search the first text column (titles, names), mainly for the ~1,000 books.
   const searchCol = cfg.list.find((c) => {
@@ -37,6 +42,14 @@ export default async function TableList({
     for (const r of rows) r[f.name] = names.get(String(r[f.name])) ?? r[f.name];
   }
 
+  const listRows: ListRow[] = rows.map((r) => ({
+    id: String(r[cfg.key]),
+    href: `/admin/${table}/${encodeURIComponent(String(r[cfg.key]))}`,
+    cells: cfg.list.map((c) => cell(cfg, c, r[c])),
+    published: canHide ? r.published === true : null,
+    unread: table === "ideas" && !r.is_read,
+  }));
+
   return (
     <>
       <div className={a.titleRow}>
@@ -49,7 +62,6 @@ export default async function TableList({
       </div>
       {cfg.intro && <p className={a.intro}>{cfg.intro}</p>}
       {saved && <p className={a.notice}>Saved. The homepage updates within a minute.</p>}
-      {deleted && <p className={a.notice}>Deleted.</p>}
       {error && <p className={a.error}>Could not load: {error.message}</p>}
 
       <form className={a.search}>
@@ -59,37 +71,13 @@ export default async function TableList({
         </button>
       </form>
 
-      <div className={a.tableWrap}>
-        <table className={a.table}>
-          <thead>
-            <tr>
-              {cfg.list.map((c) => (
-                <th key={c}>{cfg.fields.find((f) => f.name === c)?.label ?? c}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => {
-              const href = `/admin/${table}/${encodeURIComponent(String(r[cfg.key]))}`;
-              const unread = table === "ideas" && !r.is_read;
-              return (
-                <tr key={String(r[cfg.key])} className={unread ? a.unread : undefined}>
-                  {cfg.list.map((c, i) => (
-                    <td key={c}>{i === 0 ? <Link href={href}>{cell(cfg, c, r[c]) || "(untitled)"}</Link> : cell(cfg, c, r[c])}</td>
-                  ))}
-                </tr>
-              );
-            })}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={cfg.list.length} className={a.empty}>
-                  Nothing here yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <ListTable
+        table={table}
+        headers={cfg.list.map((c) => cfg.fields.find((f) => f.name === c)?.label ?? c)}
+        rows={listRows}
+        canHide={canHide}
+        canDelete={cfg.canDelete}
+      />
       {rows.length === 500 && <p className={a.intro}>Showing the first 500. Search to narrow it down.</p>}
     </>
   );

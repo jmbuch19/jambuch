@@ -7,11 +7,27 @@ export default async function Dashboard() {
   const { db } = await requireAdmin();
   const counts = await Promise.all(
     TABLES.map(async (t) => {
-      const { count } = await db.from(t.table).select("*", { count: "exact", head: true });
+      let q = db.from(t.table).select("*", { count: "exact", head: true });
+      if (t.canDelete) q = q.is("deleted_at", null);
+      const { count } = await q;
       return count ?? 0;
     }),
   );
-  const { count: unread } = await db.from("ideas").select("*", { count: "exact", head: true }).eq("is_read", false);
+  const trashCounts = await Promise.all(
+    TABLES.filter((t) => t.canDelete).map(async (t) => {
+      const { count } = await db
+        .from(t.table)
+        .select("*", { count: "exact", head: true })
+        .not("deleted_at", "is", null);
+      return count ?? 0;
+    }),
+  );
+  const inTrash = trashCounts.reduce((n, c) => n + c, 0);
+  const { count: unread } = await db
+    .from("ideas")
+    .select("*", { count: "exact", head: true })
+    .eq("is_read", false)
+    .is("deleted_at", null);
 
   return (
     <>
@@ -30,6 +46,10 @@ export default async function Dashboard() {
             <span>{t.label}</span>
           </Link>
         ))}
+        <Link href="/admin/trash" className={a.tile}>
+          <span className={a.tileCount}>{inTrash}</span>
+          <span>Trash</span>
+        </Link>
       </div>
     </>
   );

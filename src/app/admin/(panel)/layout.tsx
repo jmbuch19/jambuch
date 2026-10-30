@@ -21,6 +21,9 @@ export default async function PanelLayout({ children }: { children: React.ReactN
               {t.label}
             </Link>
           ))}
+          <span className={a.navGap} />
+          <Link href="/admin/trash">Trash</Link>
+          <Link href="/admin/log">Delete log</Link>
         </nav>
         <div className={a.sideFoot}>
           <a href="/" target="_blank" rel="noopener noreferrer">
