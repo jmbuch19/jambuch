@@ -213,6 +213,10 @@
   margin: 0 auto;
   padding: 24px var(--gutter) 72px;
 }
+/* Before the chapters / Chapters / After the chapters sit close together. */
+.chapters:not(:last-child) {
+  padding-bottom: 8px;
+}
 .chapters h2 {
   margin: 0 0 16px;
   font-size: 32px;
