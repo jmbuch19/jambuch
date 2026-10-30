@@ -64,8 +64,21 @@ export default async function ChapterPage({ params }: Props) {
         )}
 
         <ReaderText>
-          {paragraphs(chapter.body).map((p, i) =>
-            p.quote ? <blockquote key={i}>{inline(p.text)}</blockquote> : <p key={i}>{inline(p.text)}</p>,
+          {paragraphs(chapter.body).map((b, i) =>
+            b.kind === "image" ? (
+              <figure key={i} className={l.figure}>
+                {/* Tapping opens the full picture, where phones can zoom. */}
+                <a href={b.src} target="_blank" rel="noopener">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={b.src} alt={b.caption} loading="lazy" decoding="async" />
+                </a>
+                {b.caption && <figcaption>{inline(b.caption)}</figcaption>}
+              </figure>
+            ) : b.kind === "quote" ? (
+              <blockquote key={i}>{inline(b.text)}</blockquote>
+            ) : (
+              <p key={i}>{inline(b.text)}</p>
+            ),
           )}
         </ReaderText>
 

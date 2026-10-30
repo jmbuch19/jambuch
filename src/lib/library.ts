@@ -9,6 +9,9 @@ export type WorkPage = {
   description: string | null;
   status_label: string | null;
   readable: boolean;
+  cover_url: string | null;
+  translator_credit: string | null;
+  total_chapters: number | null;
 };
 
 export type Chapter = {
@@ -32,7 +35,7 @@ export async function loadWork(slug: string): Promise<{ work: WorkPage; chapters
   const db = publicClient();
   const { data: work, error } = await db
     .from("works")
-    .select("id, slug, title, title_gu, author, description, status_label, readable")
+    .select("id, slug, title, title_gu, author, description, status_label, readable, cover_url, translator_credit, total_chapters")
     .eq("slug", slug)
     .maybeSingle<WorkPage>();
   if (error) throw new Error(`Could not load work: ${error.message}`);
@@ -79,13 +82,35 @@ export function guNumber(n: number) {
   return String(n).replace(/\d/g, (d) => GU_DIGITS[Number(d)]);
 }
 
+export type Block =
+  | { kind: "text"; text: string }
+  | { kind: "quote"; text: string }
+  | { kind: "image"; src: string; caption: string };
+
+const IMAGE_LINE = /^!\[([^\]]*)\]\((\S+)\)$/;
+
+// Only pictures in our own media bucket are shown; any other link is dropped.
+function isMediaUrl(src: string) {
+  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.trim().replace(/\/+$/, "");
+  return !!base && src.startsWith(`${base}/`);
+}
+
 // Chapter text: paragraphs are separated by a blank line; a paragraph that
-// starts with "> " is a pulled quote.
-export function paragraphs(body: string | null) {
+// starts with "> " is a pulled quote; a paragraph that is only
+// ![caption](link) is an image.
+export function paragraphs(body: string | null): Block[] {
   return (body ?? "")
     .replace(/\r\n/g, "\n")
     .split(/\n\s*\n/)
     .map((p) => p.trim())
     .filter(Boolean)
-    .map((p) => (p.startsWith("> ") ? { quote: true, text: p.replace(/^>\s?/gm, "") } : { quote: false, text: p }));
+    .flatMap((p): Block[] => {
+      const img = p.match(IMAGE_LINE);
+      if (img) {
+        const caption = img[1].trim() === "Caption" ? "" : img[1].trim();
+        return isMediaUrl(img[2]) ? [{ kind: "image", src: img[2], caption }] : [];
+      }
+      if (p.startsWith("> ")) return [{ kind: "quote", text: p.replace(/^>\s?/gm, "") }];
+      return [{ kind: "text", text: p }];
+    });
 }

@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/admin";
 import { formatCell, hasPublished, tableConfig } from "@/lib/admin-tables";
 import { saveRow } from "../../../actions";
 import CheckedTextarea from "./checked-textarea";
+import ImageField from "./image-field";
 import ItemActions from "./item-actions";
 import a from "../../../admin.module.css";
 
@@ -96,6 +97,16 @@ export default async function EditRow({
               </label>
             );
           }
+          if (f.type === "image") {
+            // A div, not a label: the field holds several buttons.
+            return (
+              <div key={f.name} className={a.field}>
+                <span>{f.label}</span>
+                <ImageField name={f.name} defaultValue={String(value ?? "")} folder={table} />
+                {f.hint && <small>{f.hint}</small>}
+              </div>
+            );
+          }
           return (
             <label key={f.name} className={a.field}>
               <span>
@@ -103,7 +114,13 @@ export default async function EditRow({
                 {f.required && " *"}
               </span>
               {f.type === "textarea" && f.checkText ? (
-                <CheckedTextarea name={f.name} defaultValue={String(value ?? "")} rows={f.rows ?? 4} required={f.required} />
+                <CheckedTextarea
+                  name={f.name}
+                  defaultValue={String(value ?? "")}
+                  rows={f.rows ?? 4}
+                  required={f.required}
+                  images={f.images ? table : undefined}
+                />
               ) : f.type === "textarea" ? (
                 <textarea name={f.name} defaultValue={String(value ?? "")} rows={f.rows ?? 4} required={f.required} />
               ) : f.type === "select" || f.type === "ref" ? (

@@ -87,6 +87,30 @@ async function copy(from: string, to: string, key: string) {
   return true;
 }
 
+// Saves a new file in the public bucket and returns its media.jambuch.in link.
+export async function uploadPublic(key: string, body: ArrayBuffer, contentType: string) {
+  const { client, s } = r2();
+  const base = publicBase();
+  if (!base) throw new Error("Can't upload: NEXT_PUBLIC_R2_PUBLIC_URL is not set.");
+  const res = await client.fetch(objectUrl(s.publicBucket!, key), {
+    method: "PUT",
+    body,
+    headers: { "Content-Type": contentType, "Cache-Control": "public, max-age=31536000, immutable" },
+  });
+  if (!res.ok) throw new Error(`Couldn't upload to R2 (${res.status}).`);
+  return `${base}/${key.split("/").map(encodeURIComponent).join("/")}`;
+}
+
+// Every media.jambuch.in link written anywhere inside a piece of text, such
+// as images placed in a chapter.
+export function fileRefsIn(text: string): FileRef[] {
+  const base = publicBase();
+  if (!base) return [];
+  const escaped = base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const found = text.match(new RegExp(`${escaped}/[^\\s)"'<>]+`, "g")) ?? [];
+  return found.map(fileRef).filter((f): f is FileRef => f !== null);
+}
+
 async function remove(bucket: string, key: string) {
   const { client } = r2();
   const res = await client.fetch(objectUrl(bucket, key), { method: "DELETE" });

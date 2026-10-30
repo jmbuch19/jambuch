@@ -8,6 +8,8 @@ import l from "../library.module.css";
 
 export const revalidate = 60;
 
+const MAX_SEGMENTS = 40; // above this the progress bar is one continuous strip
+
 type Props = { params: Promise<{ work: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -24,20 +26,29 @@ export default async function WorkPage({ params }: Props) {
   const { work, chapters } = found;
   const ready = chapters.filter((c) => c.status === "ready");
   const first = ready[0];
+  // Every planned chapter, in order; ones not added yet count as still ahead.
+  const total = Math.max(work.total_chapters ?? 0, chapters.length, ...chapters.map((c) => c.number));
+  const byNumber = new Map(chapters.map((c) => [c.number, c.status]));
+  const plan = Array.from({ length: total }, (_, i) => byNumber.get(i + 1) ?? "later");
 
   return (
     <>
       <LibraryHeader />
       <main>
         <section className={l.hero}>
-          <div className={l.cover} aria-hidden="true">
-            <p className="gu">{work.title_gu ?? work.title}</p>
-            <p className={l.coverBy}>
-              {work.author}
-              <br />
-              <span className="gu">અનુવાદ: જયદીપ બૂચ</span>
-            </p>
-          </div>
+          {work.cover_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={work.cover_url} alt="" className={l.coverImage} />
+          ) : (
+            <div className={l.cover} aria-hidden="true">
+              <p className="gu">{work.title_gu ?? work.title}</p>
+              <p className={l.coverBy}>
+                {work.author}
+                {work.author && work.translator_credit && <br />}
+                {work.translator_credit && <span className="gu">{work.translator_credit}</span>}
+              </p>
+            </div>
+          )}
           <div className={l.heroText}>
             <p className={l.eyebrow}>
               Moving library · <span className="gu">ચાલતું પુસ્તકાલય</span>
@@ -65,13 +76,23 @@ export default async function WorkPage({ params }: Props) {
                     <strong>
                       {ready.length} {ready.length === 1 ? "chapter" : "chapters"} ready
                     </strong>
-                    <span>of {chapters.length}</span>
+                    <span>of {total}</span>
                   </div>
-                  <div className={l.bar}>
-                    {chapters.map((c) => (
-                      <span key={c.id} className={l[c.status]} />
-                    ))}
-                  </div>
+                  {total <= MAX_SEGMENTS ? (
+                    <div className={l.bar}>
+                      {plan.map((status, i) => (
+                        <span key={i} className={l[status]} />
+                      ))}
+                    </div>
+                  ) : (
+                    // Too many chapters for one block each: a single bar in proportion.
+                    <div className={`${l.bar} ${l.barSolid}`}>
+                      {(["ready", "drafting", "later"] as const).map((s) => {
+                        const n = plan.filter((x) => x === s).length;
+                        return n ? <span key={s} className={l[s]} style={{ flexGrow: n }} /> : null;
+                      })}
+                    </div>
+                  )}
                   <div className={l.legend}>
                     <span>
                       <i className={l.ready} />

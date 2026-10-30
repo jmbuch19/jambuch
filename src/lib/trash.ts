@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ITEM_META, TABLES, tableConfig, type TableConfig } from "./admin-tables";
-import { deleteForever, fileRef, moveToTrash, r2Problem, restoreFromTrash, type FileRef } from "./r2";
+import { deleteForever, fileRef, fileRefsIn, moveToTrash, r2Problem, restoreFromTrash, type FileRef } from "./r2";
 
 // Moving items to the Trash, restoring them, and deleting them for good,
 // together with their R2 files. Works with the admin's session client (row-level
@@ -49,6 +49,8 @@ export function filesOf(rows: Row[]): FileRef[] {
     for (const value of Object.values(row)) {
       const ref = fileRef(value);
       if (ref) seen.set(ref.url, ref);
+      // Images placed inside chapter text go to the Trash with their chapter.
+      else if (typeof value === "string") for (const r of fileRefsIn(value)) seen.set(r.url, r);
     }
   }
   return [...seen.values()];
@@ -99,7 +101,7 @@ export async function findUsages(db: SupabaseClient, urls: string[]) {
   const usages = new Map<string, Usage[]>(urls.map((u) => [u, []]));
   if (urls.length === 0) return usages;
   for (const cfg of TABLES.filter((t) => t.canDelete)) {
-    const cols = cfg.fields.filter((f) => f.type === "url" || f.type === "text").map((f) => f.name);
+    const cols = cfg.fields.filter((f) => f.type === "url" || f.type === "text" || f.type === "image").map((f) => f.name);
     if (cols.length === 0) continue;
     const titleCol = ITEM_META[cfg.table]?.title ?? "title";
     const select = [...new Set([cfg.key, titleCol, "deleted_at", ...cols])].join(", ");

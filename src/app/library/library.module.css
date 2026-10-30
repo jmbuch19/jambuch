@@ -77,6 +77,15 @@
   font-weight: 400;
   color: #cfe0dd;
 }
+.coverImage {
+  flex: 0 0 200px;
+  width: 200px;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 4px 10px 10px 4px;
+  background: var(--accent);
+  box-shadow: 0 10px 24px rgba(27, 31, 30, 0.15);
+}
 .heroText {
   flex: 999 1 520px;
   min-width: 0;
@@ -140,6 +149,17 @@
   flex: 1;
   height: 10px;
   border-radius: 3px;
+}
+.barSolid {
+  gap: 0;
+  height: 10px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--border);
+}
+.barSolid span {
+  border-radius: 0;
+  flex-basis: 0;
 }
 .ready {
   background: var(--accent);
@@ -502,8 +522,35 @@
   margin-top: 0.45em;
 }
 .text > p:first-child,
-.text blockquote + p {
+.text blockquote + p,
+.text .figure + p {
   text-indent: 0;
+}
+/* A picture placed in the chapter: full text width, caption beneath. */
+.figure {
+  margin: 1.4em 0;
+  text-align: center;
+}
+.figure a {
+  display: block;
+}
+.figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+  background: var(--paper-alt);
+}
+.figure figcaption {
+  margin-top: 0.6em;
+  font-size: 0.8em;
+  line-height: 1.5;
+  font-style: italic;
+  color: var(--muted);
+  text-align: center;
+}
+:global(html[data-reader-theme="night"]) .figure img {
+  filter: brightness(0.85);
 }
 .text blockquote {
   margin: 1em 0;

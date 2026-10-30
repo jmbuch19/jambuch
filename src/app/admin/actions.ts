@@ -27,7 +27,14 @@ function readField(f: Field, form: FormData): unknown {
     if (f.required) throw new Error(`${f.label} is required.`);
     return null;
   }
+  if (f.type === "image" && !isMediaUrl(raw)) throw new Error(`${f.label} must be uploaded here.`);
   return raw;
+}
+
+// Image fields only ever hold links to our own media bucket.
+function isMediaUrl(value: string) {
+  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.trim().replace(/\/+$/, "");
+  return !!base && value.startsWith(`${base}/`);
 }
 
 export async function saveRow(table: string, id: string, form: FormData) {

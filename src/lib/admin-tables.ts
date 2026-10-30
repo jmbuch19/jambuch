@@ -4,7 +4,7 @@
 export type Field = {
   name: string;
   label: string;
-  type: "text" | "textarea" | "url" | "int" | "bool" | "select" | "ref";
+  type: "text" | "textarea" | "url" | "int" | "bool" | "select" | "ref" | "image"; // image: upload to media.jambuch.in
   options?: { value: string; label: string }[];
   ref?: { table: string; label: string }; // for "ref": pick a row of another table
   rows?: number; // textarea height
@@ -12,6 +12,7 @@ export type Field = {
   readOnly?: boolean;
   hint?: string;
   checkText?: boolean; // textarea: warn about PDF-pasted Gujarati and missing blank lines
+  images?: boolean; // textarea: "Insert image" button that uploads and adds an image line
 };
 
 export type TableConfig = {
@@ -126,6 +127,24 @@ export const TABLES: TableConfig[] = [
       { name: "title_gu", label: "Title in Gujarati", type: "text", hint: "Shown instead of the English title when set." },
       { name: "slug", label: "Slug", type: "text", hint: "For its own page later, e.g. chasing-the-monsoon" },
       { name: "author", label: "Original author", type: "text" },
+      {
+        name: "translator_credit",
+        label: "Translator credit",
+        type: "text",
+        hint: "The second line on the cover, e.g. અનુવાદ: નલિનકાંત છાયા",
+      },
+      {
+        name: "cover_url",
+        label: "Cover image",
+        type: "image",
+        hint: "Best at 1200 × 1800 pixels (the shape of a book). Without one, a designed cover is shown.",
+      },
+      {
+        name: "total_chapters",
+        label: "Total chapters planned",
+        type: "int",
+        hint: "For the progress bar, e.g. 75. Leave empty to count only chapters already added.",
+      },
       { name: "description", label: "Description", type: "textarea", hint: emHint },
       { name: "status_label", label: "Status line", type: "text", hint: "Shown when there is no read link." },
       { name: "link", label: "Read link", type: "text" },
@@ -176,8 +195,9 @@ export const TABLES: TableConfig[] = [
         label: "Chapter text",
         type: "textarea",
         rows: 20,
-        hint: "Leave a blank line between paragraphs. Start a paragraph with “> ” to set it as a pulled quote.",
+        hint: "Leave a blank line between paragraphs. Start a paragraph with “> ” to set it as a pulled quote. “Insert image” places a picture where the cursor is; change the words in [ ] to set its caption.",
         checkText: true,
+        images: true,
       },
       { name: "translator_note", label: "Translator’s note", type: "textarea", checkText: true },
       { name: "audio_url", label: "Read-aloud audio URL", type: "url" },
@@ -319,7 +339,7 @@ export const ITEM_META: Record<
   desk_now: { title: "text" },
   projects: { title: "name", thumb: "logo_url" },
   reading: { title: "title", thumb: "cover_url" },
-  works: { title: "title", children: [{ table: "chapters", fk: "work_id" }] },
+  works: { title: "title", thumb: "cover_url", children: [{ table: "chapters", fk: "work_id" }] },
   chapters: { title: "title" },
   workshop: { title: "title" },
   recordings: { title: "title" },
