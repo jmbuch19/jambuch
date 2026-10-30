@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
 import { formatCell as cell, hasPublished, tableConfig } from "@/lib/admin-tables";
+import { bookOrder } from "@/lib/book-sections";
 import ListTable, { type ListRow } from "./list-table";
 import a from "../../admin.module.css";
 
@@ -32,7 +33,15 @@ export default async function TableList({
   const needle = q?.trim().replace(/[%_,()]/g, "");
   if (needle && searchCol) query = query.ilike(searchCol, `%${needle}%`);
   const { data, error } = await query.limit(500);
-  const rows = (data ?? []) as unknown as Record<string, unknown>[];
+  let rows = (data ?? []) as unknown as Record<string, unknown>[];
+
+  // Chapters list in reading order, book by book: a preface (which has no
+  // number) at the top of its book, a glossary at the bottom.
+  if (table === "chapters") {
+    type Entry = Record<string, unknown> & { id: string; number: number | null; section: string | null };
+    const books = [...new Set(rows.map((r) => String(r.work_id)))];
+    rows = books.flatMap((w) => bookOrder(rows.filter((r) => String(r.work_id) === w) as Entry[]));
+  }
 
   // Show "ref" columns by the other row's label instead of its id.
   for (const f of cfg.fields) {
