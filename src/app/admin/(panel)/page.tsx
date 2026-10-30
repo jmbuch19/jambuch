@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin";
 import { TABLES } from "@/lib/admin-tables";
+import { WAITING_ON_ME } from "@/lib/invites";
 import a from "../admin.module.css";
 
 export default async function Dashboard() {
   const { db } = await requireAdmin();
+  const shown = TABLES.filter((t) => !t.ownPage);
   const counts = await Promise.all(
-    TABLES.map(async (t) => {
+    shown.map(async (t) => {
       let q = db.from(t.table).select("*", { count: "exact", head: true });
       if (t.canDelete) q = q.is("deleted_at", null);
       const { count } = await q;
@@ -28,6 +30,11 @@ export default async function Dashboard() {
     .select("*", { count: "exact", head: true })
     .eq("is_read", false)
     .is("deleted_at", null);
+  const { count: waitingOnMe } = await db
+    .from("courtyard_invites")
+    .select("*", { count: "exact", head: true })
+    .in("stage", WAITING_ON_ME)
+    .is("deleted_at", null);
 
   return (
     <>
@@ -40,12 +47,16 @@ export default async function Dashboard() {
         </p>
       )}
       <div className={a.tiles}>
-        {TABLES.map((t, i) => (
+        {shown.map((t, i) => (
           <Link key={t.table} href={`/admin/${t.table}`} className={a.tile}>
             <span className={a.tileCount}>{counts[i]}</span>
             <span>{t.label}</span>
           </Link>
         ))}
+        <Link href="/admin/courtyard" className={a.tile}>
+          <span className={a.tileCount}>{waitingOnMe ?? 0}</span>
+          <span>Courtyard · waiting on you</span>
+        </Link>
         <Link href="/admin/trash" className={a.tile}>
           <span className={a.tileCount}>{inTrash}</span>
           <span>Trash</span>

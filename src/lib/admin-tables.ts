@@ -27,6 +27,9 @@ export type TableConfig = {
   canCreate: boolean;
   canDelete: boolean;
   intro?: string;
+  // Managed on its own admin page (e.g. /admin/courtyard): left out of the
+  // sidebar and dashboard, but still covered by the Trash and delete rules.
+  ownPage?: string;
 };
 
 const published: Field = {
@@ -345,6 +348,47 @@ export const TABLES: TableConfig[] = [
     canCreate: false,
     canDelete: true,
   },
+  {
+    table: "courtyard_invites",
+    label: "Courtyard invites",
+    key: "id",
+    ownPage: "/admin/courtyard",
+    fields: [
+      { name: "name", label: "Name", type: "text", required: true },
+      { name: "email", label: "Email", type: "text", required: true },
+      { name: "whatsapp", label: "WhatsApp", type: "text" },
+      { name: "relation", label: "Relation", type: "text" },
+      { name: "craft", label: "Craft", type: "text" },
+      { name: "room_slug", label: "Room address", type: "text" },
+      { name: "note", label: "Personal note", type: "textarea" },
+    ],
+    list: ["name", "craft", "email"],
+    order: [{ column: "created_at", ascending: false }],
+    canCreate: false,
+    canDelete: true,
+  },
+  {
+    table: "courtyard_submissions",
+    label: "Courtyard submissions",
+    key: "id",
+    ownPage: "/admin/courtyard?tab=requests",
+    fields: [
+      { name: "kind", label: "Type", type: "text", readOnly: true },
+      { name: "name", label: "From", type: "text", readOnly: true },
+      { name: "email", label: "Email", type: "text", readOnly: true },
+      { name: "city", label: "City", type: "text" },
+      { name: "title", label: "Title", type: "text" },
+      { name: "body", label: "Text", type: "textarea", rows: 12 },
+      { name: "file_url", label: "File", type: "text", readOnly: true },
+      { name: "about", label: "About", type: "textarea", readOnly: true },
+      { name: "creator_name", label: "Suggested creator", type: "text", readOnly: true },
+      { name: "why", label: "Why", type: "textarea", readOnly: true },
+    ],
+    list: ["title", "kind", "name"],
+    order: [{ column: "created_at", ascending: false }],
+    canCreate: false,
+    canDelete: true,
+  },
 ];
 
 export function tableConfig(name: string) {
@@ -368,6 +412,8 @@ export const ITEM_META: Record<
   notebook: { title: "title", thumb: "image_url" },
   books: { title: "title" },
   ideas: { title: "message" },
+  courtyard_invites: { title: "name" },
+  courtyard_submissions: { title: "title" },
 };
 
 export function hasPublished(cfg: TableConfig) {

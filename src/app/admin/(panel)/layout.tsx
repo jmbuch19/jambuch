@@ -16,11 +16,12 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           jambuch<span>.</span> admin
         </Link>
         <nav className={a.sideNav} aria-label="Admin">
-          {TABLES.map((t) => (
+          {TABLES.filter((t) => !t.ownPage).map((t) => (
             <Link key={t.table} href={`/admin/${t.table}`}>
               {t.label}
             </Link>
           ))}
+          <Link href="/admin/courtyard">Courtyard invites</Link>
           <span className={a.navGap} />
           <Link href="/admin/readers">Readers</Link>
           <Link href="/admin/trash">Trash</Link>

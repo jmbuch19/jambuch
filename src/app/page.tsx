@@ -49,6 +49,7 @@ export default async function Home() {
                   {sec.nav}
                 </a>
               ))}
+            <a href="/courtyard">Courtyard</a>
             {sections
               .filter((sec) => sec.cta)
               .map((sec) => (

@@ -107,6 +107,45 @@ export async function uploadPublic(key: string, body: ArrayBuffer, contentType: 
   return `${base}/${key.split("/").map(encodeURIComponent).join("/")}`;
 }
 
+// Saves a file in the private bucket (e.g. a visitor's submission waiting for
+// review) and returns its r2-private: reference. Never publicly reachable.
+export async function uploadPrivate(key: string, body: ArrayBuffer, contentType: string) {
+  const { s } = r2();
+  if (!s.privateBucket) throw new Error("Can't store the file: R2_PRIVATE_BUCKET is not set.");
+  const res = await put(objectUrl(s.privateBucket, key), body, { "Content-Type": contentType });
+  if (!res.ok) throw new Error(`Couldn't upload to R2 (${res.status}).`);
+  return `${PRIVATE_PREFIX}${key}`;
+}
+
+// Publishing: moves a private file to the public bucket under the same key
+// and returns its media.jambuch.in link.
+export async function publishPrivate(f: FileRef) {
+  if (f.bucket !== "private") return f.url;
+  const { s, client } = r2();
+  const base = publicBase();
+  if (!base || !s.privateBucket) throw new Error("Can't publish: R2 public URL or private bucket is not set.");
+  const src = await client.fetch(objectUrl(s.privateBucket, f.key));
+  if (!src.ok) throw new Error(`Couldn't read ${f.key} from R2 (${src.status}).`);
+  const res = await put(objectUrl(s.publicBucket!, f.key), await src.arrayBuffer(), {
+    "Content-Type": src.headers.get("content-type") ?? "application/octet-stream",
+    "Cache-Control": "public, max-age=31536000, immutable",
+  });
+  if (!res.ok) throw new Error(`Couldn't publish ${f.key} (${res.status}).`);
+  await remove(s.privateBucket, f.key);
+  return `${base}/${f.key.split("/").map(encodeURIComponent).join("/")}`;
+}
+
+// A short-lived link to a private file, so the admin can look before approving.
+export async function signedPrivateUrl(f: FileRef, seconds = 600) {
+  const { s, client } = r2();
+  if (f.bucket !== "private") return f.url;
+  if (!s.privateBucket) return null;
+  const url = new URL(objectUrl(s.privateBucket, f.key));
+  url.searchParams.set("X-Amz-Expires", String(seconds));
+  const signed = await client.sign(url.toString(), { method: "GET", aws: { signQuery: true } });
+  return signed.url;
+}
+
 // Every media.jambuch.in link written anywhere inside a piece of text, such
 // as images placed in a chapter.
 export function fileRefsIn(text: string): FileRef[] {

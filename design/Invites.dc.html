@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin — Courtyard invites</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Noto+Serif+Gujarati:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F1EFEA}
+input,textarea,select,button{font-family:inherit}
+</style>
+</helmet>
+<div style="background: #F1EFEA; color: #1B1F1E; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.55; display: flex; flex-wrap: wrap; min-height: 100%">
+
+<!-- ADMIN SIDEBAR -->
+<aside style="flex: 0 0 220px; background: #1B1F1E; color: #CFD8D6; padding: 20px 16px; box-sizing: border-box">
+<p style="margin: 0 0 20px; font-family: 'Newsreader', Georgia, serif; font-size: 22px; color: #F5F3EE">jambuch<span style="color: #8FC1BB">.</span> <span style="font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: #8A9693">admin</span></p>
+<div style="display: flex; flex-direction: column; gap: 2px; font-size: 14px">
+<span style="padding: 9px 10px">Homepage</span>
+<span style="padding: 9px 10px">Moving library</span>
+<span style="padding: 9px 10px">Journey &amp; essays</span>
+<span style="padding: 9px 10px">Library</span>
+<span style="padding: 9px 10px">Promises</span>
+<span style="padding: 9px 10px; background: #2E3735; color: #F5F3EE; border-radius: 6px">Courtyard invites</span>
+<span style="padding: 9px 10px">Ideas inbox</span>
+<span style="padding: 9px 10px">Trash</span>
+</div>
+</aside>
+
+<main style="flex: 1 1 700px; min-width: 0; padding: 32px 32px 48px; box-sizing: border-box">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div>
+<h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 34px">Courtyard invites <span style="font-family: 'Noto Serif Gujarati', serif; font-size: 20px; color: #55605D">આંગણું</span></h1>
+<p style="margin: 2px 0 0; color: #55605D">Who you’ve invited, who asked, and where each room stands.</p>
+</div>
+<button type="button" onClick="{{openNew}}" style="min-height: 44px; padding: 0 18px; border: none; border-radius: 6px; background: #1E5C57; color: #FFFFFF; font-size: 15px; font-weight: 500; cursor: pointer">+ New invite</button>
+</div>
+
+<!-- CAP + COUNTS -->
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 24px">
+<div style="background: #FFFFFF; border-radius: 10px; padding: 14px 16px; border: 1px solid #DAD6CC">
+<p style="margin: 0; font-size: 13px; color: #55605D">Rooms this year</p>
+<p style="margin: 2px 0 6px; font-family: 'Newsreader', Georgia, serif; font-size: 28px">{{used}} <span style="font-size: 18px; color: #55605D">of {{cap}}</span></p>
+<div style="height: 6px; background: #ECE9E1; border-radius: 3px"><div style="width: {{capPct}}; height: 6px; background: #9A5418; border-radius: 3px"></div></div>
+</div>
+<div style="background: #FFFFFF; border-radius: 10px; padding: 14px 16px; border: 1px solid #DAD6CC"><p style="margin: 0; font-size: 13px; color: #55605D">Waiting on them</p><p style="margin: 2px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 28px">{{nWaiting}}</p></div>
+<div style="background: #FFFFFF; border-radius: 10px; padding: 14px 16px; border: 1px solid #DAD6CC"><p style="margin: 0; font-size: 13px; color: #55605D">Waiting on you</p><p style="margin: 2px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 28px; color: #7A3E12">{{nMine}}</p></div>
+<div style="background: #FFFFFF; border-radius: 10px; padding: 14px 16px; border: 1px solid #DAD6CC"><p style="margin: 0; font-size: 13px; color: #55605D">Live rooms</p><p style="margin: 2px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 28px; color: #1E5C57">{{nLive}}</p></div>
+</div>
+
+<!-- TABS -->
+<div style="display: flex; gap: 4px; margin-top: 28px; border-bottom: 1px solid #DAD6CC">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+<sc-if value="{{t.on}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{t.pick}}" style="min-height: 44px; padding: 0 16px; border: none; border-bottom: 2px solid #1B1F1E; background: transparent; color: #1B1F1E; font-size: 15px; font-weight: 600; cursor: pointer">{{t.label}}</button></sc-if>
+<sc-if value="{{t.off}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{t.pick}}" style="min-height: 44px; padding: 0 16px; border: none; border-bottom: 2px solid transparent; background: transparent; color: #55605D; font-size: 15px; cursor: pointer">{{t.label}}</button></sc-if>
+</sc-for>
+</div>
+
+<!-- INVITES TABLE -->
+<sc-if value="{{showInvites}}" hint-placeholder-val="{{ true }}">
+<div style="background: #FFFFFF; border: 1px solid #DAD6CC; border-top: none; border-radius: 0 0 10px 10px; overflow-x: auto">
+<table style="width: 100%; min-width: 820px; border-collapse: collapse">
+<thead><tr style="text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: #55605D">
+<th style="padding: 12px 16px; font-weight: 600; border-bottom: 1px solid #DAD6CC">Creator</th>
+<th style="padding: 12px 16px; font-weight: 600; border-bottom: 1px solid #DAD6CC">Craft</th>
+<th style="padding: 12px 16px; font-weight: 600; border-bottom: 1px solid #DAD6CC">Stage</th>
+<th style="padding: 12px 16px; font-weight: 600; border-bottom: 1px solid #DAD6CC">Next step</th>
+<th style="padding: 12px 16px; font-weight: 600; border-bottom: 1px solid #DAD6CC">Actions</th>
+</tr></thead>
+<tbody>
+<sc-for list="{{invites}}" as="r" hint-placeholder-count="6">
+<tr>
+<td style="padding: 14px 16px; border-bottom: 1px solid #ECE9E1"><div style="font-weight: 600">{{r.name}}</div><div style="font-size: 13px; color: #55605D">{{r.relation}} · {{r.slug}}</div></td>
+<td style="padding: 14px 16px; border-bottom: 1px solid #ECE9E1; color: #3F4A47">{{r.craft}}</td>
+<td style="padding: 14px 16px; border-bottom: 1px solid #ECE9E1"><span style="font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 12px; white-space: nowrap; color: {{r.fg}}; background: {{r.bg}}">{{r.stage}}</span></td>
+<td style="padding: 14px 16px; border-bottom: 1px solid #ECE9E1; font-size: 14px; color: #3F4A47">{{r.next}}</td>
+<td style="padding: 14px 16px; border-bottom: 1px solid #ECE9E1"><div style="display: flex; flex-wrap: wrap; gap: 6px">
+<button type="button" style="min-height: 36px; padding: 0 12px; border: 1px solid #B5AFA2; border-radius: 6px; background: #FFFFFF; font-size: 13px; cursor: pointer">{{r.action}}</button>
+<button type="button" style="min-height: 36px; padding: 0 12px; border: 1px solid #E3C3C0; border-radius: 6px; background: #FFFFFF; color: #8A2C22; font-size: 13px; cursor: pointer">{{r.danger}}</button>
+</div></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<p style="margin: 10px 0 0; font-size: 13px; color: #55605D">Invite links expire after 14 days and work once. Nothing a guest uploads is public until you approve it.</p>
+</sc-if>
+
+<!-- REQUESTS -->
+<sc-if value="{{showRequests}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px">
+<sc-for list="{{requests}}" as="q" hint-placeholder-count="2">
+<div style="background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 10px; padding: 18px 20px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center">
+<div style="flex: 1 1 360px; min-width: 0">
+<div style="font-weight: 600"><span style="font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 10px; margin-right: 8px; color: {{q.fg}}; background: {{q.bg}}">{{q.type}}</span>{{q.name}} <span style="font-weight: 400; color: #55605D">· {{q.craft}} · {{q.from}}</span></div>
+<div style="font-size: 14px; color: #3F4A47; margin-top: 2px">{{q.note}}</div>
+<div style="font-size: 12px; color: #55605D; margin-top: 4px">Received {{q.when}} via the Courtyard form</div>
+</div>
+<div style="display: flex; gap: 8px">
+<button type="button" onClick="{{openNew}}" style="min-height: 40px; padding: 0 14px; border: none; border-radius: 6px; background: #1B1F1E; color: #FFFFFF; font-size: 14px; cursor: pointer">{{q.action}}</button>
+<button type="button" style="min-height: 40px; padding: 0 14px; border: 1px solid #B5AFA2; border-radius: 6px; background: #FFFFFF; font-size: 14px; cursor: pointer">Not now</button>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</main>
+
+<!-- NEW INVITE PANEL -->
+<sc-if value="{{panel}}" hint-placeholder-val="{{ false }}">
+<aside style="flex: 0 1 400px; min-width: 300px; background: #FFFFFF; border-left: 1px solid #DAD6CC; padding: 28px 24px; box-sizing: border-box">
+<div style="display: flex; justify-content: space-between; align-items: center">
+<h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 26px">New invite</h2>
+<button type="button" onClick="{{closeNew}}" aria-label="Close" style="width: 40px; height: 40px; border: none; background: transparent; font-size: 22px; cursor: pointer; color: #55605D">×</button>
+</div>
+<sc-if value="{{sent}}" hint-placeholder-val="{{ false }}">
+<div style="margin-top: 24px; background: #E3ECEA; border-radius: 10px; padding: 18px">
+<p style="margin: 0; font-weight: 600; color: #1E5C57">Invite sent.</p>
+<p style="margin: 4px 0 0; font-size: 14px">It shows as “Invited” until they open the link and accept the room agreement.</p>
+</div>
+</sc-if>
+<sc-if value="{{notSent}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 14px; margin-top: 18px">
+<label style="display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 500">Name<input type="text" style="padding: 11px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px"></label>
+<label style="display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 500">Email or WhatsApp<input type="text" style="padding: 11px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px"></label>
+<div style="display: flex; gap: 10px">
+<label style="flex: 1; display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 500">Relation<input type="text" placeholder="cousin, friend…" style="padding: 11px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; min-width: 0"></label>
+<label style="flex: 1; display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 500">Craft<select style="padding: 11px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FFFFFF"><option>Poetry</option><option>Photography</option><option>Music</option><option>Art</option><option>Tech</option><option>Education</option><option>Other</option></select></label>
+</div>
+<label style="display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 500">Room address<span style="display: flex; align-items: center; border: 1px solid #B5AFA2; border-radius: 6px; overflow: hidden"><span style="padding: 11px 0 11px 11px; color: #55605D; font-size: 14px; white-space: nowrap">jambuch.in/courtyard/</span><input type="text" placeholder="name" style="flex: 1; min-width: 0; padding: 11px 11px 11px 2px; border: none; font-size: 15px"></span></label>
+<label style="display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 500">Personal note (goes in the invite)<textarea rows="3" style="padding: 11px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; resize: vertical"></textarea></label>
+<div style="background: #F5F3EE; border-radius: 8px; padding: 12px 14px; font-size: 13px; color: #3F4A47">
+<p style="margin: 0 0 4px; font-weight: 600; color: #1B1F1E">They’ll be asked to accept</p>
+The work is theirs and they hold the rights to it · Jaydeep approves before anything is public · Jaydeep may take down anything · They can leave and get every file back.
+</div>
+<button type="button" onClick="{{send}}" style="min-height: 46px; border: none; border-radius: 6px; background: #1E5C57; color: #FFFFFF; font-size: 15px; font-weight: 500; cursor: pointer">Send invite</button>
+</div>
+</sc-if>
+</aside>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"cap":{"editor":"number","default":5,"min":1,"max":20},"$preview":{"width":1280,"height":2000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'Invites', panel: false, sent: false };
+  }
+  renderVals() {
+    const S = {
+      requested: { stage: 'Invited', fg: '#55605D', bg: '#ECE9E1', next: 'Waiting for them to open the link · sent [date]', action: 'Resend', danger: 'Revoke', who: 'them' },
+      accepted: { stage: 'Agreement accepted', fg: '#2B3F6B', bg: '#E2E7F2', next: 'Collect their work', action: 'Start room', danger: 'Revoke', who: 'me' },
+      draft: { stage: 'Room in draft', fg: '#7A3E12', bg: '#F6E7D6', next: 'Preview sent · waiting for their yes', action: 'Open draft', danger: 'Remove', who: 'them' },
+      review: { stage: 'Needs your review', fg: '#7A3E12', bg: '#F6E7D6', next: '[n] new items to approve', action: 'Review', danger: 'Pause', who: 'me' },
+      live: { stage: 'Live', fg: '#1E5C57', bg: '#E3ECEA', next: '—', action: 'View room', danger: 'Pause', who: 'none' },
+      expired: { stage: 'Link expired', fg: '#8A2C22', bg: '#F5E1DE', next: 'Never opened · expired [date]', action: 'Resend', danger: 'Delete', who: 'me' }
+    };
+    const raw = [
+      ['[Guest name]', 'cousin', 'Poetry', 'live'],
+      ['[Guest name]', 'colleague', 'Photography', 'review'],
+      ['[Guest name]', 'friend', 'Music', 'draft'],
+      ['[Guest name]', 'cousin', 'Art', 'accepted'],
+      ['[Guest name]', 'friend', 'Tech', 'requested'],
+      ['[Guest name]', 'colleague', 'Education', 'expired']
+    ];
+    const invites = raw.map(([name, relation, craft, s], i) => ({
+      name, relation, craft, slug: '/courtyard/[name-' + (i + 1) + ']', ...S[s], key: s
+    }));
+    const cap = this.props.cap ?? 5;
+    const used = invites.filter(r => ['live', 'draft', 'review', 'accepted'].includes(r.key)).length;
+    const requests = [
+      { type: 'Single piece', fg: '#1E5C57', bg: '#E3ECEA', name: '[Name]', craft: 'Education', from: 'sent by themselves', note: '[Title and first lines of the piece, or the attached file.]', when: '[date]', action: 'Review piece' },
+      { type: 'Room request', fg: '#2B3F6B', bg: '#E2E7F2', name: '[Name]', craft: 'Tech', from: 'asked for themselves', note: '[About them, plus links to 2–3 samples.]', when: '[date]', action: 'Invite' },
+      { type: 'Suggestion', fg: '#7A3E12', bg: '#F6E7D6', name: '[Name]', craft: 'Photography', from: 'suggested by [visitor name]', note: '[Why their work deserves readers, and a sample link.]', when: '[date]', action: 'Reach out' }
+    ];
+    const tab = this.state.tab;
+    const tabs = ['Invites', 'Requests & submissions (' + requests.length + ')'].map((label, i) => {
+      const key = i === 0 ? 'Invites' : 'Requests';
+      return { label, on: tab === key, off: tab !== key, pick: () => this.setState({ tab: key }) };
+    });
+    return {
+      invites, requests, tabs, cap, used,
+      capPct: Math.min(100, Math.round((used / cap) * 100)) + '%',
+      nWaiting: invites.filter(r => r.who === 'them').length,
+      nMine: invites.filter(r => r.who === 'me').length,
+      nLive: invites.filter(r => r.key === 'live').length,
+      showInvites: tab === 'Invites',
+      showRequests: tab === 'Requests',
+      panel: this.state.panel,
+      openNew: () => this.setState({ panel: true, sent: false }),
+      closeNew: () => this.setState({ panel: false }),
+      sent: this.state.sent, notSent: !this.state.sent,
+      send: () => this.setState({ sent: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

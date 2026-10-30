@@ -97,7 +97,7 @@ export async function saveRow(table: string, id: string, form: FormData) {
 
   // Every public page (homepage, book and chapter pages) reads this content.
   revalidatePath("/", "layout");
-  redirect(`/admin/${table}?saved=1`);
+  redirect(cfg.ownPage ?? `/admin/${table}?saved=1`);
 }
 
 // ---------------------------------------------------------------- hide, trash, restore, delete

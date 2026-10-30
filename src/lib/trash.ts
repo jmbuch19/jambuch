@@ -33,7 +33,12 @@ const tag = (table: string, id: string) => `${table}:${id}`;
 
 export function titleOf(table: string, row: Row) {
   const meta = ITEM_META[table];
-  const raw = String(row[meta?.title ?? "title"] ?? row.title ?? row.body ?? "").replace(/\s+/g, " ").trim();
+  // Untitled rows (a room request, a suggestion) fall back to who it's about or from.
+  const raw = String(
+    row[meta?.title ?? "title"] ?? row.title ?? row.creator_name ?? row.name ?? row.body ?? "",
+  )
+    .replace(/\s+/g, " ")
+    .trim();
   return (raw.length > 120 ? `${raw.slice(0, 120)}…` : raw) || "(untitled)";
 }
 

@@ -1,7 +1,8 @@
 "use server";
 
-import { headers } from "next/headers";
+import { sendEmail } from "@/lib/email";
 import { adminClient } from "@/lib/supabase-admin";
+import { passesTurnstile } from "@/lib/turnstile";
 
 export type IdeaState = { status: "idle" | "sent" | "error"; message?: string };
 
@@ -10,38 +11,6 @@ type Category = (typeof CATEGORIES)[number];
 
 // Must match the action passed to turnstile.render in idea-form.tsx.
 const TURNSTILE_ACTION = "idea";
-
-// A token counts only if Cloudflare says it passed, it was issued for this
-// form, and it was solved on one of our own hostnames (TURNSTILE_HOSTNAMES,
-// comma-separated; never include localhost in production).
-async function passesTurnstile(token: string): Promise<boolean> {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
-  const hostnames = new Set(
-    (process.env.TURNSTILE_HOSTNAMES ?? "")
-      .split(",")
-      .map((h) => h.trim())
-      .filter(Boolean),
-  );
-  if (!secret || hostnames.size === 0 || !token || token.length > 2048) return false;
-
-  const h = await headers();
-  const ip = h.get("cf-connecting-ip") ?? h.get("x-forwarded-for")?.split(",")[0];
-  const body = new URLSearchParams({ secret, response: token });
-  if (ip) body.set("remoteip", ip.trim());
-  try {
-    const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body,
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!res.ok) return false;
-    const data = (await res.json()) as { success?: boolean; action?: string; hostname?: string };
-    return data.success === true && data.action === TURNSTILE_ACTION && hostnames.has(data.hostname ?? "");
-  } catch {
-    return false;
-  }
-}
 
 export async function submitIdea(_prev: IdeaState, form: FormData): Promise<IdeaState> {
   const str = (key: string) => String(form.get(key) ?? "").trim();
@@ -63,7 +32,7 @@ export async function submitIdea(_prev: IdeaState, form: FormData): Promise<Idea
     return { status: "error", message: "That email address doesn’t look right. You can also leave it empty." };
   }
 
-  if (!(await passesTurnstile(str("cf-turnstile-response")))) {
+  if (!(await passesTurnstile(str("cf-turnstile-response"), TURNSTILE_ACTION))) {
     return { status: "error", message: "The spam check didn’t go through. Please try again." };
   }
 
@@ -89,39 +58,22 @@ const CATEGORY_LABELS: Record<Category, string> = {
   other: "Something else",
 };
 
-// Emails each new idea to ADMIN_EMAIL through Resend. Plain text only, so
-// nothing a visitor types can turn into HTML. Replying goes to the visitor.
+// Emails each new idea to ADMIN_EMAIL. Replying goes to the visitor.
 async function notifyByEmail(idea: { name: string; email: string; category: Category; message: string }) {
-  const key = process.env.RESEND_API_KEY;
   const to = process.env.ADMIN_EMAIL;
-  if (!key || !to) return;
-  // jambuch.in is a verified sending domain in Resend.
-  const from = process.env.RESEND_FROM || "jambuch.in <ideas@jambuch.in>";
+  if (!to) return;
   const who = idea.name || "Someone";
-  const text = [
-    `${who}${idea.email ? ` <${idea.email}>` : ""} shared an idea on jambuch.in.`,
-    `Kind: ${CATEGORY_LABELS[idea.category]}`,
-    "",
-    idea.message,
-    "",
-    "Inbox: https://jambuch.in/admin/ideas",
-  ].join("\n");
-
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from,
-        to,
-        subject: `New idea from ${who.replace(/[\r\n]+/g, " ").slice(0, 80)}`,
-        text,
-        ...(idea.email ? { reply_to: idea.email } : {}),
-      }),
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!res.ok) console.error("idea email failed:", res.status, await res.text());
-  } catch (err) {
-    console.error("idea email failed:", err instanceof Error ? err.message : err);
-  }
+  await sendEmail({
+    to,
+    subject: `New idea from ${who}`,
+    text: [
+      `${who}${idea.email ? ` <${idea.email}>` : ""} shared an idea on jambuch.in.`,
+      `Kind: ${CATEGORY_LABELS[idea.category]}`,
+      "",
+      idea.message,
+      "",
+      "Inbox: https://jambuch.in/admin/ideas",
+    ].join("\n"),
+    replyTo: idea.email || undefined,
+  });
 }

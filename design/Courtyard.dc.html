@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>The Courtyard — guest creators</title>
+<title>The Courtyard — creators and contributors</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -20,88 +20,182 @@ input,textarea,select,button{font-family:inherit}
 <header style="border-bottom: 1px solid #DAD6CC">
 <nav style="max-width: 1160px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
 <a href="Main.dc.html" style="font-family: 'Newsreader', Georgia, serif; font-size: 24px; font-weight: 600; color: #1B1F1E; text-decoration: none">jambuch<span style="color: #1E5C57">.</span></a>
-<div style="display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 14px; font-weight: 500">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; font-size: 14px; font-weight: 500">
 <a href="Book.dc.html" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Moving library</a>
 <a href="Journey.dc.html" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Journey</a>
 <a href="Courtyard.dc.html" style="color: #1B1F1E; text-decoration: underline; text-underline-offset: 6px; padding: 10px 0">Courtyard</a>
 <a href="Ledger.dc.html" style="color: #3F4A47; text-decoration: none; padding: 10px 0">Promises</a>
+<a href="#contribute" style="color: #FFFFFF; background: #1E5C57; text-decoration: none; padding: 10px 16px; border-radius: 6px">Contribute</a>
 </div>
 </nav>
 </header>
 
-<section style="max-width: 1160px; margin: 0 auto; padding: 64px 24px 40px">
+<!-- HERO -->
+<section style="max-width: 1160px; margin: 0 auto; padding: 64px 24px 32px">
 <p style="margin: 0 0 8px; font-family: 'Noto Serif Gujarati', serif; font-size: 24px; color: #9A5418">આંગણું</p>
 <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 56px; line-height: 1.1">The Courtyard</h1>
-<p style="margin: 16px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 23px; color: #2E3735; max-width: 720px">Friends, cousins and colleagues who make beautiful things but have nowhere to put them. Each has a room of their own here — and every word, photo and note in it belongs to them.</p>
+<p style="margin: 16px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 23px; color: #2E3735; max-width: 760px">Friends, family, colleagues — and you. A poem, a photograph, a lesson that helped a student, a small tool that saved someone an hour: if you made it and it’s worth sharing, there’s a place for it here. Credit always goes to the person who made it.</p>
 </section>
 
-<!-- CREATORS -->
-<section style="max-width: 1160px; margin: 0 auto; padding: 0 24px 64px">
+<!-- THREE DOORS -->
+<section style="max-width: 1160px; margin: 0 auto; padding: 8px 24px 56px">
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px">
+<button type="button" onClick="{{goPiece}}" style="text-align: left; background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 12px; padding: 24px; cursor: pointer; color: #1B1F1E; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #9A5418">For anyone</span>
+<span style="font-family: 'Newsreader', Georgia, serif; font-size: 26px">Share one piece</span>
+<span style="font-size: 15px; color: #3F4A47">A single poem, photo, recording, lesson, guide or tool. No commitment, no account needed to start.</span>
+<span style="font-size: 14px; font-weight: 500; color: #1E5C57; margin-top: 4px">Share something →</span>
+</button>
+<button type="button" onClick="{{goRoom}}" style="text-align: left; background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 12px; padding: 24px; cursor: pointer; color: #1B1F1E; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #9A5418">For regular makers</span>
+<span style="font-family: 'Newsreader', Georgia, serif; font-size: 26px">Ask for your own room</span>
+<span style="font-size: 15px; color: #3F4A47">A page of your own at jambuch.in/courtyard/your-name, for a growing body of work.</span>
+<span style="font-size: 14px; font-weight: 500; color: #1E5C57; margin-top: 4px">Ask for a room →</span>
+</button>
+<button type="button" onClick="{{goSuggest}}" style="text-align: left; background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 12px; padding: 24px; cursor: pointer; color: #1B1F1E; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #9A5418">Know someone?</span>
+<span style="font-family: 'Newsreader', Georgia, serif; font-size: 26px">Suggest a creator</span>
+<span style="font-size: 15px; color: #3F4A47">A grandmother’s recipes, a colleague’s photographs, a teacher’s notes that deserve readers.</span>
+<span style="font-size: 14px; font-weight: 500; color: #1E5C57; margin-top: 4px">Suggest someone →</span>
+</button>
+</div>
+</section>
+
+<!-- ROOMS -->
+<section style="border-top: 1px solid #DAD6CC">
+<div style="max-width: 1160px; margin: 0 auto; padding: 56px 24px">
+<h2 style="margin: 0 0 6px; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 34px">Rooms</h2>
+<p style="margin: 0 0 22px; color: #55605D">Creators with a page of their own.</p>
 <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px">
-<sc-for list="{{filters}}" as="f" hint-placeholder-count="5">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="7">
 <sc-if value="{{f.on}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{f.pick}}" style="min-height: 44px; padding: 0 18px; border-radius: 22px; border: 1px solid #1B1F1E; background: #1B1F1E; color: #FFFFFF; font-size: 14px; cursor: pointer">{{f.label}}</button></sc-if>
 <sc-if value="{{f.off}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{f.pick}}" style="min-height: 44px; padding: 0 18px; border-radius: 22px; border: 1px solid #B5AFA2; background: #FFFFFF; color: #1B1F1E; font-size: 14px; cursor: pointer">{{f.label}}</button></sc-if>
 </sc-for>
 </div>
 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px">
-<sc-for list="{{creators}}" as="c" hint-placeholder-count="4">
+<sc-for list="{{creators}}" as="c" hint-placeholder-count="6">
 <a href="Guest.dc.html" style="display: flex; flex-direction: column; gap: 14px; background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 12px; padding: 24px; text-decoration: none; color: #1B1F1E">
-<span style="width: 64px; height: 64px; border-radius: 32px; background: {{c.tint}}; display: flex; align-items: center; justify-content: center; font-family: 'Newsreader', Georgia, serif; font-size: 24px; color: #1B1F1E">{{c.initials}}</span>
-<span>
-<span style="display: block; font-family: 'Newsreader', Georgia, serif; font-size: 23px">{{c.name}}</span>
-<span style="display: block; font-size: 14px; color: #55605D">{{c.craft}} · {{c.place}}</span>
-</span>
+<span style="width: 64px; height: 64px; border-radius: 32px; background: {{c.tint}}; display: flex; align-items: center; justify-content: center; font-family: 'Newsreader', Georgia, serif; font-size: 24px">{{c.initials}}</span>
+<span><span style="display: block; font-family: 'Newsreader', Georgia, serif; font-size: 23px">{{c.name}}</span><span style="display: block; font-size: 14px; color: #55605D">{{c.craft}} · {{c.place}}</span></span>
 <span style="font-size: 15px; color: #3F4A47; flex-grow: 1">{{c.line}}</span>
 <span style="font-size: 14px; font-weight: 500; color: #1E5C57">Visit their room →</span>
 </a>
 </sc-for>
 </div>
+<sc-if value="{{noCreators}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; color: #55605D">No rooms in this category yet. Yours could be the first.</p></sc-if>
+</div>
 </section>
 
-<!-- HOW IT WORKS + PROMISE -->
+<!-- SINGLE PIECES -->
 <section style="border-top: 1px solid #DAD6CC; background: #EDEAE2">
-<div style="max-width: 1160px; margin: 0 auto; padding: 64px 24px; display: flex; flex-wrap: wrap; gap: 40px">
-<div style="flex: 999 1 520px; min-width: 0">
-<h2 style="margin: 0 0 24px; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 34px">How a room is made</h2>
-<div style="display: flex; flex-direction: column; gap: 20px">
-<div style="display: flex; gap: 18px"><span style="flex: none; width: 40px; height: 40px; border-radius: 20px; background: #1B1F1E; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 600">1</span><div><p style="margin: 0; font-weight: 600">You send your work, however you have it</p><p style="margin: 2px 0 0; color: #3F4A47">WhatsApp, email, a Drive folder, a notebook photographed page by page. No design skills needed.</p></div></div>
-<div style="display: flex; gap: 18px"><span style="flex: none; width: 40px; height: 40px; border-radius: 20px; background: #1B1F1E; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 600">2</span><div><p style="margin: 0; font-weight: 600">I shape it into your room</p><p style="margin: 2px 0 0; color: #3F4A47">Your name, your words about yourself, your colour. I show you a preview first.</p></div></div>
-<div style="display: flex; gap: 18px"><span style="flex: none; width: 40px; height: 40px; border-radius: 20px; background: #1B1F1E; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 600">3</span><div><p style="margin: 0; font-weight: 600">Nothing goes public until you say yes</p><p style="margin: 2px 0 0; color: #3F4A47">Later, you can add new work yourself from your phone — or keep sending it to me.</p></div></div>
+<div style="max-width: 1160px; margin: 0 auto; padding: 56px 24px">
+<h2 style="margin: 0 0 6px; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 34px">Shared by visitors</h2>
+<p style="margin: 0 0 22px; color: #55605D">Single pieces from people who stopped by. Each one read and approved before it appears.</p>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px">
+<sc-for list="{{pieces}}" as="p" hint-placeholder-count="4">
+<article style="background: #FFFFFF; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #9A5418">{{p.cat}}</span>
+<h3 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 21px">{{p.title}}</h3>
+<p style="margin: 0; font-size: 14px; color: #3F4A47; flex-grow: 1">{{p.note}}</p>
+<p style="margin: 6px 0 0; font-size: 13px; color: #55605D">by {{p.by}}</p>
+</article>
+</sc-for>
 </div>
 </div>
-<div style="flex: 1 1 340px; min-width: 0; background: #FFFFFF; border-radius: 12px; padding: 28px">
-<p style="margin: 0 0 14px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #9A5418">My promise to every guest</p>
+</section>
+
+<!-- PROMISE -->
+<section style="border-top: 1px solid #DAD6CC">
+<div style="max-width: 1160px; margin: 0 auto; padding: 56px 24px; display: flex; flex-wrap: wrap; gap: 40px">
+<div style="flex: 999 1 480px; min-width: 0">
+<h2 style="margin: 0 0 20px; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 34px">How it works</h2>
+<div style="display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; gap: 18px"><span style="flex: none; width: 40px; height: 40px; border-radius: 20px; background: #1B1F1E; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 600">1</span><div><p style="margin: 0; font-weight: 600">Send it, or get invited</p><p style="margin: 2px 0 0; color: #3F4A47">Share a piece or ask for a room below — or I may write to you first. Either way works.</p></div></div>
+<div style="display: flex; gap: 18px"><span style="flex: none; width: 40px; height: 40px; border-radius: 20px; background: #1B1F1E; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 600">2</span><div><p style="margin: 0; font-weight: 600">I read every word</p><p style="margin: 2px 0 0; color: #3F4A47">Nothing appears without my review. If it’s not a fit, I’ll tell you kindly and why.</p></div></div>
+<div style="display: flex; gap: 18px"><span style="flex: none; width: 40px; height: 40px; border-radius: 20px; background: #1B1F1E; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 600">3</span><div><p style="margin: 0; font-weight: 600">It goes up under your name</p><p style="margin: 2px 0 0; color: #3F4A47">Regular contributors can grow a single piece into a room of their own.</p></div></div>
+</div>
+</div>
+<div style="flex: 1 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 12px; padding: 28px">
+<p style="margin: 0 0 14px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #9A5418">My promise to every contributor</p>
 <div style="display: flex; flex-direction: column; gap: 12px; font-size: 15px">
-<p style="margin: 0">Your name is on every piece. Credit always goes to you, never to this site.</p>
+<p style="margin: 0">Your name is on every piece. Credit always goes to you.</p>
 <p style="margin: 0">Your work stays yours. You choose how others may use it.</p>
 <p style="margin: 0">No ads, and no money is made from your work here.</p>
-<p style="margin: 0">Leave any time. Your room comes down and every file comes back to you.</p>
+<p style="margin: 0">Ask, and it comes down — with every file returned.</p>
 </div>
 </div>
 </div>
 </section>
 
-<!-- INVITE -->
-<section style="border-top: 1px solid #DAD6CC">
-<div style="max-width: 1160px; margin: 0 auto; padding: 64px 24px 80px; display: flex; flex-wrap: wrap; gap: 40px">
-<div style="flex: 1 1 320px; min-width: 0">
-<h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 34px">Want a room, or know someone who deserves one?</h2>
-<p style="margin: 12px 0 0; color: #3F4A47">Rooms are by invitation, for people I know. Tell me about them and I’ll get in touch.</p>
+<!-- CONTRIBUTE FORMS -->
+<section id="contribute" style="border-top: 1px solid #DAD6CC; background: #1B1F1E; color: #F5F3EE">
+<div style="max-width: 860px; margin: 0 auto; padding: 64px 24px 80px">
+<h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 38px">Contribute</h2>
+<p style="margin: 8px 0 24px; color: #CFD8D6">Pick a door. Every submission is read by Jaydeep before anything appears.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px">
+<sc-for list="{{doors}}" as="d" hint-placeholder-count="3">
+<sc-if value="{{d.on}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{d.pick}}" style="min-height: 44px; padding: 0 18px; border-radius: 22px; border: 1px solid #F5F3EE; background: #F5F3EE; color: #1B1F1E; font-size: 15px; font-weight: 500; cursor: pointer">{{d.label}}</button></sc-if>
+<sc-if value="{{d.off}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{d.pick}}" style="min-height: 44px; padding: 0 18px; border-radius: 22px; border: 1px solid #55605D; background: transparent; color: #F5F3EE; font-size: 15px; cursor: pointer">{{d.label}}</button></sc-if>
+</sc-for>
 </div>
-<div style="flex: 999 1 480px; min-width: 0; background: #FFFFFF; border: 1px solid #DAD6CC; border-radius: 12px; padding: 28px">
+
+<div style="background: #FFFFFF; color: #1B1F1E; border-radius: 12px; padding: 28px">
 <sc-if value="{{sent}}" hint-placeholder-val="{{ false }}">
-<p style="margin: 0; padding: 32px 0; text-align: center; font-family: 'Newsreader', Georgia, serif; font-size: 26px">Thank you — I’ll call or write soon.</p>
+<div style="padding: 28px 0; text-align: center">
+<p style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 28px">{{thanks}}</p>
+<p style="margin: 8px 0 0; color: #55605D">Check your email to confirm it’s you. I usually reply within [a week].</p>
+</div>
 </sc-if>
 <sc-if value="{{notSent}}" hint-placeholder-val="{{ true }}">
 <div style="display: flex; flex-direction: column; gap: 16px">
+
+<sc-if value="{{isSuggest}}" hint-placeholder-val="{{ false }}">
 <div style="display: flex; flex-wrap: wrap; gap: 16px">
-<label style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Creator’s name<input type="text" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"></label>
-<label style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">How do they know Jaydeep?<input type="text" placeholder="cousin, colleague, friend…" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"></label>
+<label style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Creator’s name<input type="text" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"></label>
+<label style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">How do you know them?<input type="text" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"></label>
 </div>
-<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">What do they make?<select style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"><option>Writing or poetry</option><option>Photography</option><option>Music</option><option>Art or craft</option><option>Something else</option></select></label>
-<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">A line about their work, or a link to a sample<textarea rows="3" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7; resize: vertical"></textarea></label>
-<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Your phone or email<input type="text" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"></label>
-<button type="button" onClick="{{send}}" style="align-self: flex-start; background: #1B1F1E; color: #FFFFFF; border: none; padding: 13px 24px; border-radius: 6px; font-size: 15px; font-weight: 500; cursor: pointer">Send</button>
+</sc-if>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+<label style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Your name<input type="text" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"></label>
+<label style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Your email<input type="email" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"></label>
+</div>
+
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Category<select style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"><option>Writing &amp; poetry</option><option>Photography</option><option>Music</option><option>Art &amp; craft</option><option>Tech — tools, code, how-tos</option><option>Education — lessons, notes, guides</option><option>Something else</option></select></label>
+
+<sc-if value="{{isPiece}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Title<input type="text" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Your piece — paste text, or describe what you’re attaching<textarea rows="5" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7; resize: vertical"></textarea></label>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 1px dashed #B5AFA2; border-radius: 6px; background: #FBFAF7; color: #1B1F1E; font-size: 14px; cursor: pointer">Attach a file (photo, audio, PDF)</button>
+<span style="font-size: 13px; color: #55605D">or paste a link: GitHub, YouTube, Drive</span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isRoom}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">A few lines about you and what you make<textarea rows="4" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7; resize: vertical"></textarea></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Links to 2–3 samples of your work<textarea rows="2" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7; resize: vertical"></textarea></label>
+</div>
+</sc-if>
+
+<sc-if value="{{isSuggest}}" hint-placeholder-val="{{ false }}">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500">Why their work deserves readers — and a sample if you have one<textarea rows="4" style="padding: 12px; border: 1px solid #B5AFA2; border-radius: 6px; font-size: 15px; background: #FBFAF7; resize: vertical"></textarea></label>
+</sc-if>
+
+<sc-if value="{{notSuggest}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<label style="display: flex; align-items: flex-start; gap: 10px; font-size: 14px; min-height: 44px; padding-top: 10px"><input type="checkbox" style="width: 18px; height: 18px; margin-top: 2px; flex: none"> This is my own work and I have the right to share it.</label>
+<label style="display: flex; align-items: flex-start; gap: 10px; font-size: 14px; min-height: 44px; padding-top: 10px"><input type="checkbox" style="width: 18px; height: 18px; margin-top: 2px; flex: none"> Jaydeep may publish it here under my name, and remove it if he needs to.</label>
+</div>
+</sc-if>
+<sc-if value="{{isSuggest}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; font-size: 13px; color: #55605D">I’ll only contact them with their permission to mention you, and nothing of theirs goes up without their own yes.</p>
+</sc-if>
+
+<button type="button" onClick="{{send}}" style="align-self: flex-start; background: #1E5C57; color: #FFFFFF; border: none; padding: 13px 24px; border-radius: 6px; font-size: 15px; font-weight: 500; cursor: pointer">{{sendLabel}}</button>
 </div>
 </sc-if>
 </div>
@@ -109,26 +203,45 @@ input,textarea,select,button{font-family:inherit}
 </section>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2500}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":3600}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { f: 'All', sent: false };
+    this.state = { f: 'All', door: 'piece', sent: false };
   }
   renderVals() {
     const all = [
       { initials: 'A', name: '[Guest name]', craft: 'Poetry', place: '[City]', line: '[One line in their own words about what they make.]', tint: '#F6E7D6' },
       { initials: 'B', name: '[Guest name]', craft: 'Photography', place: '[City]', line: '[One line in their own words about what they make.]', tint: '#DCE6E4' },
       { initials: 'C', name: '[Guest name]', craft: 'Music', place: '[City]', line: '[One line in their own words about what they make.]', tint: '#E1DFE6' },
-      { initials: 'D', name: '[Guest name]', craft: 'Art', place: '[City]', line: '[One line in their own words about what they make.]', tint: '#E6E1D3' }
+      { initials: 'D', name: '[Guest name]', craft: 'Art', place: '[City]', line: '[One line in their own words about what they make.]', tint: '#E6E1D3' },
+      { initials: 'E', name: '[Guest name]', craft: 'Tech', place: '[City]', line: '[Small tools and plain-language how-tos.]', tint: '#D8E2EE' },
+      { initials: 'F', name: '[Guest name]', craft: 'Education', place: '[City]', line: '[A teacher’s notes and lessons, shared for any student.]', tint: '#E4ECD8' }
     ];
     const f = this.state.f;
     const creators = all.filter(c => f === 'All' || c.craft === f);
-    const filters = ['All', 'Poetry', 'Photography', 'Music', 'Art'].map(label => ({
+    const filters = ['All', 'Poetry', 'Photography', 'Music', 'Art', 'Tech', 'Education'].map(label => ({
       label, on: f === label, off: f !== label, pick: () => this.setState({ f: label })
     }));
+    const pieces = [
+      { cat: 'Education', title: '[A one-page guide to …]', note: '[What it helps a student do.]', by: '[Name], [City]' },
+      { cat: 'Tech', title: '[A small tool or how-to]', note: '[The problem it solves, in a line.]', by: '[Name], [City]' },
+      { cat: 'Photography', title: '[Photo title]', note: '[Where and when.]', by: '[Name], [City]' },
+      { cat: 'Writing', title: '[Poem title]', note: '[A line about it.]', by: '[Name], [City]' }
+    ];
+    const door = this.state.door;
+    const go = d => () => this.setState({ door: d, sent: false });
+    const doors = [['piece', 'Share one piece'], ['room', 'Ask for a room'], ['suggest', 'Suggest a creator']].map(([k, label]) => ({
+      label, on: door === k, off: door !== k, pick: go(k)
+    }));
+    const thanks = { piece: 'Thank you — your piece is with me.', room: 'Thank you — I’ll look at your work and write back.', suggest: 'Thank you for thinking of them.' }[door];
+    const sendLabel = { piece: 'Send my piece', room: 'Ask for a room', suggest: 'Send suggestion' }[door];
     return {
-      creators, filters,
+      creators, filters, pieces, doors,
+      noCreators: creators.length === 0,
+      goPiece: go('piece'), goRoom: go('room'), goSuggest: go('suggest'),
+      isPiece: door === 'piece', isRoom: door === 'room', isSuggest: door === 'suggest', notSuggest: door !== 'suggest',
+      thanks, sendLabel,
       sent: this.state.sent, notSent: !this.state.sent,
       send: () => this.setState({ sent: true })
     };

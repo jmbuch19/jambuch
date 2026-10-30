@@ -43,6 +43,11 @@
   padding: 9px 16px;
   border-radius: var(--radius-sm);
 }
+.navLinks a.navCurrent {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
 
 /* ------------------------------------------------------------ book */
 .hero {
