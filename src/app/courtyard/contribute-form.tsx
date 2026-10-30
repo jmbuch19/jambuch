@@ -201,8 +201,8 @@ export default function ContributeForm() {
                   <textarea name="about" rows={4} maxLength={3000} required />
                 </label>
                 <label className={y.field}>
-                  Links to 2–3 samples of your work <small>one per line</small>
-                  <textarea name="links" rows={3} maxLength={2000} required placeholder={"https://\nhttps://"} />
+                  Links to 2–3 samples of your work <small>optional, one per line</small>
+                  <textarea name="links" rows={3} maxLength={2000} placeholder={"https://\nhttps://"} />
                 </label>
               </>
             )}

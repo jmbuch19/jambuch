@@ -78,7 +78,6 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
   } else if (kind === "room_request") {
     row.about = str("about", 3000) || null;
     if (!row.about) return { status: "error", message: "Please tell me a little about your work." };
-    if (links.length < 2) return { status: "error", message: "Please share two or three links to samples of your work." };
   } else {
     row.creator_name = str("creator_name", 200) || null;
     row.relation = str("relation", 120) || null;
