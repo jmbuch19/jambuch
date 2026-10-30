@@ -13,12 +13,21 @@ import {
   type SubmissionKind,
   type SubmissionStatus,
 } from "@/lib/courtyard";
+import {
+  WEEKDAYS,
+  describeGathering,
+  gatheringShort,
+  turnNote,
+  type GatheringSetting,
+} from "@/lib/gathering";
 import { ROOM_TERMS, STAGE_LABELS, type InviteStage } from "@/lib/invite-stages";
 import DeleteDialog from "../../delete-dialog";
 import {
   createInvite,
   declineSubmission,
+  joinThreadNow,
   markReachedOut,
+  setGathering,
   moveInvite,
   previewFile,
   publishSubmission,
@@ -66,6 +75,8 @@ export type SubmissionRow = {
   invite_id: string | null;
   family_only: boolean;
   thread_from_title: string | null; // the piece it picks up the thread from
+  gathering_at: string | null; // when it joins (or joined) the thread
+  gathering_notified_at: string | null;
   created_at: string;
   published_at: string | null;
 };
@@ -178,6 +189,8 @@ export default function CourtyardAdmin({
   initialTab,
   limit,
   used,
+  gathering,
+  nextGatheringAt,
   counts,
   error: loadError,
 }: {
@@ -186,6 +199,8 @@ export default function CourtyardAdmin({
   initialTab: "invites" | "requests";
   limit: number;
   used: number;
+  gathering: GatheringSetting;
+  nextGatheringAt: string;
   counts: { them: number; me: number; live: number };
   error: string | null;
 }) {
@@ -201,6 +216,13 @@ export default function CourtyardAdmin({
   const [copied, setCopied] = useState(false);
   const [pending, start] = useTransition();
 
+  const [editGathering, setEditGathering] = useState(false);
+  const [copiedNote, setCopiedNote] = useState<string | null>(null);
+  const nowIso = new Date().toISOString();
+  // Approved pieces waiting for their gathering, grouped by when they join.
+  const queued = submissions
+    .filter((s) => s.status === "published" && s.gathering_at && s.gathering_at > nowIso)
+    .sort((x, y) => (x.gathering_at! < y.gathering_at! ? -1 : 1));
   const filtered = submissions.filter((s) => kindFilter === "all" || s.kind === kindFilter);
   const fresh = filtered.filter((s) => s.status === "new");
   const handled = filtered.filter((s) => s.status !== "new");
@@ -315,6 +337,19 @@ export default function CourtyardAdmin({
 
   function saveLimit(form: FormData) {
     run(() => setRoomLimit(Number(form.get("limit"))), () => setEditLimit(false));
+  }
+
+  function saveGathering(form: FormData) {
+    run(() => setGathering(Number(form.get("weekday")), String(form.get("time"))), () => setEditGathering(false));
+  }
+
+  async function copyNote(id: string, text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedNote(id);
+    } catch {
+      setCopiedNote(null);
+    }
   }
 
   async function copy(text: string) {
@@ -477,6 +512,36 @@ export default function CourtyardAdmin({
           <p>Live rooms</p>
           <strong className={c.liveCount}>{counts.live}</strong>
         </div>
+        <div className={c.card}>
+          <p>
+            Weekly gathering
+            <button type="button" className={c.cardEdit} onClick={() => setEditGathering((v) => !v)}>
+              {editGathering ? "Cancel" : "Change"}
+            </button>
+          </p>
+          {editGathering ? (
+            <form action={saveGathering} className={c.limitForm}>
+              <select name="weekday" defaultValue={gathering.weekday} aria-label="Day">
+                {WEEKDAYS.map((d, i) => (
+                  <option key={d} value={i}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+              <input type="time" name="time" defaultValue={gathering.time} aria-label="Time (IST)" />
+              <button type="submit" className={c.action} disabled={pending}>
+                Save
+              </button>
+            </form>
+          ) : (
+            <>
+              <strong className={c.gatheringWhen}>{describeGathering(gathering)}</strong>
+              <span className={c.meta}>
+                Next: {gatheringShort(nextGatheringAt)} · {queued.filter((q) => q.gathering_at! <= nextGatheringAt).length} waiting
+              </span>
+            </>
+          )}
+        </div>
       </div>
       {atLimit && (
         <p className={a.warn}>
@@ -548,6 +613,36 @@ export default function CourtyardAdmin({
             until you approve it.
           </p>
         </>
+      )}
+
+      {tab === "requests" && queued.length > 0 && (
+        <section className={c.queue} aria-label="Waiting for the gathering">
+          <h2>Waiting for the gathering</h2>
+          <p className={c.meta}>
+            These join the thread together at their gathering, and each contributor gets an email. To send the note on
+            WhatsApp as well, copy it.
+          </p>
+          <ul>
+            {queued.map((q) => {
+              const note = turnNote({ name: q.name, title: q.title ?? "", url: `https://jambuch.in/courtyard#piece-${q.id}` });
+              return (
+                <li key={q.id}>
+                  <div>
+                    <strong>{q.title}</strong> <span className={c.meta}>by {q.name} · joins {gatheringShort(q.gathering_at!)}</span>
+                  </div>
+                  <div className={c.actions}>
+                    <button type="button" className={c.action} onClick={() => copyNote(q.id, note)}>
+                      {copiedNote === q.id ? "Copied" : "Copy WhatsApp note"}
+                    </button>
+                    <button type="button" className={c.textLink} disabled={pending} onClick={() => run(() => joinThreadNow(q.id))}>
+                      Join the thread now
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
 
       {tab === "requests" && (
@@ -697,7 +792,8 @@ export default function CourtyardAdmin({
               fileUrl={panel.fileUrl}
               pending={pending}
               error={error}
-              onPublish={(edits) => run(() => publishSubmission(panel.s.id, edits), close)}
+              nextGatheringAt={nextGatheringAt}
+              onPublish={(edits, when) => run(() => publishSubmission(panel.s.id, edits, when), close)}
               onDecline={() => setPanel({ mode: "decline", s: panel.s })}
             />
           )}
@@ -739,7 +835,7 @@ function SubmissionCard({ s, children }: { s: SubmissionRow; children: React.Rea
           {who}{" "}
           <span className={c.meta}>
             · {categoryLabel(s.category)} · {from}
-            {s.status !== "new" && ` · ${STATUS_LABELS[s.status]}`}
+            {s.status !== "new" && ` · ${statusText(s)}`}
           </span>
           {s.family_only && <span className={`${c.badge} ${c.badgeInline} ${c.toneAmber} ${c.badgeAfter}`}>Family circle only</span>}
         </div>
@@ -766,11 +862,22 @@ function SubmissionCard({ s, children }: { s: SubmissionRow; children: React.Rea
   );
 }
 
+// Status line for a handled submission; approved pieces show their gathering.
+function statusText(s: SubmissionRow) {
+  if (s.status === "published" && s.gathering_at) {
+    return s.gathering_at > new Date().toISOString()
+      ? `Queued for ${gatheringShort(s.gathering_at)}`
+      : `In the thread since ${gatheringShort(s.gathering_at)}`;
+  }
+  return STATUS_LABELS[s.status];
+}
+
 function ReviewPanel({
   s,
   fileUrl,
   pending,
   error,
+  nextGatheringAt,
   onPublish,
   onDecline,
 }: {
@@ -778,7 +885,8 @@ function ReviewPanel({
   fileUrl: string | null;
   pending: boolean;
   error: string | null;
-  onPublish: (edits: { title: string; city: string }) => void;
+  nextGatheringAt: string;
+  onPublish: (edits: { title: string; city: string }, when: "gathering" | "now") => void;
   onDecline: () => void;
 }) {
   const [title, setTitle] = useState(s.title ?? "");
@@ -838,8 +946,16 @@ function ReviewPanel({
         </p>
       )}
       <div className={c.actions}>
-        <button type="button" className={c.primary} disabled={pending || !title.trim()} onClick={() => onPublish({ title, city })}>
-          {pending ? "Publishing…" : "Publish to the shelf"}
+        <button
+          type="button"
+          className={c.primary}
+          disabled={pending || !title.trim()}
+          onClick={() => onPublish({ title, city }, "gathering")}
+        >
+          {pending ? "Approving…" : `Approve for ${gatheringShort(nextGatheringAt)}`}
+        </button>
+        <button type="button" className={c.textLink} disabled={pending || !title.trim()} onClick={() => onPublish({ title, city }, "now")}>
+          Join the thread now instead
         </button>
         <button type="button" className={c.danger} onClick={onDecline}>
           Decline

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
 import { sendEmail } from "@/lib/email";
 import { INVITE_DAYS, newInviteLink, ROOM_TERMS, type InviteStage } from "@/lib/invites";
+import { DEFAULT_GATHERING, nextGathering, parseGathering } from "@/lib/gathering";
 import { fileRef, publishPrivate, signedPrivateUrl } from "@/lib/r2";
 
 // Courtyard admin: create, resend and revoke invites, move them between
@@ -204,7 +205,13 @@ export async function previewFile(id: string): Promise<{ ok: true; url: string |
 
 // Publishing a single piece: its file moves to the public bucket, and it
 // appears on the "Shared by visitors" shelf.
-export async function publishSubmission(id: string, edits: { title: string; city: string }): Promise<{ ok: true } | Failed> {
+// Approving a single piece. By default it waits for the next weekly gathering
+// (it joins the thread when that time comes); "now" makes it join at once.
+export async function publishSubmission(
+  id: string,
+  edits: { title: string; city: string },
+  when: "gathering" | "now" = "gathering",
+): Promise<{ ok: true; gatheringAt: string } | Failed> {
   try {
     const { db } = await requireAdmin();
     const { data: s, error } = await db
@@ -218,16 +225,28 @@ export async function publishSubmission(id: string, edits: { title: string; city
     const title = edits.title.trim();
     if (!title) throw new Error("A published piece needs a title.");
 
+    const now = new Date();
+    const gatheringAt =
+      when === "now" ? now : nextGathering(parseGathering((await gatheringSetting(db)) ?? DEFAULT_GATHERING), now);
+
     const ref = fileRef(s.file_url);
     const fileUrl = ref ? await publishPrivate(ref) : s.file_url;
     const { error: upd } = await db
       .from("courtyard_submissions")
-      .update({ status: "published", published_at: new Date().toISOString(), file_url: fileUrl, title, city: edits.city.trim() || null })
+      .update({
+        status: "published",
+        published_at: now.toISOString(),
+        gathering_at: gatheringAt.toISOString(),
+        gathering_notified_at: null,
+        file_url: fileUrl,
+        title,
+        city: edits.city.trim() || null,
+      })
       .eq("id", id);
     if (upd) throw new Error(upd.message);
     revalidatePath("/courtyard");
     revalidatePath("/admin/courtyard");
-    return { ok: true };
+    return { ok: true, gatheringAt: gatheringAt.toISOString() };
   } catch (err) {
     return fail(err);
   }
@@ -281,6 +300,44 @@ export async function declineSubmission(id: string, reply: string, send: boolean
     if (upd) throw new Error(upd.message);
     revalidatePath("/admin/courtyard");
     return { ok: true, emailed };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+async function gatheringSetting(db: Awaited<ReturnType<typeof requireAdmin>>["db"]) {
+  const { data } = await db.from("settings").select("value").eq("key", "courtyard.gathering").maybeSingle();
+  return data?.value ?? null;
+}
+
+// The weekly gathering's day and time (IST). Pieces already queued keep their time.
+export async function setGathering(weekday: number, time: string): Promise<{ ok: true } | Failed> {
+  try {
+    const s = parseGathering({ weekday, time });
+    if (s.weekday !== weekday || s.time !== time) throw new Error("Pick a day and a time like 19:00.");
+    const { db } = await requireAdmin();
+    const { error } = await db.from("settings").upsert({ key: "courtyard.gathering", value: s });
+    if (error) throw new Error(error.message);
+    revalidatePath("/admin/courtyard");
+    return { ok: true };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+// Moves a queued piece into the thread straight away.
+export async function joinThreadNow(id: string): Promise<{ ok: true } | Failed> {
+  try {
+    const { db } = await requireAdmin();
+    const { error } = await db
+      .from("courtyard_submissions")
+      .update({ gathering_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("status", "published");
+    if (error) throw new Error(error.message);
+    revalidatePath("/courtyard");
+    revalidatePath("/admin/courtyard");
+    return { ok: true };
   } catch (err) {
     return fail(err);
   }

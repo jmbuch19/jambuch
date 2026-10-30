@@ -333,6 +333,46 @@ a.name:hover {
 .badgeAfter {
   margin: 0 0 0 8px;
 }
+.gatheringWhen {
+  font-size: 19px !important;
+  line-height: 1.3;
+}
+.limitForm select,
+.limitForm input[type="time"] {
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  min-width: 0;
+}
+.queue {
+  margin-top: 16px;
+  background: var(--accent-tint);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+}
+.queue h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+.queue ul {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.queue li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 16px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
 .chips {
   display: flex;
   flex-wrap: wrap;

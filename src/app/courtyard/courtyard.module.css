@@ -112,6 +112,23 @@
   margin: 0;
   padding: 0;
 }
+.gatheringHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 18px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--saffron);
+}
+.gatheringHead::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #c9c3b6;
+}
 .turn {
   display: flex;
   gap: 16px;

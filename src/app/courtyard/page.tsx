@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Fragment } from "react";
+import { gatheringDay } from "@/lib/gathering";
 import { CATEGORY_TINT, DOOR_HASH, EDUCATION_NOTE, REPLY_HASH, categoryLabel, initials } from "@/lib/courtyard";
 import { inline } from "@/lib/inline";
 import { publicClient } from "@/lib/supabase";
@@ -28,23 +30,30 @@ type Piece = {
   links: string[];
   thread_from: string | null;
   published_at: string;
+  gathering_at: string;
 };
 
-// The public thread: approved single pieces in the order they were shared.
+// The public thread: approved single pieces whose weekly gathering has come,
+// gathering by gathering, oldest first (and in order of approval within each).
 // Read on the server with only the columns that may be shown (never email),
 // and never pieces kept for a family circle. If it can't be read, the page
-// still shows, with an empty thread.
+// still shows, with an empty thread. (The page refreshes every minute, so a
+// gathering's pieces appear within a minute of its time.)
 async function thread(): Promise<Piece[]> {
   try {
     const { data, error } = await adminClient()
       .from("courtyard_submissions")
-      .select("id, name, city, category, title, body, file_url, file_type, links, thread_from, published_at")
+      .select(
+        "id, name, city, category, title, body, file_url, file_type, links, thread_from, published_at, gathering_at",
+      )
       .eq("kind", "single_piece")
       .eq("status", "published")
       .eq("family_only", false)
+      .lte("gathering_at", new Date().toISOString())
       .is("deleted_at", null)
+      .order("gathering_at", { ascending: true })
       .order("published_at", { ascending: true })
-      .limit(200);
+      .limit(300);
     if (error) throw new Error(error.message);
     return (data ?? []) as Piece[];
   } catch (err) {
@@ -73,7 +82,12 @@ function host(url: string) {
 }
 
 const day = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Kolkata" });
+  new Date(iso).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Asia/Kolkata",
+  });
 
 const DOOR_CARDS = [
   {
@@ -104,7 +118,10 @@ const WHY = [
     title: "A home, not a feed",
     text: "A post disappears in two days. Here your piece gets its own page with your name on it, still there years from now.",
   },
-  { title: "A real reader", text: "I read every word you send and write back myself, whether or not it goes up." },
+  {
+    title: "A real reader",
+    text: "I read every word you send and write back myself, whether or not it goes up.",
+  },
   {
     title: "Something to point to",
     text: "For students and teachers: a published, credited link for your CV, portfolio or application.",
@@ -129,12 +146,12 @@ export default async function CourtyardPage() {
           <h1 className={y.h1}>The Courtyard</h1>
           <p className={y.lede}>
             Friends, family, colleagues — and you. A poem, a photograph, a lesson that helped a student, a small tool
-            that saved someone an hour, a song an elder sang: if you made it, or are keeping it for your family, there’s a
-            place for it here. Credit always goes to the person who made it.
+            that saved someone an hour, a song an elder sang: if you made it, or are keeping it for your family, there’s
+            a place for it here. Credit always goes to the person who made it.
           </p>
           <p className={y.quote}>
-            In the old courtyard, nobody competes. Someone begins a story and the others listen. When it ends, someone else
-            picks up the thread. Just closeness, laughter and sharing.
+            In the old courtyard, nobody competes. Someone begins a story and the others listen. When it ends, someone
+            else picks up the thread. Just closeness, laughter and sharing.
           </p>
         </section>
 
@@ -185,73 +202,94 @@ export default async function CourtyardPage() {
               The thread
             </h2>
             <p className={y.sectionIntro}>
-              Pieces in the order they were shared, like turns around the courtyard. Each one can answer the one before. No
-              likes, no counts, no rankings.
+              Pieces in the order they were shared, like turns around the courtyard. Each one can answer the one before.
+              No likes, no counts, no rankings.
             </p>
             {pieces.length === 0 && <p className={y.empty}>Nobody has begun the story yet.</p>}
             <ol className={y.thread}>
-              {pieces.map((p) => {
+              {pieces.map((p, i) => {
+                // A heading where each weekly gathering begins.
+                const gatheringLabel = gatheringDay(p.gathering_at);
+                const startsGathering = i === 0 || gatheringDay(pieces[i - 1].gathering_at) !== gatheringLabel;
                 const parent = p.thread_from ? byId.get(p.thread_from) : undefined;
                 const image = p.file_url && p.file_type?.startsWith("image/");
                 const audio = p.file_url && p.file_type?.startsWith("audio/");
                 const pdf = p.file_url && p.file_type === "application/pdf";
                 const long = (p.body?.length ?? 0) > 420;
                 return (
-                  <li key={p.id} id={`piece-${p.id}`} className={y.turn}>
-                    <div className={y.turnRail} aria-hidden="true">
-                      <span className={y.avatar} style={{ background: CATEGORY_TINT[p.category] ?? CATEGORY_TINT.other }}>
-                        {initials(p.name)}
-                      </span>
-                      <span className={y.rail} />
-                    </div>
-                    <article className={y.turnCard}>
-                      {parent && (
-                        <p className={y.from}>
-                          ↳ picked up the thread from <a href={`#piece-${parent.id}`}>{threadLabel(parent)}</a>
-                        </p>
-                      )}
-                      <p className={y.eyebrow}>{categoryLabel(p.category)}</p>
-                      <h3>{p.title}</h3>
-                      {image && (
-                        // Uploaded photos: shown whole, served from media.jambuch.in.
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.file_url!} alt={p.title} loading="lazy" className={y.pieceImg} />
-                      )}
-                      {p.body &&
-                        (long ? (
-                          <details className={y.more}>
-                            <summary>
-                              <span className={y.excerpt}>{inline(p.body.slice(0, 380))}…</span>
-                              <span className={y.readMore}>Read in full</span>
-                            </summary>
-                            <div className={y.full}>{inline(p.body)}</div>
-                          </details>
-                        ) : (
-                          <div className={y.full}>{inline(p.body)}</div>
-                        ))}
-                      {audio && <audio controls preload="none" src={p.file_url!} className={y.audio} />}
-                      {pdf && (
-                        <a href={p.file_url!} target="_blank" rel="noopener noreferrer" className={y.pieceLink}>
-                          Open the PDF →
-                        </a>
-                      )}
-                      {p.links.map((l) => (
-                        <a key={l} href={l} target="_blank" rel="noopener noreferrer nofollow" className={y.pieceLink}>
-                          {host(l)} →
-                        </a>
-                      ))}
-                      {p.category === "education" && <p className={y.note}>{EDUCATION_NOTE}</p>}
-                      <div className={y.turnFoot}>
-                        <span>
-                          {p.name}
-                          {p.city ? `, ${p.city}` : ""} · {day(p.published_at)}
+                  <Fragment key={p.id}>
+                    {startsGathering && (
+                      <li className={y.gatheringHead}>
+                        <span>The gathering of {gatheringLabel}</span>
+                      </li>
+                    )}
+                    <li id={`piece-${p.id}`} className={y.turn}>
+                      <div className={y.turnRail} aria-hidden="true">
+                        <span
+                          className={y.avatar}
+                          style={{
+                            background: CATEGORY_TINT[p.category] ?? CATEGORY_TINT.other,
+                          }}
+                        >
+                          {initials(p.name)}
                         </span>
-                        <a href={`#${REPLY_HASH}${p.id}`} className={y.pickUp}>
-                          Pick up this thread
-                        </a>
+                        <span className={y.rail} />
                       </div>
-                    </article>
-                  </li>
+                      <article className={y.turnCard}>
+                        {parent && (
+                          <p className={y.from}>
+                            ↳ picked up the thread from <a href={`#piece-${parent.id}`}>{threadLabel(parent)}</a>
+                          </p>
+                        )}
+                        <p className={y.eyebrow}>{categoryLabel(p.category)}</p>
+                        <h3>{p.title}</h3>
+                        {image && (
+                          // Uploaded photos: shown whole, served from media.jambuch.in.
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={p.file_url!} alt={p.title} loading="lazy" className={y.pieceImg} />
+                        )}
+                        {p.body &&
+                          (long ? (
+                            <details className={y.more}>
+                              <summary>
+                                <span className={y.excerpt}>{inline(p.body.slice(0, 380))}…</span>
+                                <span className={y.readMore}>Read in full</span>
+                              </summary>
+                              <div className={y.full}>{inline(p.body)}</div>
+                            </details>
+                          ) : (
+                            <div className={y.full}>{inline(p.body)}</div>
+                          ))}
+                        {audio && <audio controls preload="none" src={p.file_url!} className={y.audio} />}
+                        {pdf && (
+                          <a href={p.file_url!} target="_blank" rel="noopener noreferrer" className={y.pieceLink}>
+                            Open the PDF →
+                          </a>
+                        )}
+                        {p.links.map((l) => (
+                          <a
+                            key={l}
+                            href={l}
+                            target="_blank"
+                            rel="noopener noreferrer nofollow"
+                            className={y.pieceLink}
+                          >
+                            {host(l)} →
+                          </a>
+                        ))}
+                        {p.category === "education" && <p className={y.note}>{EDUCATION_NOTE}</p>}
+                        <div className={y.turnFoot}>
+                          <span>
+                            {p.name}
+                            {p.city ? `, ${p.city}` : ""} · {day(p.published_at)}
+                          </span>
+                          <a href={`#${REPLY_HASH}${p.id}`} className={y.pickUp}>
+                            Pick up this thread
+                          </a>
+                        </div>
+                      </article>
+                    </li>
+                  </Fragment>
                 );
               })}
             </ol>
@@ -294,7 +332,9 @@ export default async function CourtyardPage() {
         <section id="contribute" className={y.contribute}>
           <div className={y.contributeWrap}>
             <h2 className={y.contributeTitle}>Contribute</h2>
-            <p className={y.contributeLede}>Pick a door. Every submission is read by Jaydeep before anything appears.</p>
+            <p className={y.contributeLede}>
+              Pick a door. Every submission is read by Jaydeep before anything appears.
+            </p>
             {whatsapp && (
               <a
                 href={`https://wa.me/${whatsapp.digits}?text=${encodeURIComponent("Hello Jaydeep, I’d like to share something for the Courtyard. My name is ")}`}

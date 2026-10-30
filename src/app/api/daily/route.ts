@@ -1,3 +1,4 @@
+import { sendGatheringNotes } from "@/lib/gathering-notes";
 import { adminClient } from "@/lib/supabase-admin";
 import { expired, purge, trash } from "@/lib/trash";
 
@@ -33,6 +34,13 @@ export async function GET(request: Request) {
     .eq("stage", "invited")
     .lt("expires_at", now);
   if (inviteErr) failed.courtyard_invites_expiry = inviteErr.message;
+
+  // Backstop for the 15-minute gathering job: any "your turn" note not yet sent.
+  try {
+    purged.gathering_notes_sent = (await sendGatheringNotes(db)).sent;
+  } catch (err) {
+    failed.gathering_notes = err instanceof Error ? err.message : String(err);
+  }
 
   // Submissions never confirmed by email within 7 days never reached the
   // admin. Delete them (row and private file) the normal way, so it's logged.

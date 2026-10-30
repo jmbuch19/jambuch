@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/admin";
+import { nextGathering, parseGathering } from "@/lib/gathering";
 import { WAITING_ON_ME, type InviteStage } from "@/lib/invites";
 import CourtyardAdmin, { type InviteRow, type SubmissionRow } from "./courtyard-admin";
 
@@ -10,7 +11,7 @@ export default async function CourtyardPage({ searchParams }: { searchParams: Pr
   const { tab } = await searchParams;
   const { db } = await requireAdmin();
 
-  const [invitesRes, subsRes, limitRes] = await Promise.all([
+  const [invitesRes, subsRes, limitRes, gatheringRes] = await Promise.all([
     // Never select token_hash: link fingerprints stay on the server.
     db
       .from("courtyard_invites")
@@ -21,14 +22,16 @@ export default async function CourtyardPage({ searchParams }: { searchParams: Pr
     db
       .from("courtyard_submissions")
       .select(
-        "id, kind, status, name, email, city, category, title, body, file_url, file_type, file_name, links, about, creator_name, relation, why, invite_id, family_only, thread_from, created_at, published_at",
+        "id, kind, status, name, email, city, category, title, body, file_url, file_type, file_name, links, about, creator_name, relation, why, invite_id, family_only, thread_from, gathering_at, gathering_notified_at, created_at, published_at",
       )
       .neq("status", "unconfirmed")
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(300),
     db.from("settings").select("value").eq("key", "courtyard.room_limit_per_year").maybeSingle(),
+    db.from("settings").select("value").eq("key", "courtyard.gathering").maybeSingle(),
   ]);
+  const gathering = parseGathering(gatheringRes.data?.value);
 
   const invites = (invitesRes.data ?? []) as InviteRow[];
   type Raw = Omit<SubmissionRow, "has_file" | "thread_from_title"> & { file_url: string | null; thread_from: string | null };
@@ -58,6 +61,8 @@ export default async function CourtyardPage({ searchParams }: { searchParams: Pr
       initialTab={tab === "requests" ? "requests" : "invites"}
       limit={limit}
       used={used}
+      gathering={gathering}
+      nextGatheringAt={nextGathering(gathering).toISOString()}
       counts={{
         them: invites.filter((i) => WAITING_ON_THEM.includes(i.stage)).length,
         me: invites.filter((i) => WAITING_ON_ME.includes(i.stage)).length,
