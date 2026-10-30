@@ -584,6 +584,47 @@
   font-size: 15px;
   font-style: normal;
 }
+/* Chapter pages: no text selection, no long-press menu (see reading-guard.tsx). */
+.guarded {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.guarded img {
+  pointer-events: none;
+}
+/* Printing (or "Save as PDF") gives only a pointer to the online chapter. */
+.printNote {
+  display: none;
+}
+@media print {
+  .guarded > * {
+    display: none !important;
+  }
+  .guarded > .printNote {
+    display: block !important;
+    font-size: 16px;
+    color: #000;
+  }
+  :global(header),
+  .readerBar {
+    display: none !important;
+  }
+}
+.shareButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 16px;
+  margin-right: 8px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+  cursor: pointer;
+}
 .privacy {
   margin: 32px 0 0;
   font-size: 13px;

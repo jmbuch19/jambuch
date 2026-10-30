@@ -8,6 +8,7 @@ import {
   type ReaderSpacing,
   type ReaderTheme,
 } from "./reader-settings";
+import ShareButton from "./share-button";
 import l from "./library.module.css";
 
 const SIZE_KEY = "reader-font-size";
@@ -115,6 +116,7 @@ export default function ReaderText({ children }: { children: ReactNode }) {
   return (
     <>
       <div className={l.toolbar} ref={panelRef}>
+        <ShareButton />
         <button
           type="button"
           className={l.aaButton}

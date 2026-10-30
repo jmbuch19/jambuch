@@ -5,6 +5,7 @@ import { inline } from "@/lib/inline";
 import { guNumber, loadChapter, paragraphs, readingSeconds } from "@/lib/library";
 import LibraryHeader from "../../header";
 import ReadTracker from "../../read-tracker";
+import ReadingGuard from "../../reading-guard";
 import { READER_BOOT_SCRIPT } from "../../reader-settings";
 import ReaderText from "../../reader-text";
 import l from "../../library.module.css";
@@ -46,7 +47,9 @@ export default async function ChapterPage({ params }: Props) {
         </Link>
       </div>
 
-      <main className={l.reader}>
+      <main id="reader" className={`${l.reader} ${l.guarded}`}>
+        <ReadingGuard targetId="reader" />
+        <p className={l.printNote}>This chapter can be read online at jambuch.in{`/library/${work.slug}/${chapter.number}`}</p>
         <p className={l.eyebrow}>
           Chapter {chapter.number} · <span className="gu">પ્રકરણ {guNumber(chapter.number)}</span>
         </p>
@@ -58,11 +61,15 @@ export default async function ChapterPage({ params }: Props) {
         {chapter.opening_image_url && (
           // The chapter picture always opens the chapter, right under its title.
           <figure className={`${l.figure} ${l.opening}`}>
-            {/* Tapping opens the full picture, where phones can zoom. */}
-            <a href={chapter.opening_image_url} target="_blank" rel="noopener">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={chapter.opening_image_url} alt={chapter.opening_caption ?? ""} fetchPriority="high" decoding="async" />
-            </a>
+            {/* Not a link to the file, so the picture isn't one tap from being saved. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={chapter.opening_image_url}
+              alt={chapter.opening_caption ?? ""}
+              fetchPriority="high"
+              decoding="async"
+              draggable={false}
+            />
             {chapter.opening_caption && <figcaption className="gu">{inline(chapter.opening_caption)}</figcaption>}
           </figure>
         )}
