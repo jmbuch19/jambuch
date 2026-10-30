@@ -2,44 +2,75 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { REPEATABLE_SECTIONS, sectionType } from "@/lib/book-sections";
 import { nextChapterNumber } from "@/lib/chapter-numbers";
 import a from "../../../admin.module.css";
 
-export type ChapterSlot = { id: string; work_id: string; number: number; title: string; trashed: boolean };
+export type ChapterSlot = {
+  id: string;
+  work_id: string;
+  number: number | null;
+  section: string | null;
+  title: string;
+  trashed: boolean;
+};
 
 // Warns, while you type, when the chosen translation already has a chapter
 // with this number (the database allows only one), including chapters in the
 // Trash, which still hold their number; and when the number leaves earlier
 // chapters missing (typing 9 when only 1–7 exist). Offers the right number.
+// For a section (preface, glossary...) the number box is switched off and the
+// warning is about the book already having that section.
 export default function ChapterNumberCheck({
   chapters,
   works,
   currentId,
+  currentSection,
 }: {
   chapters: ChapterSlot[];
   works: Record<string, string>;
   currentId: string | null;
+  currentSection: string | null;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const [choice, setChoice] = useState<{ work: string; number: number | null }>({ work: "", number: null });
+  const [choice, setChoice] = useState<{ work: string; number: number | null; section: string }>({
+    work: "",
+    number: null,
+    section: currentSection ?? "",
+  });
 
   useEffect(() => {
     const form = ref.current?.closest("form");
     if (!form) return;
     const workSelect = form.elements.namedItem("work_id") as HTMLSelectElement | null;
+    const sectionSelect = form.elements.namedItem("section") as HTMLSelectElement | null; // only when adding
     const numberInput = form.elements.namedItem("number") as HTMLInputElement | null;
+    const titleInput = form.elements.namedItem("title") as HTMLInputElement | null;
+    const numbersOf = (work: string) =>
+      chapters.filter((c) => c.work_id === work && c.number != null && !c.section).map((c) => c.number as number);
     // On a new chapter the number follows the chosen book until you type one yourself.
     let typedNumber = false;
 
     const read = (e?: Event) => {
+      const section = sectionSelect?.value ?? currentSection ?? "";
+      const work = workSelect?.value ?? "";
       if (e?.target === numberInput && e.isTrusted) typedNumber = true;
-      if (e?.target === workSelect && currentId === null && !typedNumber && numberInput && workSelect) {
-        numberInput.value = String(
-          nextChapterNumber(chapters.filter((c) => c.work_id === workSelect.value).map((c) => c.number)),
-        );
+
+      if (numberInput) {
+        // Sections have no number.
+        numberInput.disabled = !!section;
+        if (section) numberInput.value = "";
+        else if (currentId === null && !typedNumber && (e?.target === workSelect || e?.target === sectionSelect || !numberInput.value)) {
+          numberInput.value = String(nextChapterNumber(numbersOf(work)));
+        }
+      }
+      // Choosing a section fills in its usual Gujarati name if no title is typed yet.
+      if (e?.target === sectionSelect && titleInput && !titleInput.value.trim()) {
+        const type = sectionType(section);
+        if (type && !REPEATABLE_SECTIONS.includes(type.key)) titleInput.value = type.gu || type.en;
       }
       const n = Number.parseInt(numberInput?.value ?? "", 10);
-      setChoice({ work: workSelect?.value ?? "", number: Number.isNaN(n) ? null : n });
+      setChoice({ work, number: Number.isNaN(n) ? null : n, section });
     };
     read();
     form.addEventListener("input", read);
@@ -48,11 +79,40 @@ export default function ChapterNumberCheck({
       form.removeEventListener("input", read);
       form.removeEventListener("change", read);
     };
-  }, [chapters, currentId]);
+  }, [chapters, currentId, currentSection]);
 
+  const book = works[choice.work] ?? "This translation";
   const others = chapters.filter((c) => c.work_id === choice.work && c.id !== currentId);
-  const used = new Set(others.map((c) => c.number));
-  const clash = choice.number == null ? null : others.find((c) => c.number === choice.number);
+
+  // A section: warn if the book already has one (except the repeatable "Other" types).
+  if (choice.section) {
+    const type = sectionType(choice.section);
+    const twin = REPEATABLE_SECTIONS.includes(choice.section) ? null : others.find((c) => c.section === choice.section);
+    return (
+      <span ref={ref} className={a.slot}>
+        <small>Sections like this have no chapter number.</small>
+        {twin && type && (
+          <span className={a.warn} role="alert">
+            <span>
+              {book} already has a {type.en}:{" "}
+              <Link href={`/admin/chapters/${twin.id}`} className="gu">
+                {twin.title}
+              </Link>
+              {twin.trashed ? " (in the Trash)." : "."}
+            </span>
+            <span>
+              A book has only one.
+              {twin.trashed ? " Restore it, or delete it for good from the Trash, to add it again." : " Open it to edit it instead."}
+            </span>
+          </span>
+        )}
+      </span>
+    );
+  }
+
+  const numbered = others.filter((c) => c.number != null && !c.section);
+  const used = new Set(numbered.map((c) => c.number as number));
+  const clash = choice.number == null ? null : numbered.find((c) => c.number === choice.number);
   const nextFree = nextChapterNumber(used);
   // Numbers left out before the one typed (e.g. typing 9 when only 1–7 exist leaves out 8).
   const skipped =
@@ -78,7 +138,7 @@ export default function ChapterNumberCheck({
       {clash && (
         <span className={a.warn} role="alert">
           <span>
-            {works[choice.work] ?? "This translation"} already has chapter {clash.number}:{" "}
+            {book} already has chapter {clash.number}:{" "}
             <Link href={`/admin/chapters/${clash.id}`} className="gu">
               {clash.title}
             </Link>
@@ -96,7 +156,7 @@ export default function ChapterNumberCheck({
         <span className={a.warn} role="alert">
           <span>
             {skipped.length === 1 ? "Chapter" : "Chapters"} {ranges(skipped)} {skipped.length === 1 ? "is" : "are"} missing
-            before chapter {choice.number} in {works[choice.work] ?? "this translation"}.
+            before chapter {choice.number} in {book.replace(/^This/, "this")}.
           </span>
           <span>
             The next chapter in order is {nextFree}. {useButton}

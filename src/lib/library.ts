@@ -1,3 +1,4 @@
+import { bookOrder, entryPath, entrySlug } from "./book-sections";
 import { publicClient } from "./supabase";
 
 export type WorkPage = {
@@ -14,9 +15,13 @@ export type WorkPage = {
   total_chapters: number | null;
 };
 
+// One entry of a book: a numbered chapter, or a section such as the preface
+// (section set, number null). See book-sections.ts.
 export type Chapter = {
   id: string;
-  number: number;
+  number: number | null;
+  section: string | null;
+  legacy_number: number | null;
   title: string;
   title_original: string | null;
   status: "ready" | "drafting" | "later";
@@ -31,8 +36,9 @@ export type ChapterFull = Chapter & {
   opening_caption: string | null;
 };
 
-const CHAPTER_COLS = "id, number, title, title_original, status, expected";
+const CHAPTER_COLS = "id, number, section, legacy_number, title, title_original, status, expected";
 
+// A work and all its entries, in reading order (before-sections, chapters, after-sections).
 export async function loadWork(slug: string): Promise<{ work: WorkPage; chapters: Chapter[] } | null> {
   const db = publicClient();
   const { data: work, error } = await db
@@ -48,34 +54,52 @@ export async function loadWork(slug: string): Promise<{ work: WorkPage; chapters
     .from("chapters")
     .select(CHAPTER_COLS)
     .eq("work_id", work.id)
-    .order("number")
     .returns<Chapter[]>();
   if (chError) throw new Error(`Could not load chapters: ${chError.message}`);
-  return { work, chapters: chapters ?? [] };
+  return { work, chapters: bookOrder(chapters ?? []) };
 }
 
-export async function loadChapter(slug: string, number: number) {
-  const found = await loadWork(slug);
+// What a chapter address points to: "chapter-3", "preface", "other-1a2b3c4d",
+// or an old number-only address ("3") from before the preface left the numbering.
+export type EntryLookup = { found: Awaited<ReturnType<typeof loadEntry>> } | { redirectTo: string } | null;
+
+export async function lookupEntry(workSlug: string, key: string): Promise<EntryLookup> {
+  if (/^\d+$/.test(key)) {
+    const found = await loadWork(workSlug);
+    if (!found) return null;
+    const n = Number(key);
+    const entry =
+      found.chapters.find((c) => c.legacy_number === n) ?? found.chapters.find((c) => c.number === n && !c.section);
+    return entry ? { redirectTo: entryPath(workSlug, entry) } : null;
+  }
+  const found = await loadEntry(workSlug, key);
+  return found ? { found } : null;
+}
+
+async function loadEntry(workSlug: string, key: string) {
+  const found = await loadWork(workSlug);
   if (!found) return null;
+  const entry = found.chapters.find((c) => entrySlug(c) === key);
+  if (!entry || entry.status !== "ready") return null;
+
   const { data: chapter, error } = await publicClient()
     .from("chapters")
     .select(`${CHAPTER_COLS}, body, translator_note, audio_url, opening_image_url, opening_caption`)
-    .eq("work_id", found.work.id)
-    .eq("number", number)
-    .eq("status", "ready")
+    .eq("id", entry.id)
     .maybeSingle<ChapterFull>();
   if (error) throw new Error(`Could not load chapter: ${error.message}`);
   if (!chapter) return null;
 
   const ready = found.chapters.filter((c) => c.status === "ready");
-  const i = ready.findIndex((c) => c.number === number);
+  const i = ready.findIndex((c) => c.id === entry.id);
+  const at = found.chapters.findIndex((c) => c.id === entry.id);
   return {
     ...found,
     chapter,
     prev: i > 0 ? ready[i - 1] : null,
     next: i >= 0 && i < ready.length - 1 ? ready[i + 1] : null,
-    // The first chapter after the last ready one, if it's being worked on.
-    upcoming: found.chapters.find((c) => c.status !== "ready" && c.number > number) ?? null,
+    // The first entry after this one that is still being worked on.
+    upcoming: found.chapters.slice(at + 1).find((c) => c.status !== "ready") ?? null,
   };
 }
 

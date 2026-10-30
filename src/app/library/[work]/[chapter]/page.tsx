@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
+import { entryLabel, entryPath, sectionType } from "@/lib/book-sections";
 import { inline } from "@/lib/inline";
-import { guNumber, loadChapter, paragraphs, readingSeconds } from "@/lib/library";
+import { guNumber, lookupEntry, paragraphs, readingSeconds, type Chapter } from "@/lib/library";
 import LibraryHeader from "../../header";
 import ReadTracker from "../../read-tracker";
 import ReadingGuard from "../../reading-guard";
@@ -14,11 +15,19 @@ export const revalidate = 60;
 
 type Props = { params: Promise<{ work: string; chapter: string }> };
 
+// The address part is "chapter-3", "preface", "glossary"... Old number-only
+// addresses ("/ramayana/2") forward to the entry that had that number.
 async function load(params: Props["params"]) {
   const { work, chapter } = await params;
-  const n = Number(chapter);
-  if (!Number.isInteger(n) || n < 1) return null;
-  return loadChapter(work, n);
+  const result = await lookupEntry(work, decodeURIComponent(chapter));
+  if (!result) return null;
+  if ("redirectTo" in result) permanentRedirect(result.redirectTo);
+  return result.found;
+}
+
+// Pager and list title: "૩. વિશ્વામિત્ર ઋષિ" for a chapter, just the title for a section.
+function entryTitle(e: Chapter) {
+  return e.number != null && !e.section ? `${guNumber(e.number)}. ${e.title}` : e.title;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -32,6 +41,7 @@ export default async function ChapterPage({ params }: Props) {
   if (!found) notFound();
   const { work, chapter, prev, next, upcoming } = found;
   const base = `/library/${work.slug}`;
+  const section = sectionType(chapter.section);
 
   return (
     <>
@@ -49,9 +59,23 @@ export default async function ChapterPage({ params }: Props) {
 
       <main id="reader" className={`${l.reader} ${l.guarded}`}>
         <ReadingGuard targetId="reader" chapterId={chapter.id} />
-        <p className={l.printNote}>This chapter can be read online at jambuch.in{`/library/${work.slug}/${chapter.number}`}</p>
+        <p className={l.printNote}>This chapter can be read online at jambuch.in{entryPath(work.slug, chapter)}</p>
         <p className={l.eyebrow}>
-          Chapter {chapter.number} · <span className="gu">પ્રકરણ {guNumber(chapter.number)}</span>
+          {chapter.section ? (
+            <>
+              {entryLabel(chapter)}
+              {section?.gu && (
+                <>
+                  {" "}
+                  · <span className="gu">{section.gu}</span>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              Chapter {chapter.number} · <span className="gu">પ્રકરણ {guNumber(chapter.number ?? 0)}</span>
+            </>
+          )}
         </p>
         <h1 className={`gu ${l.chapterTitle}`} lang="gu">
           {chapter.title}
@@ -100,11 +124,9 @@ export default async function ChapterPage({ params }: Props) {
 
         <nav className={l.pager} aria-label="Chapters">
           {prev ? (
-            <Link href={`${base}/${prev.number}`} className={l.pageCard} rel="prev">
+            <Link href={entryPath(work.slug, prev)} className={l.pageCard} rel="prev">
               <span>← Previous</span>
-              <strong className="gu">
-                {guNumber(prev.number)}. {prev.title}
-              </strong>
+              <strong className="gu">{entryTitle(prev)}</strong>
             </Link>
           ) : (
             <Link href={base} className={l.pageCard}>
@@ -113,15 +135,13 @@ export default async function ChapterPage({ params }: Props) {
             </Link>
           )}
           {next ? (
-            <Link href={`${base}/${next.number}`} className={`${l.pageCard} ${l.pageNext}`} rel="next">
+            <Link href={entryPath(work.slug, next)} className={`${l.pageCard} ${l.pageNext}`} rel="next">
               <span>Next →</span>
-              <strong className="gu">
-                {guNumber(next.number)}. {next.title}
-              </strong>
+              <strong className="gu">{entryTitle(next)}</strong>
             </Link>
           ) : (
             <div className={`${l.pageCard} ${l.pageWaiting}`}>
-              <span>{upcoming ? `Chapter ${upcoming.number} is on my desk` : "You’ve reached the latest chapter"}</span>
+              <span>{upcoming ? `${entryLabel(upcoming)} is on my desk` : "You’ve reached the latest chapter"}</span>
               <strong>{upcoming?.expected ?? "More soon"}</strong>
             </div>
           )}

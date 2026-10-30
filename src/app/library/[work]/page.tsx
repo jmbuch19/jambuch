@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { entryLabel, entryPath, sectionType } from "@/lib/book-sections";
 import { inline } from "@/lib/inline";
-import { guNumber, loadWork } from "@/lib/library";
+import { guNumber, loadWork, type Chapter } from "@/lib/library";
 import LibraryHeader from "../header";
 import l from "../library.module.css";
 
@@ -23,13 +24,41 @@ export default async function WorkPage({ params }: Props) {
   const slug = (await params).work;
   const found = await loadWork(slug);
   if (!found) notFound();
-  const { work, chapters } = found;
+  const { work, chapters: entries } = found;
+  // Progress counts numbered chapters only; sections (preface, glossary...) are listed apart.
+  const chapters = entries.filter((c) => !c.section);
+  const before = entries.filter((c) => c.section && sectionType(c.section)?.part === "before");
+  const after = entries.filter((c) => c.section && sectionType(c.section)?.part === "after");
   const ready = chapters.filter((c) => c.status === "ready");
-  const first = ready[0];
+  // "Start reading" opens the first readable part of the book, preface included.
+  const first = entries.find((c) => c.status === "ready");
   // Every planned chapter, in order; ones not added yet count as still ahead.
-  const total = Math.max(work.total_chapters ?? 0, chapters.length, ...chapters.map((c) => c.number));
+  const total = Math.max(work.total_chapters ?? 0, chapters.length, ...chapters.map((c) => c.number ?? 0));
   const byNumber = new Map(chapters.map((c) => [c.number, c.status]));
   const plan = Array.from({ length: total }, (_, i) => byNumber.get(i + 1) ?? "later");
+
+  const row = (c: Chapter) => (
+    <li key={c.id}>
+      <span className={`gu ${l.chNum}`}>{c.section ? "" : guNumber(c.number ?? 0)}</span>
+      <div className={l.chText}>
+        <div className="gu">{c.title}</div>
+        {c.section ? (
+          <div className={l.chNote}>{entryLabel(c)}</div>
+        ) : (
+          c.title_original && <div className={l.chNote}>{c.title_original}</div>
+        )}
+      </div>
+      {c.status === "ready" ? (
+        <Link href={entryPath(slug, c)} className={l.readBtn}>
+          Read
+        </Link>
+      ) : c.status === "drafting" ? (
+        <span className={l.draftTag}>Being translated{c.expected ? ` · ${c.expected}` : ""}</span>
+      ) : (
+        <span className={l.laterTag}>Still ahead</span>
+      )}
+    </li>
+  );
 
   return (
     <>
@@ -67,7 +96,7 @@ export default async function WorkPage({ params }: Props) {
                 {work.status_label ? `${work.status_label}. ` : ""}Chapters will open here to read once publication
                 rights are confirmed.
               </p>
-            ) : chapters.length === 0 ? (
+            ) : entries.length === 0 ? (
               <p className={l.pending}>The first chapter is on my desk. It will appear here soon.</p>
             ) : (
               <>
@@ -110,8 +139,8 @@ export default async function WorkPage({ params }: Props) {
                 </div>
                 {first && (
                   <div className={l.buttons}>
-                    <Link href={`/library/${slug}/${first.number}`} className={l.btnAccent}>
-                      Start reading — Chapter {first.number}
+                    <Link href={entryPath(slug, first)} className={l.btnAccent}>
+                      Start reading — {entryLabel(first)}
                     </Link>
                   </div>
                 )}
@@ -120,29 +149,22 @@ export default async function WorkPage({ params }: Props) {
           </div>
         </section>
 
+        {before.length > 0 && (
+          <section className={l.chapters}>
+            <h2>Before the chapters</h2>
+            <ul className={l.chapterList}>{before.map(row)}</ul>
+          </section>
+        )}
         {chapters.length > 0 && (
           <section className={l.chapters}>
             <h2>Chapters</h2>
-            <ol className={l.chapterList}>
-              {chapters.map((c) => (
-                <li key={c.id}>
-                  <span className={`gu ${l.chNum}`}>{guNumber(c.number)}</span>
-                  <div className={l.chText}>
-                    <div className="gu">{c.title}</div>
-                    {c.title_original && <div className={l.chNote}>{c.title_original}</div>}
-                  </div>
-                  {c.status === "ready" ? (
-                    <Link href={`/library/${slug}/${c.number}`} className={l.readBtn}>
-                      Read
-                    </Link>
-                  ) : c.status === "drafting" ? (
-                    <span className={l.draftTag}>Being translated{c.expected ? ` · ${c.expected}` : ""}</span>
-                  ) : (
-                    <span className={l.laterTag}>Still ahead</span>
-                  )}
-                </li>
-              ))}
-            </ol>
+            <ol className={l.chapterList}>{chapters.map(row)}</ol>
+          </section>
+        )}
+        {after.length > 0 && (
+          <section className={l.chapters}>
+            <h2>After the chapters</h2>
+            <ul className={l.chapterList}>{after.map(row)}</ul>
           </section>
         )}
       </main>

@@ -57,7 +57,7 @@ export default async function EditRow({
   if (table === "chapters") {
     const { data } = await db
       .from("chapters")
-      .select("id, work_id, number, title, deleted_at, updated_at")
+      .select("id, work_id, number, section, title, deleted_at, updated_at")
       .order("updated_at", { ascending: false });
     const workField = fields.find((f) => f.name === "work_id");
     slots = {
@@ -65,6 +65,7 @@ export default async function EditRow({
         id: c.id,
         work_id: c.work_id,
         number: c.number,
+        section: c.section,
         title: c.title,
         trashed: c.deleted_at != null,
       })),
@@ -75,7 +76,9 @@ export default async function EditRow({
     if (isNew && data?.length) {
       const work = data[0].work_id;
       row.work_id = work;
-      row.number = nextChapterNumber(slots.chapters.filter((c) => c.work_id === work).map((c) => c.number));
+      row.number = nextChapterNumber(
+        slots.chapters.filter((c) => c.work_id === work && c.number != null).map((c) => c.number as number),
+      );
     }
   }
 
@@ -100,7 +103,8 @@ export default async function EditRow({
       <form action={saveRow.bind(null, table, id)} className={a.form}>
         {fields.map((f) => {
           const value = row[f.name];
-          if (f.readOnly) {
+          // Fields fixed once saved (like a chapter's part of the book) show as text when editing.
+          if (f.readOnly || (f.lockAfterCreate && !isNew)) {
             if (isNew) return null;
             return (
               <div key={f.name} className={a.field}>
@@ -112,6 +116,9 @@ export default async function EditRow({
                     formatCell(cfg, f.name, value, true) || "—"
                   )}
                 </div>
+                {f.lockAfterCreate && (
+                  <small>Fixed once saved. To change it, delete this item and add it again.</small>
+                )}
               </div>
             );
           }
@@ -164,7 +171,12 @@ export default async function EditRow({
               )}
               {f.hint && <small>{f.hint}</small>}
               {slots && f.name === "number" && (
-                <ChapterNumberCheck chapters={slots.chapters} works={slots.works} currentId={isNew ? null : id} />
+                <ChapterNumberCheck
+                  chapters={slots.chapters}
+                  works={slots.works}
+                  currentId={isNew ? null : id}
+                  currentSection={isNew ? null : ((row.section as string | null) ?? null)}
+                />
               )}
             </label>
           );

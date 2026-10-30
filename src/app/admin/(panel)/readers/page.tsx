@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin";
+import { bookOrder, entryLabel } from "@/lib/book-sections";
 import a from "../../admin.module.css";
 
 // Anonymous reading activity (chapter_reads), book by book. Your own reading
@@ -21,7 +22,7 @@ type Read = {
   spacing: string | null;
 };
 type Work = { id: string; title: string; title_gu: string | null };
-type Chapter = { id: string; work_id: string; number: number; title: string };
+type Chapter = { id: string; work_id: string; number: number | null; section: string | null; title: string };
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -107,7 +108,7 @@ export default async function ReadersPage() {
     ),
     allRows<Attempt>(db, "protect_attempts", "chapter_id, reader_id, work_id, kind, count, last_at"),
     db.from("works").select("id, title, title_gu").is("deleted_at", null).order("sort_order"),
-    db.from("chapters").select("id, work_id, number, title").is("deleted_at", null).order("number"),
+    db.from("chapters").select("id, work_id, number, section, title").is("deleted_at", null),
   ]);
   const works = (worksRes.data ?? []) as Work[];
   const chapters = (chaptersRes.data ?? []) as Chapter[];
@@ -158,7 +159,7 @@ export default async function ReadersPage() {
       )}
 
       {works.map((work) => {
-        const workChapters = chapters.filter((c) => c.work_id === work.id);
+        const workChapters = bookOrder(chapters.filter((c) => c.work_id === work.id));
         const workReads = reads.filter((r) => r.work_id === work.id);
         if (workReads.length === 0) return null;
         const readersOf = (chapterId: string) => new Set(workReads.filter((r) => r.chapter_id === chapterId).map((r) => r.reader_id));
@@ -197,7 +198,7 @@ export default async function ReadersPage() {
                     return (
                       <tr key={c.id}>
                         <td>
-                          {c.number}. <span className="gu">{c.title}</span>
+                          {c.section ? entryLabel(c) : `${c.number}.`} <span className="gu">{c.title}</span>
                         </td>
                         <td>
                           <div className={a.barCell}>
@@ -322,7 +323,7 @@ function Attempts({
                   return (
                     <tr key={id}>
                       <td>
-                        <span className="gu">{bookOf.get(row.work_id) ?? ""}</span> · {c ? c.number : "?"}
+                        <span className="gu">{bookOf.get(row.work_id) ?? ""}</span> · {c ? (c.section ? entryLabel(c) : c.number) : "?"}
                       </td>
                       {ATTEMPT_KINDS.map((k) => (
                         <td key={k}>{counts[k] || ""}</td>

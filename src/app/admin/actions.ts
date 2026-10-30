@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
 import { hasPublished, tableConfig, type Field } from "@/lib/admin-tables";
+import { sectionType } from "@/lib/book-sections";
 import { preview, purge, restore, trash, type Target } from "@/lib/trash";
 
 function readField(f: Field, form: FormData): unknown {
@@ -21,7 +22,7 @@ function readField(f: Field, form: FormData): unknown {
   }
   if (f.type === "select") {
     if (!f.options?.some((o) => o.value === raw)) throw new Error(`Pick a value for ${f.label}.`);
-    return raw;
+    return raw === "" ? null : raw; // an empty choice (e.g. "Numbered chapter") is stored as nothing
   }
   if (!raw) {
     if (f.required) throw new Error(`${f.label} is required.`);
@@ -37,17 +38,18 @@ function isMediaUrl(value: string) {
   return !!base && value.startsWith(`${base}/`);
 }
 
-// Plain words for the database's "only one chapter per number" rule.
+// Plain words for the database's "one chapter per number, one preface (etc.)
+// per book" rules.
 async function duplicateChapterMessage(db: Awaited<ReturnType<typeof requireAdmin>>["db"], row: Record<string, unknown>) {
-  const { data: existing } = await db
-    .from("chapters")
-    .select("title, deleted_at")
-    .eq("work_id", row.work_id as string)
-    .eq("number", row.number as number)
-    .maybeSingle();
-  const where = existing?.deleted_at ? " It’s in the Trash: restore it, or delete it for good, to reuse the number." : "";
+  const section = sectionType(row.section as string | null);
+  let q = db.from("chapters").select("title, deleted_at").eq("work_id", row.work_id as string);
+  q = section ? q.eq("section", section.key) : q.eq("number", row.number as number);
+  const { data: existing } = await q.limit(1).maybeSingle();
+  const trashed = existing?.deleted_at ? " It’s in the Trash: restore it, or delete it for good, to add it again." : "";
   const title = existing ? ` (“${existing.title}”)` : "";
-  return `Not saved: this translation already has chapter ${row.number}${title}. Please choose another number.${where}`;
+  return section
+    ? `Not saved: this translation already has a ${section.en}${title}. A book has only one.${trashed}`
+    : `Not saved: this translation already has chapter ${row.number}${title}. Please choose another number.${trashed}`;
 }
 
 export async function saveRow(table: string, id: string, form: FormData) {
@@ -55,10 +57,12 @@ export async function saveRow(table: string, id: string, form: FormData) {
   if (!cfg) throw new Error("Unknown table");
   const { db } = await requireAdmin();
 
+  const isNew = id === "new";
   const row: Record<string, unknown> = {};
   let problem: string | null = null;
   for (const f of cfg.fields) {
-    if (f.readOnly) continue;
+    // Locked fields are set once, when the item is added.
+    if (f.readOnly || (f.lockAfterCreate && !isNew)) continue;
     try {
       row[f.name] = readField(f, form);
     } catch (err) {
@@ -67,10 +71,20 @@ export async function saveRow(table: string, id: string, form: FormData) {
     }
   }
 
+  // A chapter is either numbered or a section (preface, glossary...), never both.
+  if (!problem && table === "chapters") {
+    let isSection = !!row.section;
+    if (!isNew) {
+      const { data } = await db.from("chapters").select("section").eq("id", id).maybeSingle();
+      isSection = !!data?.section;
+    }
+    if (isSection) row.number = null;
+    else if (row.number == null) problem = "Please give the chapter a number.";
+  }
+
   const back = `/admin/${table}/${encodeURIComponent(id)}`;
   if (problem) redirect(`${back}?error=${encodeURIComponent(problem)}`);
 
-  const isNew = id === "new";
   if (isNew && !cfg.canCreate) throw new Error("Rows can't be added here");
   const res = isNew
     ? await db.from(table).insert(row).select(cfg.key).single()

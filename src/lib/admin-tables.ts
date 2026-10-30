@@ -1,6 +1,8 @@
 // What the admin can edit, table by table. The editor pages and save action
 // only ever touch the columns listed here.
 
+import { SECTION_TYPES } from "./book-sections";
+
 export type Field = {
   name: string;
   label: string;
@@ -12,6 +14,7 @@ export type Field = {
   readOnly?: boolean;
   hint?: string;
   checkText?: boolean; // textarea: warn about PDF-pasted Gujarati and missing blank lines
+  lockAfterCreate?: boolean; // chosen when adding; read-only (and never saved) afterwards
 };
 
 export type TableConfig = {
@@ -175,7 +178,21 @@ export const TABLES: TableConfig[] = [
       "Visitors can read a chapter only when it’s Ready and its translation’s rights are Granted or Public domain. Leave the text empty while a chapter is still being translated.",
     fields: [
       { name: "work_id", label: "Translation", type: "ref", ref: { table: "works", label: "title" }, required: true },
-      { name: "number", label: "Chapter number", type: "int", required: true },
+      {
+        name: "section",
+        label: "Part of the book",
+        type: "select",
+        options: [
+          { value: "", label: "Numbered chapter" },
+          ...SECTION_TYPES.map((t) => ({
+            value: t.key,
+            label: `${t.part === "before" ? "Before the chapters" : "After the chapters"}: ${t.en}${t.gu ? ` · ${t.gu}` : ""}`,
+          })),
+        ],
+        lockAfterCreate: true,
+        hint: "Fixed once saved. A preface, glossary and the like have no number and always appear in standard book order.",
+      },
+      { name: "number", label: "Chapter number", type: "int" },
       { name: "title", label: "Title (Gujarati)", type: "text", required: true },
       { name: "title_original", label: "Original title", type: "text" },
       {
@@ -208,7 +225,7 @@ export const TABLES: TableConfig[] = [
       { name: "audio_url", label: "Read-aloud audio URL", type: "url" },
       published,
     ],
-    list: ["number", "title", "work_id", "status", "published"],
+    list: ["number", "title", "section", "work_id", "status", "published"],
     order: [
       { column: "work_id", ascending: true },
       { column: "number", ascending: true },
@@ -361,7 +378,7 @@ export function hasPublished(cfg: TableConfig) {
 export function formatCell(cfg: TableConfig, column: string, value: unknown, full = false) {
   const field = cfg.fields.find((f) => f.name === column);
   if (field?.type === "bool") return value ? "✓" : "";
-  if (field?.type === "select") return field.options?.find((o) => o.value === value)?.label ?? String(value ?? "");
+  if (field?.type === "select") return field.options?.find((o) => o.value === (value ?? ""))?.label ?? String(value ?? "");
   if (column === "created_at" && typeof value === "string") {
     return new Date(value).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" });
   }
