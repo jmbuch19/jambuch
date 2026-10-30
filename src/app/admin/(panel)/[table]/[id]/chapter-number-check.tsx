@@ -8,7 +8,8 @@ export type ChapterSlot = { id: string; work_id: string; number: number; title: 
 
 // Warns, while you type, when the chosen translation already has a chapter
 // with this number (the database allows only one), including chapters in the
-// Trash, which still hold their number. Offers the next free number.
+// Trash, which still hold their number; and when the number leaves earlier
+// chapters missing (typing 9 when only 1–7 exist). Offers the right number.
 export default function ChapterNumberCheck({
   chapters,
   works,
@@ -40,8 +41,16 @@ export default function ChapterNumberCheck({
   }, []);
 
   const others = chapters.filter((c) => c.work_id === choice.work && c.id !== currentId);
+  const used = new Set(others.map((c) => c.number));
   const clash = choice.number == null ? null : others.find((c) => c.number === choice.number);
-  const nextFree = Math.max(0, ...others.map((c) => c.number)) + 1;
+  // The number that should come next: the first gap, else one after the last.
+  let nextFree = 1;
+  while (used.has(nextFree)) nextFree++;
+  // Numbers left out before the one typed (e.g. typing 9 when only 1–7 exist leaves out 8).
+  const skipped =
+    clash || choice.number == null || choice.number < 1
+      ? []
+      : Array.from({ length: choice.number - 1 }, (_, i) => i + 1).filter((n) => !used.has(n));
 
   function applyNextFree() {
     const input = ref.current?.closest("form")?.elements.namedItem("number") as HTMLInputElement | null;
@@ -49,6 +58,12 @@ export default function ChapterNumberCheck({
     input.value = String(nextFree);
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }
+
+  const useButton = (
+    <button type="button" className={a.linkButton} onClick={applyNextFree}>
+      Use {nextFree}
+    </button>
+  );
 
   return (
     <span ref={ref} className={a.slot}>
@@ -65,13 +80,32 @@ export default function ChapterNumberCheck({
             {clash.trashed
               ? "A chapter in the Trash still holds its number. Restore it, or delete it for good from the Trash, to reuse the number. "
               : "Two chapters can’t share a number. "}
-            The next free number is {nextFree}.{" "}
-            <button type="button" className={a.linkButton} onClick={applyNextFree}>
-              Use {nextFree}
-            </button>
+            The next free number is {nextFree}. {useButton}
+          </span>
+        </span>
+      )}
+      {skipped.length > 0 && (
+        <span className={a.warn} role="alert">
+          <span>
+            {skipped.length === 1 ? "Chapter" : "Chapters"} {ranges(skipped)} {skipped.length === 1 ? "is" : "are"} missing
+            before chapter {choice.number} in {works[choice.work] ?? "this translation"}.
+          </span>
+          <span>
+            The next chapter in order is {nextFree}. {useButton}
           </span>
         </span>
       )}
     </span>
   );
+}
+
+// [3, 5, 6, 7] → "3 and 5–7"
+function ranges(numbers: number[]) {
+  const parts: string[] = [];
+  for (let i = 0; i < numbers.length; i++) {
+    const start = numbers[i];
+    while (numbers[i + 1] === numbers[i] + 1) i++;
+    parts.push(numbers[i] === start ? String(start) : `${start}–${numbers[i]}`);
+  }
+  return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}` : parts[0];
 }
