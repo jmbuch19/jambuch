@@ -193,7 +193,8 @@
   border: 1px solid var(--border);
 }
 .imagePreview {
-  object-fit: cover;
+  aspect-ratio: auto; /* show the whole picture, as on the site */
+  height: auto;
   background: var(--surface);
 }
 .imageEmpty {

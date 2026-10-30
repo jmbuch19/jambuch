@@ -77,11 +77,11 @@
   font-weight: 400;
   color: #cfe0dd;
 }
+/* An uploaded cover keeps its own shape: never cropped. */
 .coverImage {
   flex: 0 0 200px;
   width: 200px;
-  height: 300px;
-  object-fit: cover;
+  height: auto;
   border-radius: 4px 10px 10px 4px;
   background: var(--accent);
   box-shadow: 0 10px 24px rgba(27, 31, 30, 0.15);
