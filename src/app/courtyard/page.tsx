@@ -1,36 +1,20 @@
 import type { Metadata } from "next";
 import { Fragment } from "react";
 import { gatheringDay } from "@/lib/gathering";
-import { CATEGORY_TINT, DOOR_HASH, EDUCATION_NOTE, REPLY_HASH, categoryLabel, initials } from "@/lib/courtyard";
-import { inline } from "@/lib/inline";
+import { DOOR_HASH, REPLY_HASH, THEMES } from "@/lib/courtyard";
 import { publicClient } from "@/lib/supabase";
 import { adminClient } from "@/lib/supabase-admin";
 import LibraryHeader from "../library/header";
 import ContributeForm from "./contribute-form";
+import PieceTurn, { PIECE_COLUMNS, type Piece } from "./piece-turn";
 import y from "./courtyard.module.css";
 
-// Following design/Courtyard.dc.html.
-export const revalidate = 60;
+// Following design/Courtyard.dc.html. (Reads ?theme=, so it renders per request.)
 
 export const metadata: Metadata = {
   title: "The Courtyard · jambuch.in",
   description:
     "Friends, family, colleagues and visitors share poems, photographs, lessons, tools and family heirlooms, with credit always theirs.",
-};
-
-type Piece = {
-  id: string;
-  name: string;
-  city: string | null;
-  category: string;
-  title: string;
-  body: string | null;
-  file_url: string | null;
-  file_type: string | null;
-  links: string[];
-  thread_from: string | null;
-  published_at: string;
-  gathering_at: string;
 };
 
 // The public thread: approved single pieces whose weekly gathering has come,
@@ -43,9 +27,7 @@ async function thread(): Promise<Piece[]> {
   try {
     const { data, error } = await adminClient()
       .from("courtyard_submissions")
-      .select(
-        "id, name, city, category, title, body, file_url, file_type, links, thread_from, published_at, gathering_at",
-      )
+      .select(PIECE_COLUMNS)
       .eq("kind", "single_piece")
       .eq("status", "published")
       .eq("family_only", false)
@@ -55,11 +37,26 @@ async function thread(): Promise<Piece[]> {
       .order("published_at", { ascending: true })
       .limit(300);
     if (error) throw new Error(error.message);
-    return (data ?? []) as Piece[];
+    return (data ?? []) as unknown as Piece[];
   } catch (err) {
     console.error("courtyard thread:", err instanceof Error ? err.message : err);
     return [];
   }
+}
+
+// Series names and addresses for the pieces that belong to one.
+async function seriesOf(pieces: Piece[]) {
+  const ids = [...new Set(pieces.map((p) => p.series_id).filter((x): x is string => !!x))];
+  const map = new Map<string, { href: string; title: string }>();
+  if (ids.length === 0) return map;
+  const { data } = await adminClient()
+    .from("courtyard_series")
+    .select("id, slug, title")
+    .in("id", ids)
+    .neq("status", "pending")
+    .is("deleted_at", null);
+  for (const s of data ?? []) map.set(s.id, { href: `/courtyard/series/${s.slug}`, title: s.title });
+  return map;
 }
 
 // The number for "Just send it on WhatsApp", set in Admin → Site text.
@@ -72,22 +69,6 @@ async function whatsappNumber() {
     return null;
   }
 }
-
-function host(url: string) {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
-
-const day = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "Asia/Kolkata",
-  });
 
 const DOOR_CARDS = [
   {
@@ -132,9 +113,15 @@ const WHY = [
   },
 ];
 
-export default async function CourtyardPage() {
-  const [pieces, whatsapp] = await Promise.all([thread(), whatsappNumber()]);
-  const byId = new Map(pieces.map((p) => [p.id, p]));
+export default async function CourtyardPage({ searchParams }: { searchParams: Promise<{ theme?: string }> }) {
+  const { theme: rawTheme } = await searchParams;
+  const theme = THEMES.find((t) => t.value === rawTheme)?.value ?? null;
+  const [allPieces, whatsapp] = await Promise.all([thread(), whatsappNumber()]);
+  const series = await seriesOf(allPieces);
+  // A theme filter narrows the thread but keeps its order: no rankings.
+  const pieces = theme ? allPieces.filter((p) => p.themes.includes(theme)) : allPieces;
+  const usedThemes = THEMES.filter((t) => allPieces.some((p) => p.themes.includes(t.value)));
+  const byId = new Map(allPieces.map((p) => [p.id, p]));
   const threadLabel = (p: Piece) => `${p.name}’s “${p.title}”`;
 
   return (
@@ -205,17 +192,31 @@ export default async function CourtyardPage() {
               Pieces in the order they were shared, like turns around the courtyard. Each one can answer the one before.
               No likes, no counts, no rankings.
             </p>
-            {pieces.length === 0 && <p className={y.empty}>Nobody has begun the story yet.</p>}
+            {usedThemes.length > 0 && (
+              <nav className={y.themeFilter} aria-label="Show pieces about">
+                <a href="/courtyard#thread" aria-current={theme ? undefined : "true"}>
+                  All
+                </a>
+                {usedThemes.map((t) => (
+                  <a
+                    key={t.value}
+                    href={`/courtyard?theme=${t.value}#thread`}
+                    aria-current={theme === t.value ? "true" : undefined}
+                  >
+                    {t.label}
+                  </a>
+                ))}
+              </nav>
+            )}
+            {pieces.length === 0 && (
+              <p className={y.empty}>{theme ? "Nothing on this theme yet." : "Nobody has begun the story yet."}</p>
+            )}
             <ol className={y.thread}>
               {pieces.map((p, i) => {
                 // A heading where each weekly gathering begins.
                 const gatheringLabel = gatheringDay(p.gathering_at);
                 const startsGathering = i === 0 || gatheringDay(pieces[i - 1].gathering_at) !== gatheringLabel;
                 const parent = p.thread_from ? byId.get(p.thread_from) : undefined;
-                const image = p.file_url && p.file_type?.startsWith("image/");
-                const audio = p.file_url && p.file_type?.startsWith("audio/");
-                const pdf = p.file_url && p.file_type === "application/pdf";
-                const long = (p.body?.length ?? 0) > 420;
                 return (
                   <Fragment key={p.id}>
                     {startsGathering && (
@@ -223,72 +224,12 @@ export default async function CourtyardPage() {
                         <span>The gathering of {gatheringLabel}</span>
                       </li>
                     )}
-                    <li id={`piece-${p.id}`} className={y.turn}>
-                      <div className={y.turnRail} aria-hidden="true">
-                        <span
-                          className={y.avatar}
-                          style={{
-                            background: CATEGORY_TINT[p.category] ?? CATEGORY_TINT.other,
-                          }}
-                        >
-                          {initials(p.name)}
-                        </span>
-                        <span className={y.rail} />
-                      </div>
-                      <article className={y.turnCard}>
-                        {parent && (
-                          <p className={y.from}>
-                            ↳ picked up the thread from <a href={`#piece-${parent.id}`}>{threadLabel(parent)}</a>
-                          </p>
-                        )}
-                        <p className={y.eyebrow}>{categoryLabel(p.category)}</p>
-                        <h3>{p.title}</h3>
-                        {image && (
-                          // Uploaded photos: shown whole, served from media.jambuch.in.
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={p.file_url!} alt={p.title} loading="lazy" className={y.pieceImg} />
-                        )}
-                        {p.body &&
-                          (long ? (
-                            <details className={y.more}>
-                              <summary>
-                                <span className={y.excerpt}>{inline(p.body.slice(0, 380))}…</span>
-                                <span className={y.readMore}>Read in full</span>
-                              </summary>
-                              <div className={y.full}>{inline(p.body)}</div>
-                            </details>
-                          ) : (
-                            <div className={y.full}>{inline(p.body)}</div>
-                          ))}
-                        {audio && <audio controls preload="none" src={p.file_url!} className={y.audio} />}
-                        {pdf && (
-                          <a href={p.file_url!} target="_blank" rel="noopener noreferrer" className={y.pieceLink}>
-                            Open the PDF →
-                          </a>
-                        )}
-                        {p.links.map((l) => (
-                          <a
-                            key={l}
-                            href={l}
-                            target="_blank"
-                            rel="noopener noreferrer nofollow"
-                            className={y.pieceLink}
-                          >
-                            {host(l)} →
-                          </a>
-                        ))}
-                        {p.category === "education" && <p className={y.note}>{EDUCATION_NOTE}</p>}
-                        <div className={y.turnFoot}>
-                          <span>
-                            {p.name}
-                            {p.city ? `, ${p.city}` : ""} · {day(p.published_at)}
-                          </span>
-                          <a href={`#${REPLY_HASH}${p.id}`} className={y.pickUp}>
-                            Pick up this thread
-                          </a>
-                        </div>
-                      </article>
-                    </li>
+                    <PieceTurn
+                      p={p}
+                      from={parent ? { href: `/courtyard#piece-${parent.id}`, label: threadLabel(parent) } : undefined}
+                      series={p.series_id ? series.get(p.series_id) : null}
+                      pickUpHref={`#${REPLY_HASH}${p.id}`}
+                    />
                   </Fragment>
                 );
               })}

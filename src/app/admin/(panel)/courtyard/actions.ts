@@ -7,6 +7,7 @@ import { sendEmail } from "@/lib/email";
 import { INVITE_DAYS, newInviteLink, ROOM_TERMS, type InviteStage } from "@/lib/invites";
 import { DEFAULT_GATHERING, nextGathering, parseGathering } from "@/lib/gathering";
 import { fileRef, publishPrivate, signedPrivateUrl } from "@/lib/r2";
+import { seriesAddUrl } from "@/lib/series";
 
 // Courtyard admin: create, resend and revoke invites, move them between
 // stages, and handle requests. Every action checks the admin role, and row-
@@ -216,7 +217,7 @@ export async function publishSubmission(
     const { db } = await requireAdmin();
     const { data: s, error } = await db
       .from("courtyard_submissions")
-      .select("id, kind, status, file_url")
+      .select("id, kind, status, file_url, series_id, series_part")
       .eq("id", id)
       .is("deleted_at", null)
       .maybeSingle();
@@ -224,6 +225,22 @@ export async function publishSubmission(
     if (!s || s.kind !== "single_piece" || s.status === "unconfirmed") throw new Error("Only a confirmed single piece can be published.");
     const title = edits.title.trim();
     if (!title) throw new Error("A published piece needs a title.");
+
+    // A series part gets the next number when approved, so a declined part
+    // never leaves a gap.
+    let seriesPart: number | null = s.series_part;
+    if (s.series_id && !seriesPart) {
+      const { data: last } = await db
+        .from("courtyard_submissions")
+        .select("series_part")
+        .eq("series_id", s.series_id)
+        .not("series_part", "is", null)
+        .is("deleted_at", null)
+        .order("series_part", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      seriesPart = (last?.series_part ?? 0) + 1;
+    }
 
     const now = new Date();
     const gatheringAt =
@@ -241,10 +258,26 @@ export async function publishSubmission(
         file_url: fileUrl,
         title,
         city: edits.city.trim() || null,
+        series_part: seriesPart,
       })
       .eq("id", id);
     if (upd) throw new Error(upd.message);
+
+    // Approving a series' first part opens the series and sends the
+    // contributor their personal "add the next part" link.
+    if (s.series_id) {
+      const { data: opened } = await db
+        .from("courtyard_series")
+        .update({ status: "active" })
+        .eq("id", s.series_id)
+        .eq("status", "pending")
+        .select("id, title, name, email, add_link_version, slug")
+        .maybeSingle();
+      if (opened) await emailSeriesLink(opened, await siteUrl(), true);
+    }
+
     revalidatePath("/courtyard");
+    revalidatePath("/courtyard/series/[slug]", "page");
     revalidatePath("/admin/courtyard");
     return { ok: true, gatheringAt: gatheringAt.toISOString() };
   } catch (err) {
@@ -301,6 +334,88 @@ export async function declineSubmission(id: string, reply: string, send: boolean
     if (upd) throw new Error(upd.message);
     revalidatePath("/admin/courtyard");
     return { ok: true, emailed };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+// ---------------------------------------------------------------- series
+
+type SeriesRow = { id: string; title: string; name: string; email: string; add_link_version: number; slug: string };
+
+async function emailSeriesLink(s: SeriesRow, site: string, first: boolean) {
+  return sendEmail({
+    from: "Jaydeep Buch <courtyard@jambuch.in>",
+    to: s.email,
+    replyTo: process.env.ADMIN_EMAIL,
+    subject: first ? `Your series “${s.title}” is open` : `A fresh link for “${s.title}”`,
+    text: [
+      `Dear ${s.name.split(" ")[0]},`,
+      "",
+      first
+        ? `I’ve approved the first part of “${s.title}”. It joins the Courtyard at the next gathering, and your series now has its own page:`
+        : `Here is a fresh personal link for “${s.title}”. Your old link no longer works.`,
+      ...(first ? [`${site}/courtyard/series/${s.slug}`, ""] : [""]),
+      "Whenever the next part is ready, send it with your personal link (keep it to yourself: it adds parts under your name):",
+      seriesAddUrl(site, s),
+      "",
+      "Each part waits for my reading, then joins the thread at a weekly gathering.",
+      "",
+      "Warmly,",
+      "Jaydeep",
+    ].join("\n"),
+  });
+}
+
+// Pause / resume / end a series, rename it, or send a fresh personal link
+// (which kills the old one).
+export async function updateSeries(
+  id: string,
+  change:
+    | { action: "pause" | "resume" | "end" }
+    | { action: "rename"; title: string; description: string }
+    | { action: "new_link" },
+): Promise<{ ok: true; emailed?: boolean } | Failed> {
+  try {
+    const { db } = await requireAdmin();
+    if (change.action === "rename") {
+      const title = change.title.trim().slice(0, 120);
+      if (!title) throw new Error("A series needs a name.");
+      const { error } = await db
+        .from("courtyard_series")
+        .update({ title, description: change.description.trim().slice(0, 1000) || null })
+        .eq("id", id);
+      if (error) throw new Error(error.message);
+    } else if (change.action === "new_link") {
+      const { data: cur } = await db.from("courtyard_series").select("add_link_version").eq("id", id).single();
+      const { data, error } = await db
+        .from("courtyard_series")
+        .update({ add_link_version: (cur?.add_link_version ?? 1) + 1 })
+        .eq("id", id)
+        .eq("status", "active")
+        .select("id, title, name, email, add_link_version, slug")
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error("Only an open series can get a new link.");
+      const emailed = await emailSeriesLink(data, await siteUrl(), false);
+      revalidatePath("/admin/courtyard");
+      return { ok: true, emailed };
+    } else {
+      const to = { pause: "paused", resume: "active", end: "ended" }[change.action];
+      const from = { pause: ["active"], resume: ["paused"], end: ["active", "paused"] }[change.action];
+      const { data, error } = await db
+        .from("courtyard_series")
+        .update({ status: to })
+        .eq("id", id)
+        .in("status", from)
+        .select("id")
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error("This series has changed since the page loaded. Refresh and try again.");
+    }
+    revalidatePath("/courtyard/series/[slug]", "page");
+    revalidatePath("/admin/courtyard");
+    return { ok: true };
   } catch (err) {
     return fail(err);
   }

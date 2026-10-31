@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
-  CATEGORIES,
-  EDUCATION_NOTE,
+  FORMS,
   KIND_LABELS,
   STATUS_LABELS,
-  categoryLabel,
   declineTemplate,
+  formLabel,
+  kindLine,
+  themeNotes,
   type SubmissionKind,
   type SubmissionStatus,
 } from "@/lib/courtyard";
@@ -33,6 +34,7 @@ import {
   publishSubmission,
   resendInvite,
   setRoomLimit,
+  updateSeries,
   type InviteSent,
 } from "./actions";
 import a from "../../admin.module.css";
@@ -61,10 +63,14 @@ export type SubmissionRow = {
   name: string;
   email: string;
   city: string | null;
-  category: string;
+  form: string;
+  themes: string[];
   title: string | null;
   body: string | null;
   has_file: boolean;
+  series_id: string | null;
+  series_part: number | null;
+  series_title: string | null;
   file_type: string | null;
   file_name: string | null;
   links: string[];
@@ -81,6 +87,22 @@ export type SubmissionRow = {
   gathering_notified_at: string | null;
   created_at: string;
   published_at: string | null;
+};
+
+export type SeriesRow = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  name: string;
+  email: string;
+  form: string | null;
+  status: "pending" | "active" | "paused" | "ended";
+  parts: number; // published parts
+  waiting: number; // parts not yet reviewed
+  followers: number; // confirmed followers
+  last_part_at: string | null;
+  created_at: string;
 };
 
 type Draft = {
@@ -101,20 +123,9 @@ type Panel =
   | { mode: "review"; s: SubmissionRow; fileUrl: string | null }
   | { mode: "decline"; s: SubmissionRow };
 
-// The invite form's crafts (design/Invites.dc.html), and which one a
-// submission's category becomes.
-const CRAFTS = ["Poetry", "Photography", "Music", "Art", "Tech", "Education", "Heirlooms", "Other"];
-const CRAFT_OF: Record<(typeof CATEGORIES)[number]["value"], string> = {
-  writing: "Poetry",
-  photography: "Photography",
-  music: "Music",
-  art: "Art",
-  tech: "Tech",
-  education: "Education",
-  heirlooms: "Heirlooms",
-  other: "Other",
-};
-const craftOf = (category: string) => CRAFT_OF[category as keyof typeof CRAFT_OF] ?? "Other";
+// The invite form's crafts are the forms; a submission's form becomes its craft.
+const CRAFTS = FORMS.map((f) => f.label);
+const craftOf = (form: string | null) => formLabel(form);
 const EMPTY: Draft = { name: "", email: "", whatsapp: "", relation: "", craft: CRAFTS[0], roomSlug: "", note: "", submissionId: null };
 const KIND_FILTERS: { value: "all" | SubmissionKind; label: string }[] = [
   { value: "all", label: "All" },
@@ -197,6 +208,7 @@ function host(url: string) {
 export default function CourtyardAdmin({
   invites,
   submissions,
+  series,
   initialTab,
   limit,
   used,
@@ -207,7 +219,8 @@ export default function CourtyardAdmin({
 }: {
   invites: InviteRow[];
   submissions: SubmissionRow[];
-  initialTab: "invites" | "requests";
+  series: SeriesRow[];
+  initialTab: "invites" | "requests" | "series";
   limit: number;
   used: number;
   gathering: GatheringSetting;
@@ -261,7 +274,7 @@ export default function CourtyardAdmin({
         ...EMPTY,
         name: from.name,
         email: from.email,
-        craft: craftOf(from.category),
+        craft: craftOf(from.form),
         roomSlug: slugify(from.name),
         submissionId: from.id,
       });
@@ -273,7 +286,7 @@ export default function CourtyardAdmin({
         name: from.creator_name ?? "",
         email: isEmail(from.creator_contact) ? from.creator_contact! : "",
         whatsapp: isPhone(from.creator_contact) ? from.creator_contact! : "",
-        craft: craftOf(from.category),
+        craft: craftOf(from.form),
         roomSlug: slugify(from.creator_name ?? ""),
         submissionId: from.id,
       });
@@ -585,7 +598,31 @@ export default function CourtyardAdmin({
         <button type="button" role="tab" aria-selected={tab === "requests"} onClick={() => setTab("requests")}>
           Requests &amp; submissions ({newCount})
         </button>
+        <button type="button" role="tab" aria-selected={tab === "series"} onClick={() => setTab("series")}>
+          Series ({series.filter((s) => s.status === "active" || s.status === "paused").length})
+        </button>
       </div>
+
+      {tab === "series" && (
+        <SeriesTab
+          series={series}
+          pending={pending}
+          onChange={(id, change) => run(() => updateSeries(id, change))}
+          onMakeRoom={(s) => {
+            setError(null);
+            setSlugTouched(false);
+            setDraft({
+              ...EMPTY,
+              name: s.name,
+              email: s.email,
+              craft: craftOf(s.form),
+              roomSlug: slugify(s.name),
+              note: `Your series “${s.title}” has grown into a body of work. I’d like to give it a room of its own.`,
+            });
+            setPanel({ mode: "new" });
+          }}
+        />
+      )}
 
       {tab === "invites" && (
         <>
@@ -835,6 +872,148 @@ export default function CourtyardAdmin({
   );
 }
 
+const SERIES_STATUS: Record<SeriesRow["status"], string> = {
+  pending: "Waiting for its first part to be approved",
+  active: "Open",
+  paused: "Paused",
+  ended: "Complete",
+};
+
+// Every series: its parts and followers, and what can be done with it.
+function SeriesTab({
+  series,
+  pending,
+  onChange,
+  onMakeRoom,
+}: {
+  series: SeriesRow[];
+  pending: boolean;
+  onChange: (id: string, change: Parameters<typeof updateSeries>[1]) => void;
+  onMakeRoom: (s: SeriesRow) => void;
+}) {
+  const [renaming, setRenaming] = useState<string | null>(null);
+  if (series.length === 0) {
+    return (
+      <p className={a.intro}>
+        No series yet. Contributors start one by ticking “This is the first part of a series” when they share a piece.
+      </p>
+    );
+  }
+  return (
+    <div className={c.tableWrap}>
+      <table className={`${c.table} ${c.seriesTable}`}>
+        <thead>
+          <tr>
+            <th>Series</th>
+            <th>Status</th>
+            <th>Parts</th>
+            <th>Followers</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {series.map((s) => (
+            <tr key={s.id}>
+              <td>
+                {renaming === s.id ? (
+                  <form
+                    className={c.form}
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const f = new FormData(e.currentTarget);
+                      onChange(s.id, {
+                        action: "rename",
+                        title: String(f.get("title") ?? ""),
+                        description: String(f.get("description") ?? ""),
+                      });
+                      setRenaming(null);
+                    }}
+                  >
+                    <label>
+                      Name
+                      <input name="title" defaultValue={s.title} maxLength={120} required />
+                    </label>
+                    <label>
+                      Line about it
+                      <textarea name="description" defaultValue={s.description ?? ""} rows={2} maxLength={1000} />
+                    </label>
+                    <div className={c.actions}>
+                      <button type="submit" className={c.action} disabled={pending}>
+                        Save
+                      </button>
+                      <button type="button" className={c.textLink} onClick={() => setRenaming(null)}>
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    {s.status === "pending" ? (
+                      <span className={c.name}>{s.title}</span>
+                    ) : (
+                      <a href={`/courtyard/series/${s.slug}`} target="_blank" rel="noopener noreferrer" className={c.name}>
+                        {s.title}
+                      </a>
+                    )}
+                    <small>
+                      by {s.name} &lt;{s.email}&gt; · {formLabel(s.form)}
+                    </small>
+                  </>
+                )}
+              </td>
+              <td>{SERIES_STATUS[s.status]}</td>
+              <td>
+                {s.parts}
+                {s.waiting > 0 && <small>{s.waiting} waiting for you</small>}
+                {s.last_part_at && <small>last {day(s.last_part_at)}</small>}
+              </td>
+              <td>{s.followers}</td>
+              <td>
+                <div className={c.actions}>
+                  <button type="button" className={c.action} onClick={() => setRenaming(s.id)}>
+                    Rename
+                  </button>
+                  {s.status === "active" && (
+                    <>
+                      <button type="button" className={c.action} disabled={pending} onClick={() => onChange(s.id, { action: "pause" })}>
+                        Pause
+                      </button>
+                      <button
+                        type="button"
+                        className={c.action}
+                        disabled={pending}
+                        onClick={() => onChange(s.id, { action: "new_link" })}
+                        title="Emails them a fresh personal link; the old one stops working"
+                      >
+                        New link
+                      </button>
+                    </>
+                  )}
+                  {s.status === "paused" && (
+                    <button type="button" className={c.action} disabled={pending} onClick={() => onChange(s.id, { action: "resume" })}>
+                      Resume
+                    </button>
+                  )}
+                  {(s.status === "active" || s.status === "paused") && (
+                    <button type="button" className={c.danger} disabled={pending} onClick={() => onChange(s.id, { action: "end" })}>
+                      End
+                    </button>
+                  )}
+                  {s.status !== "pending" && (
+                    <button type="button" className={c.textLink} onClick={() => onMakeRoom(s)}>
+                      Make it a room
+                    </button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // Laid out as in design/Invites.dc.html: type badge, name · craft · who sent it.
 function SubmissionCard({ s, children }: { s: SubmissionRow; children: React.ReactNode }) {
   const who = s.kind === "suggestion" ? s.creator_name : s.name;
@@ -857,11 +1036,17 @@ function SubmissionCard({ s, children }: { s: SubmissionRow; children: React.Rea
           <span className={`${c.badge} ${c.badgeInline} ${KIND_TONE[s.kind]}`}>{KIND_LABELS[s.kind]}</span>
           {who}{" "}
           <span className={c.meta}>
-            · {categoryLabel(s.category)} · {from}
+            · {kindLine(s.form, s.themes)} · {from}
             {s.status !== "new" && ` · ${statusText(s)}`}
           </span>
           {s.family_only && <span className={`${c.badge} ${c.badgeInline} ${c.toneAmber} ${c.badgeAfter}`}>Family circle only</span>}
         </div>
+        {s.series_title && (
+          <div className={c.seriesTag}>
+            {s.series_part ? `Series “${s.series_title}” · part ${s.series_part}` : `Series “${s.series_title}”`}
+            {!s.series_part && s.status === "new" && " · approving this opens the series"}
+          </div>
+        )}
         {s.thread_from_title && <div className={c.meta}>↳ picks up the thread from {s.thread_from_title}</div>}
         {note && <div className={c.about}>{note.length > 280 ? `${note.slice(0, 280)}…` : note}</div>}
         <div className={c.meta}>
@@ -929,7 +1114,8 @@ function ReviewPanel({
   return (
     <div className={c.form}>
       <p className={c.meta}>
-        {categoryLabel(s.category)} · from {s.name} &lt;{s.email}&gt; · received {day(s.created_at)}
+        {kindLine(s.form, s.themes)} · from {s.name} &lt;{s.email}&gt; · received {day(s.created_at)}
+        {s.series_title && ` · series “${s.series_title}”`}
       </p>
       <label>
         Title
@@ -964,7 +1150,11 @@ function ReviewPanel({
           ))}
         </div>
       )}
-      {s.category === "education" && <p className={a.warn}>It will show with: “{EDUCATION_NOTE}”</p>}
+      {themeNotes(s.themes).map((n) => (
+        <p key={n} className={a.warn}>
+          It will show with: “{n}”
+        </p>
+      ))}
       {s.family_only && (
         <p className={a.warn}>
           They asked to show it only to their family circle. Publishing approves it, but it stays off the public thread

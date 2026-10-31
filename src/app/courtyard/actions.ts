@@ -2,18 +2,29 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { headers } from "next/headers";
-import { CATEGORIES, FILE_TYPES, KIND_LABELS, MAX_FILE_BYTES, categoryLabel, type SubmissionKind } from "@/lib/courtyard";
+import {
+  FILE_TYPES,
+  FORMS,
+  KIND_LABELS,
+  MAX_FILE_BYTES,
+  MAX_THEMES,
+  THEMES,
+  kindLine,
+  type SubmissionKind,
+} from "@/lib/courtyard";
 import { sendEmail } from "@/lib/email";
 import { deleteForever, fileRef, r2Problem, uploadPrivate } from "@/lib/r2";
+import { seriesForLink, seriesSlug } from "@/lib/series";
 import { adminClient } from "@/lib/supabase-admin";
 import { passesTurnstile } from "@/lib/turnstile";
 
-export type ContributeState = { status: "idle" | "sent" | "error"; message?: string };
+export type ContributeState = { status: "idle" | "sent" | "error"; message?: string; direct?: boolean };
 
 // Must match the action passed to turnstile.render in contribute-form.tsx.
 const TURNSTILE_ACTION = "courtyard";
 const PER_EMAIL_PER_DAY = 3;
 const PER_IP_PER_DAY = 6;
+const PER_SERIES_PER_DAY = 3;
 const CONFIRM_DAYS = 7; // unconfirmed submissions are removed by the daily job after this
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -41,22 +52,76 @@ function cleanLinks(raw: string[]) {
   return out.slice(0, 5);
 }
 
+async function notifyAdmin(s: {
+  kind: SubmissionKind;
+  name: string;
+  email: string;
+  form: string | null;
+  themes: string[] | null;
+  title: string | null;
+  creator_name: string | null;
+  seriesTitle?: string | null;
+  seriesFirst?: boolean;
+}) {
+  const admin = process.env.ADMIN_EMAIL;
+  if (!admin) return;
+  const what = s.seriesTitle
+    ? s.seriesFirst
+      ? `first part of a new series, “${s.seriesTitle}”,`
+      : `new part of “${s.seriesTitle}”`
+    : KIND_LABELS[s.kind].toLowerCase();
+  await sendEmail({
+    from: "jambuch.in <courtyard@jambuch.in>",
+    to: admin,
+    replyTo: s.email,
+    subject: `Courtyard: ${what} from ${s.name}`,
+    text: [
+      `${s.name} <${s.email}> sent a ${what} (${kindLine(s.form, s.themes)}).`,
+      s.title ? `Title: ${s.title}` : s.creator_name ? `Suggested creator: ${s.creator_name}` : "",
+      "",
+      "Review it: https://jambuch.in/admin/courtyard?tab=requests",
+    ].join("\n"),
+  });
+}
+
 export async function submitContribution(_prev: ContributeState, form: FormData): Promise<ContributeState> {
   const str = (key: string, max = 300) => String(form.get(key) ?? "").trim().slice(0, max);
 
   // Hidden field that people never see; bots that fill every input land here.
   if (str("website")) return { status: "sent" };
 
-  const kind = str("kind") as SubmissionKind;
+  const db = adminClient();
+
+  // A part sent through a contributor's personal series link: their name and
+  // email come from the series, and no confirmation email is needed (the link
+  // itself went only to their inbox).
+  const seriesToken = str("series_token", 200);
+  const series = seriesToken ? await seriesForLink(seriesToken) : null;
+  if (seriesToken && (!series || series.status !== "active")) {
+    return { status: "error", message: "This series link no longer works. Please ask Jaydeep for a fresh one." };
+  }
+
+  const kind = series ? "single_piece" : (str("kind") as SubmissionKind);
   if (!KINDS.includes(kind)) return { status: "error", message: "Please choose what you’d like to send." };
-  const name = str("name", 200);
-  const email = str("email", 320).toLowerCase();
-  const category = str("category");
+  const name = series ? series.name : str("name", 200);
+  const email = series ? series.email : str("email", 320).toLowerCase();
+  const pieceForm = str("form");
+  const themes = [...new Set(form.getAll("themes").map(String))];
   if (!name) return { status: "error", message: "Please give your name." };
   if (!EMAIL_RE.test(email)) return { status: "error", message: "Please give a valid email: I send a link to confirm it’s you." };
-  if (!CATEGORIES.some((c) => c.value === category)) return { status: "error", message: "Please choose a category." };
+  if (!FORMS.some((f) => f.value === pieceForm)) return { status: "error", message: "Please choose what form it takes." };
+  if (themes.length > MAX_THEMES || !themes.every((t) => THEMES.some((x) => x.value === t))) {
+    return { status: "error", message: `Please tick at most ${MAX_THEMES} themes.` };
+  }
 
-  const row: Record<string, unknown> = { kind, name, email, category, city: str("city", 120) || null };
+  const row: Record<string, unknown> = {
+    kind,
+    name,
+    email,
+    form: pieceForm,
+    themes,
+    city: series ? series.city : str("city", 120) || null,
+  };
   let links: string[] = [];
   try {
     links = cleanLinks(form.getAll("links").map(String));
@@ -68,6 +133,11 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
   const file = form.get("file");
   const hasFile = file instanceof File && file.size > 0;
 
+  // Starting a series with this piece.
+  const startSeries = !series && kind === "single_piece" && form.get("series_start") === "on";
+  const seriesTitle = str("series_title", 120);
+  const seriesDescription = str("series_description", 1000);
+
   if (kind === "single_piece") {
     row.title = str("title", 200) || null;
     row.body = str("body", 20000) || null;
@@ -75,6 +145,7 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
     if (!row.body && !hasFile && links.length === 0) {
       return { status: "error", message: "Please add the text, a file, or a link to your piece." };
     }
+    if (startSeries && !seriesTitle) return { status: "error", message: "Please give your series a name." };
   } else if (kind === "room_request") {
     row.about = str("about", 3000) || null;
     if (!row.about) return { status: "error", message: "Please tell me a little about your work." };
@@ -114,8 +185,6 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
     return { status: "error", message: "The spam check didn’t go through. Please try again." };
   }
 
-  const db = adminClient();
-
   // "Pick up this thread": only from a piece that is on the public thread.
   const threadFrom = str("thread_from", 64);
   if (kind === "single_piece" && /^[0-9a-f-]{36}$/i.test(threadFrom)) {
@@ -138,16 +207,45 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
 
   // Rate limits count everything sent in the last day, confirmed or not.
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { count: byEmail } = await db
-    .from("courtyard_submissions")
-    .select("id", { count: "exact", head: true })
-    .eq("email", email)
-    .gte("created_at", since);
-  const { count: byIp } = ipHash
-    ? await db.from("courtyard_submissions").select("id", { count: "exact", head: true }).eq("ip_hash", ipHash).gte("created_at", since)
-    : { count: 0 };
-  if ((byEmail ?? 0) >= PER_EMAIL_PER_DAY || (byIp ?? 0) >= PER_IP_PER_DAY) {
-    return { status: "error", message: "You’ve sent several things today. Please try again tomorrow." };
+  if (series) {
+    const { count } = await db
+      .from("courtyard_submissions")
+      .select("id", { count: "exact", head: true })
+      .eq("series_id", series.id)
+      .gte("created_at", since);
+    if ((count ?? 0) >= PER_SERIES_PER_DAY) {
+      return { status: "error", message: "You’ve sent several parts today. Please send the next one tomorrow." };
+    }
+  } else {
+    const { count: byEmail } = await db
+      .from("courtyard_submissions")
+      .select("id", { count: "exact", head: true })
+      .eq("email", email)
+      .gte("created_at", since);
+    const { count: byIp } = ipHash
+      ? await db.from("courtyard_submissions").select("id", { count: "exact", head: true }).eq("ip_hash", ipHash).gte("created_at", since)
+      : { count: 0 };
+    if ((byEmail ?? 0) >= PER_EMAIL_PER_DAY || (byIp ?? 0) >= PER_IP_PER_DAY) {
+      return { status: "error", message: "You’ve sent several things today. Please try again tomorrow." };
+    }
+  }
+
+  // One open series per contributor.
+  let newSeriesId: string | null = null;
+  if (startSeries) {
+    const { data: open } = await db
+      .from("courtyard_series")
+      .select("title")
+      .eq("email", email)
+      .in("status", ["pending", "active", "paused"])
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (open) {
+      return {
+        status: "error",
+        message: `You already have a series, “${open.title}”. Please add to it with your personal link, or untick “first part of a series”.`,
+      };
+    }
   }
 
   // The file goes to the private bucket: nothing is public until approved.
@@ -168,19 +266,78 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
     }
   }
 
-  const token = randomBytes(32).toString("base64url");
-  row.confirm_token_hash = sha256(token);
+  async function undo(submissionId: string | null) {
+    if (submissionId) await db.from("courtyard_submissions").delete().eq("id", submissionId);
+    if (newSeriesId) await db.from("courtyard_series").delete().eq("id", newSeriesId).eq("status", "pending");
+    const ref = fileRef(row.file_url);
+    if (ref) await deleteForever(ref).catch((err) => console.error("courtyard: orphan file cleanup failed:", err));
+  }
+
+  if (startSeries) {
+    const { data: created, error: seriesErr } = await db
+      .from("courtyard_series")
+      .insert({
+        slug: seriesSlug(seriesTitle),
+        title: seriesTitle,
+        description: seriesDescription || null,
+        name,
+        email,
+        city: row.city,
+        form: pieceForm,
+        themes,
+      })
+      .select("id")
+      .single();
+    if (seriesErr) {
+      console.error("courtyard series insert failed:", seriesErr.message);
+      await undo(null);
+      return { status: "error", message: "Something went wrong on my side. Please try again in a little while." };
+    }
+    newSeriesId = created.id;
+    row.series_id = created.id;
+  }
+
+  // A series part through the personal link arrives confirmed.
+  let token: string | null = null;
+  if (series) {
+    row.series_id = series.id;
+    row.status = "new";
+    row.confirmed_at = new Date().toISOString();
+  } else {
+    token = randomBytes(32).toString("base64url");
+    row.confirm_token_hash = sha256(token);
+  }
+
   const { data: saved, error } = await db.from("courtyard_submissions").insert(row).select("id").single();
   if (error) {
     console.error("courtyard submission insert failed:", error.message);
-    const ref = fileRef(row.file_url);
-    if (ref) await deleteForever(ref).catch(() => {});
+    await undo(null);
     return { status: "error", message: "Something went wrong on my side. Please try again in a little while." };
+  }
+
+  if (series) {
+    await notifyAdmin({
+      kind,
+      name,
+      email,
+      form: pieceForm,
+      themes,
+      title: row.title as string,
+      creator_name: null,
+      seriesTitle: series.title,
+    });
+    return { status: "sent", direct: true };
   }
 
   const link = `${await siteUrl()}/courtyard/confirm/${token}`;
   const what =
-    kind === "single_piece" ? `your piece “${row.title}”` : kind === "room_request" ? "your request for a room" : `your suggestion of ${row.creator_name}`;
+    kind === "single_piece"
+      ? startSeries
+        ? `your piece “${row.title}”, the first part of your series “${seriesTitle}”`
+        : `your piece “${row.title}”`
+      : kind === "room_request"
+        ? "your request for a room"
+        : `your suggestion of ${row.creator_name}`;
   const emailed = await sendEmail({
     from: "Jaydeep Buch <courtyard@jambuch.in>",
     to: email,
@@ -200,11 +357,9 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
   });
   if (!emailed) {
     // Without its confirmation email the submission can never be confirmed:
-    // remove it (and its file) so the attempt doesn't count against the
-    // sender's daily limit.
-    await db.from("courtyard_submissions").delete().eq("id", saved.id);
-    const ref = fileRef(row.file_url);
-    if (ref) await deleteForever(ref).catch((err) => console.error("courtyard: orphan file cleanup failed:", err));
+    // remove it (and its file and new series) so the attempt doesn't count
+    // against the sender's daily limit.
+    await undo(saved.id);
     return { status: "error", message: "I couldn’t send the confirmation email. Please check the address and try again." };
   }
   return { status: "sent" };
@@ -222,26 +377,17 @@ export async function confirmSubmission(token: string): Promise<{ ok: boolean; k
     .eq("status", "unconfirmed")
     .gte("created_at", cutoff)
     .is("deleted_at", null)
-    .select("kind, name, email, category, title, creator_name")
+    .select("kind, name, email, form, themes, title, creator_name, series_id")
     .maybeSingle();
   if (error || !data) return { ok: false };
 
-  const admin = process.env.ADMIN_EMAIL;
-  if (admin) {
-    await sendEmail({
-      from: "jambuch.in <courtyard@jambuch.in>",
-      to: admin,
-      replyTo: data.email,
-      subject: `Courtyard: ${KIND_LABELS[data.kind as SubmissionKind].toLowerCase()} from ${data.name}`,
-      text: [
-        `${data.name} <${data.email}> sent a ${KIND_LABELS[data.kind as SubmissionKind].toLowerCase()} (${categoryLabel(data.category)}).`,
-        data.title ? `Title: ${data.title}` : data.creator_name ? `Suggested creator: ${data.creator_name}` : "",
-        "",
-        "Review it: https://jambuch.in/admin/courtyard?tab=requests",
-      ]
-        .filter((l) => l !== null)
-        .join("\n"),
-    });
+  // A confirmed submission with a series is always that series' first part
+  // (later parts come through the personal link, already confirmed).
+  let seriesTitle: string | null = null;
+  if (data.series_id) {
+    const { data: s } = await db.from("courtyard_series").select("title").eq("id", data.series_id).maybeSingle();
+    seriesTitle = s?.title ?? null;
   }
+  await notifyAdmin({ ...(data as Parameters<typeof notifyAdmin>[0]), seriesTitle, seriesFirst: !!seriesTitle });
   return { ok: true, kind: data.kind as SubmissionKind };
 }

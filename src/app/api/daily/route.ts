@@ -65,6 +65,23 @@ export async function GET(request: Request) {
     console.error("daily: removing unconfirmed submissions failed:", failed.unconfirmed_submissions);
   }
 
+  // A series whose first part was never confirmed has nothing left in it:
+  // remove it, so the contributor can start again.
+  {
+    const { data: pendingSeries } = await db
+      .from("courtyard_series")
+      .select("id")
+      .eq("status", "pending")
+      .lt("created_at", new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString());
+    for (const s of pendingSeries ?? []) {
+      const { count } = await db
+        .from("courtyard_submissions")
+        .select("id", { count: "exact", head: true })
+        .eq("series_id", s.id);
+      if (!count) await db.from("courtyard_series").delete().eq("id", s.id);
+    }
+  }
+
   // One table at a time, so a failure (say, a file R2 won't delete) leaves
   // those items in the Trash for tomorrow and the rest still get cleaned.
   try {

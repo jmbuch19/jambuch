@@ -373,6 +373,16 @@ a.name:hover {
   border-radius: var(--radius-sm);
   padding: 10px 14px;
 }
+.seriesTag {
+  margin: 4px 0 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.seriesTable td small {
+  display: block;
+  color: var(--muted);
+}
 .chips {
   display: flex;
   flex-wrap: wrap;

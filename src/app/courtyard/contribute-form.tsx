@@ -3,7 +3,7 @@
 import Script from "next/script";
 import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 import { shrinkImage } from "@/app/admin/(panel)/[table]/[id]/shrink-image";
-import { CATEGORIES, DOOR_HASH, MAX_FILE_BYTES, REPLY_HASH, type SubmissionKind } from "@/lib/courtyard";
+import { DOOR_HASH, FORMS, MAX_FILE_BYTES, MAX_THEMES, REPLY_HASH, THEMES, type SubmissionKind } from "@/lib/courtyard";
 import { submitContribution, type ContributeState } from "./actions";
 import y from "./courtyard.module.css";
 
@@ -15,15 +15,35 @@ const DOORS: { kind: SubmissionKind; label: string; send: string; thanks: string
   { kind: "suggestion", label: "Suggest a creator", send: "Send suggestion", thanks: "Thank you for thinking of them." },
 ];
 
-// One form, three doors: a single piece, a room request, or a suggestion.
+// A contributor's personal link: the form adds the next part to their series.
+export type SeriesMode = {
+  token: string;
+  title: string;
+  name: string;
+  form: string | null;
+  themes: string[];
+  nextPart: number;
+};
+
+// One form, three doors: a single piece (optionally the first part of a
+// series), a room request, or a suggestion. With `series`, it only takes the
+// next part of that series.
 // threads: the pieces on the public thread, so "Pick up this thread" can name them.
-export default function ContributeForm({ threads }: { threads: { id: string; label: string }[] }) {
+export default function ContributeForm({
+  threads = [],
+  series,
+}: {
+  threads?: { id: string; label: string }[];
+  series?: SeriesMode;
+}) {
   const [state, action, pending] = useActionState<ContributeState, FormData>(submitContribution, { status: "idle" });
   const [kind, setKind] = useState<SubmissionKind>("single_piece");
   const [threadFrom, setThreadFrom] = useState<string | null>(null);
   const threadLabel = threads.find((t) => t.id === threadFrom)?.label;
   const [sentKind, setSentKind] = useState<SubmissionKind>("single_piece");
   const [sentTo, setSentTo] = useState("");
+  const [themes, setThemes] = useState<string[]>(series?.themes ?? []);
+  const [startSeries, setStartSeries] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
   const formTop = useRef<HTMLDivElement>(null);
@@ -47,6 +67,7 @@ export default function ContributeForm({ threads }: { threads: { id: string; lab
 
   // The door cards and links like /courtyard#ask-room open the matching door.
   useEffect(() => {
+    if (series) return;
     function fromHash() {
       const hash = window.location.hash.slice(1);
       if (hash.startsWith(REPLY_HASH)) {
@@ -63,7 +84,11 @@ export default function ContributeForm({ threads }: { threads: { id: string; lab
     fromHash();
     window.addEventListener("hashchange", fromHash);
     return () => window.removeEventListener("hashchange", fromHash);
-  }, []);
+  }, [series]);
+
+  function toggleTheme(value: string) {
+    setThemes((t) => (t.includes(value) ? t.filter((x) => x !== value) : t.length < MAX_THEMES ? [...t, value] : t));
+  }
 
   // Sent by hand so the fields survive an error, and so a photo can be shrunk first.
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -102,22 +127,38 @@ export default function ContributeForm({ threads }: { threads: { id: string; lab
   const room = kind === "room_request";
   const suggestion = kind === "suggestion";
 
+  // A part through the personal link goes straight to Jaydeep.
+  if (state.status === "sent" && state.direct && series) {
+    return (
+      <div className={y.formCard}>
+        <div className={y.done} role="status">
+          <p>Thank you — your next part is with me.</p>
+          <span>
+            I’ll read it, and once approved it joins the thread at the next gathering as part of “{series.title}”.
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div ref={formTop} className={y.contributeInner}>
-      <div className={y.doorPills} role="tablist" aria-label="What would you like to send?">
-        {DOORS.map((d) => (
-          <button
-            key={d.kind}
-            type="button"
-            role="tab"
-            aria-selected={kind === d.kind}
-            onClick={() => setKind(d.kind)}
-            disabled={state.status === "sent"}
-          >
-            {d.label}
-          </button>
-        ))}
-      </div>
+      {!series && (
+        <div className={y.doorPills} role="tablist" aria-label="What would you like to send?">
+          {DOORS.map((d) => (
+            <button
+              key={d.kind}
+              type="button"
+              role="tab"
+              aria-selected={kind === d.kind}
+              onClick={() => setKind(d.kind)}
+              disabled={state.status === "sent"}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className={y.formCard}>
         {state.status === "sent" ? (
@@ -147,7 +188,13 @@ export default function ContributeForm({ threads }: { threads: { id: string; lab
               onLoad={renderWidget}
             />
             <input type="hidden" name="kind" value={kind} />
-            {piece && threadFrom && threadLabel && (
+            {series && <input type="hidden" name="series_token" value={series.token} />}
+            {series && (
+              <p className={y.threadNote}>
+                Part {series.nextPart} of <strong>“{series.title}”</strong>, by {series.name}
+              </p>
+            )}
+            {piece && !series && threadFrom && threadLabel && (
               <>
                 <input type="hidden" name="thread_from" value={threadFrom} />
                 <p className={y.threadNote}>
@@ -172,35 +219,62 @@ export default function ContributeForm({ threads }: { threads: { id: string; lab
               </div>
             )}
 
-            <div className={y.row}>
-              <label className={y.field}>
-                Your name
-                <input name="name" maxLength={200} autoComplete="name" required />
-              </label>
-              <label className={y.field}>
-                Your email
-                <input name="email" type="email" maxLength={320} autoComplete="email" required />
-              </label>
-            </div>
+            {!series && (
+              <div className={y.row}>
+                <label className={y.field}>
+                  Your name
+                  <input name="name" maxLength={200} autoComplete="name" required />
+                </label>
+                <label className={y.field}>
+                  Your email
+                  <input name="email" type="email" maxLength={320} autoComplete="email" required />
+                </label>
+              </div>
+            )}
 
             <div className={y.row}>
               <label className={y.field}>
-                Category
-                <select name="category" defaultValue="writing">
-                  {CATEGORIES.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.formLabel}
+                {suggestion ? "What do they make?" : "What is it?"}
+                <select name="form" defaultValue={series?.form ?? "prose"}>
+                  {FORMS.map((f) => (
+                    <option key={f.value} value={f.value}>
+                      {f.formLabel}
                     </option>
                   ))}
                 </select>
               </label>
-              {!suggestion && (
+              {!suggestion && !series && (
                 <label className={y.field}>
                   City <small>optional, shown as “by you, City”</small>
                   <input name="city" maxLength={120} autoComplete="address-level2" />
                 </label>
               )}
             </div>
+
+            <fieldset className={y.themes}>
+              <legend>
+                What is it about? <small>optional, up to {MAX_THEMES}</small>
+              </legend>
+              <div className={y.themeChips}>
+                {THEMES.map((t) => {
+                  const on = themes.includes(t.value);
+                  const full = !on && themes.length >= MAX_THEMES;
+                  return (
+                    <label key={t.value} className={on ? `${y.themeChip} ${y.themeOn}` : y.themeChip} aria-disabled={full}>
+                      <input
+                        type="checkbox"
+                        name="themes"
+                        value={t.value}
+                        checked={on}
+                        disabled={full}
+                        onChange={() => toggleTheme(t.value)}
+                      />
+                      {t.label} <span className="gu">{t.gu}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
 
             {piece && (
               <>
@@ -210,7 +284,7 @@ export default function ContributeForm({ threads }: { threads: { id: string; lab
                 </label>
                 <label className={y.field}>
                   Your piece — paste text, or describe what you’re attaching
-                  <textarea name="body" rows={5} maxLength={20000} />
+                  <textarea name="body" rows={series ? 10 : 5} maxLength={20000} />
                 </label>
                 <div className={y.attachRow}>
                   <label className={y.attach}>
@@ -227,6 +301,37 @@ export default function ContributeForm({ threads }: { threads: { id: string; lab
                   Link <small>optional</small>
                   <input name="links" type="url" inputMode="url" placeholder="https://" />
                 </label>
+                {!series && (
+                  <div className={y.seriesBox}>
+                    <label className={y.seriesToggle}>
+                      <input
+                        type="checkbox"
+                        name="series_start"
+                        checked={startSeries}
+                        onChange={(e) => setStartSeries(e.target.checked)}
+                      />
+                      <span>
+                        <strong>This is the first part of a series.</strong> One subject, more parts to come, e.g.
+                        notes on the Upanishads.
+                      </span>
+                    </label>
+                    {startSeries && (
+                      <>
+                        <label className={y.field}>
+                          Name of the series
+                          <input name="series_title" maxLength={120} required placeholder="e.g. Notes on the Upanishads" />
+                        </label>
+                        <label className={y.field}>
+                          A line about the series <small>optional</small>
+                          <textarea name="series_description" rows={2} maxLength={1000} />
+                        </label>
+                        <p className={y.small}>
+                          Once I approve this first part, I’ll email you a personal link to add each next part.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
               </>
             )}
 
@@ -298,11 +403,13 @@ export default function ContributeForm({ threads }: { threads: { id: string; lab
                 {fileError ?? state.message}
               </p>
             )}
-            <p className={y.small}>
-              After you send, I’ll email you a link to confirm it’s you. It reaches me only once you click it.
-            </p>
+            {!series && (
+              <p className={y.small}>
+                After you send, I’ll email you a link to confirm it’s you. It reaches me only once you click it.
+              </p>
+            )}
             <button type="submit" disabled={pending || preparing} className={y.send}>
-              {preparing ? "Preparing photo…" : pending ? "Sending…" : door.send}
+              {preparing ? "Preparing photo…" : pending ? "Sending…" : series ? `Send part ${series.nextPart}` : door.send}
             </button>
           </form>
         )}

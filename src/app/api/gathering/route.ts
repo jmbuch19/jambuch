@@ -15,7 +15,10 @@ export async function GET(request: Request) {
   }
   try {
     const result = await sendGatheringNotes(adminClient(), new URL(request.url).origin);
-    if (result.due > 0) revalidatePath("/courtyard");
+    if (result.due > 0 || result.followerEmails > 0) {
+      revalidatePath("/courtyard");
+      revalidatePath("/courtyard/series/[slug]", "page");
+    }
     return Response.json({ ok: true, ...result, at: new Date().toISOString() });
   } catch (err) {
     console.error("gathering:", err instanceof Error ? err.message : err);

@@ -368,6 +368,22 @@ export const TABLES: TableConfig[] = [
     canDelete: true,
   },
   {
+    table: "courtyard_series",
+    label: "Courtyard series",
+    key: "id",
+    ownPage: "/admin/courtyard?tab=series",
+    fields: [
+      { name: "title", label: "Name", type: "text", required: true },
+      { name: "description", label: "Line about it", type: "textarea" },
+      { name: "name", label: "Contributor", type: "text", readOnly: true },
+      { name: "email", label: "Email", type: "text", readOnly: true },
+    ],
+    list: ["title", "name"],
+    order: [{ column: "created_at", ascending: false }],
+    canCreate: false,
+    canDelete: true,
+  },
+  {
     table: "courtyard_submissions",
     label: "Courtyard submissions",
     key: "id",
@@ -414,6 +430,7 @@ export const ITEM_META: Record<
   ideas: { title: "message" },
   courtyard_invites: { title: "name" },
   courtyard_submissions: { title: "title" },
+  courtyard_series: { title: "title", children: [{ table: "courtyard_submissions", fk: "series_id" }] },
 };
 
 export function hasPublished(cfg: TableConfig) {
