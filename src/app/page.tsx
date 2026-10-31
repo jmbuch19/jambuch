@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import { loadHome, type HomeContent, type Project } from "@/lib/content";
 import { inline } from "@/lib/inline";
+import { youtubeId } from "@/lib/youtube";
 import IdeaForm from "./idea-form";
+import YouTubePlayer from "./youtube-player";
 import LibraryTable from "./library-table";
 import s from "./home.module.css";
 
@@ -422,6 +424,22 @@ function buildSections(c: HomeContent, t: (key: string) => string): (Section | n
                     );
                   }
                   const gujarati = /[઀-૿]/.test(n.body ?? "");
+                  // A YouTube link plays right here, with its thumbnail on the card.
+                  const video = youtubeId(n.link);
+                  if (video) {
+                    return (
+                      <div key={n.id} className={`${s.note} ${s.videoNote}`}>
+                        <YouTubePlayer id={video} title={n.title ?? "Video"} />
+                        <span className={s.kind}>Video</span>
+                        {n.title && <p className={s.videoTitle}>{n.title}</p>}
+                        {n.body && (
+                          <p className={gujarati ? `gu ${s.videoBody}` : s.videoBody} lang={gujarati ? "gu" : undefined}>
+                            {inline(n.body)}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
                   return (
                     <div key={n.id} className={s.note}>
                       <span className={s.kind}>{n.type === "poem" ? "Poem" : n.title || "Note"}</span>
