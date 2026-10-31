@@ -163,7 +163,7 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
 
   const token = randomBytes(32).toString("base64url");
   row.confirm_token_hash = sha256(token);
-  const { error } = await db.from("courtyard_submissions").insert(row);
+  const { data: saved, error } = await db.from("courtyard_submissions").insert(row).select("id").single();
   if (error) {
     console.error("courtyard submission insert failed:", error.message);
     const ref = fileRef(row.file_url);
@@ -192,6 +192,12 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
     ].join("\n"),
   });
   if (!emailed) {
+    // Without its confirmation email the submission can never be confirmed:
+    // remove it (and its file) so the attempt doesn't count against the
+    // sender's daily limit.
+    await db.from("courtyard_submissions").delete().eq("id", saved.id);
+    const ref = fileRef(row.file_url);
+    if (ref) await deleteForever(ref).catch((err) => console.error("courtyard: orphan file cleanup failed:", err));
     return { status: "error", message: "I couldn’t send the confirmation email. Please check the address and try again." };
   }
   return { status: "sent" };
