@@ -295,7 +295,8 @@ export async function declineSubmission(id: string, reply: string, send: boolean
 
     const { error: upd } = await db
       .from("courtyard_submissions")
-      .update({ status: "declined", reply_text: send ? text : null })
+      // A declined suggestion no longer needs the creator's contact: forget it.
+      .update({ status: "declined", reply_text: send ? text : null, creator_contact: null })
       .eq("id", id);
     if (upd) throw new Error(upd.message);
     revalidatePath("/admin/courtyard");

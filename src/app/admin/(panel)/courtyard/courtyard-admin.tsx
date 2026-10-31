@@ -72,6 +72,8 @@ export type SubmissionRow = {
   creator_name: string | null;
   relation: string | null;
   why: string | null;
+  creator_contact: string | null; // a suggested creator's email or phone, if given
+  creator_aware: boolean;
   invite_id: string | null;
   family_only: boolean;
   thread_from_title: string | null; // the piece it picks up the thread from
@@ -163,6 +165,15 @@ function nextStep(r: InviteRow) {
     case "left":
       return "Room taken down";
   }
+}
+
+const isEmail = (v: string | null | undefined) => !!v && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+const isPhone = (v: string | null | undefined) => !!v && !isEmail(v) && v.replace(/\D/g, "").length >= 8;
+const firstName = (name: string | null) => (name ?? "them").split(" ")[0];
+
+// A starting point for Jaydeep's own message to a suggested creator.
+function creatorHello(s: SubmissionRow) {
+  return `Hello ${firstName(s.creator_name)}, ${s.name} told me about your work and thought it deserves readers. I’m Jaydeep Buch; I host the Courtyard at jambuch.in, a place where people share what they make, always under their own name. Would you be open to a room there, or to sharing a piece? No pressure at all.`;
 }
 
 function slugify(name: string) {
@@ -260,6 +271,8 @@ export default function CourtyardAdmin({
       setDraft({
         ...EMPTY,
         name: from.creator_name ?? "",
+        email: isEmail(from.creator_contact) ? from.creator_contact! : "",
+        whatsapp: isPhone(from.creator_contact) ? from.creator_contact! : "",
         craft: craftOf(from.category),
         roomSlug: slugify(from.creator_name ?? ""),
         submissionId: from.id,
@@ -426,11 +439,21 @@ export default function CourtyardAdmin({
     }
     // Design: one main button per type, plus "Not now" (the kind-reply panel,
     // where sending a reply is optional). The other actions sit as small links.
-    const reachOut = (cls: string, label = "Reach out") => (
+    // For a suggestion with the creator's contact, reach out to the creator
+    // (by hand: this only opens your email or WhatsApp). Otherwise, the sender.
+    const toCreator = s.kind === "suggestion" && (isEmail(s.creator_contact) || isPhone(s.creator_contact));
+    const reachHref = !toCreator
+      ? `mailto:${s.email}?subject=${encodeURIComponent("Your note to the Courtyard")}`
+      : isEmail(s.creator_contact)
+        ? `mailto:${s.creator_contact}?subject=${encodeURIComponent("The Courtyard at jambuch.in")}&body=${encodeURIComponent(creatorHello(s))}`
+        : `https://wa.me/${s.creator_contact!.replace(/\D/g, "")}?text=${encodeURIComponent(creatorHello(s))}`;
+    const reachOut = (cls: string, label = toCreator ? `Reach out to ${firstName(s.creator_name)}` : "Reach out") => (
       <a
         key="reach"
         className={cls}
-        href={`mailto:${s.email}?subject=${encodeURIComponent("Your note to the Courtyard")}`}
+        href={reachHref}
+        target={reachHref.startsWith("https:") ? "_blank" : undefined}
+        rel="noopener noreferrer"
         onClick={() => run(() => markReachedOut(s.id))}
       >
         {label}
@@ -841,7 +864,17 @@ function SubmissionCard({ s, children }: { s: SubmissionRow; children: React.Rea
         </div>
         {s.thread_from_title && <div className={c.meta}>↳ picks up the thread from {s.thread_from_title}</div>}
         {note && <div className={c.about}>{note.length > 280 ? `${note.slice(0, 280)}…` : note}</div>}
-        <div className={c.meta}>{s.email}{s.kind !== "suggestion" && s.city ? ` · ${s.city}` : ""}</div>
+        <div className={c.meta}>
+          {s.kind === "suggestion" ? `Suggester: ${s.email}` : s.email}
+          {s.kind !== "suggestion" && s.city ? ` · ${s.city}` : ""}
+        </div>
+        {s.kind === "suggestion" && (
+          <div className={c.meta}>
+            {s.creator_contact ? `Creator’s contact: ${s.creator_contact}` : "No contact for the creator: ask the suggester"}
+            {" · "}
+            {s.creator_aware ? "they know they were suggested" : "they may not know yet"}
+          </div>
+        )}
         {(s.links.length > 0 || s.has_file) && (
           <div className={c.meta}>
             {s.has_file && <>📎 {s.file_name ?? "file"} · </>}

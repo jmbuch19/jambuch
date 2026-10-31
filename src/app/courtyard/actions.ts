@@ -82,6 +82,13 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
     row.creator_name = str("creator_name", 200) || null;
     row.relation = str("relation", 120) || null;
     row.why = str("why", 3000) || null;
+    // Optional; only Jaydeep sees it, and nothing is ever sent to it automatically.
+    const contact = str("creator_contact", 320);
+    if (contact && !EMAIL_RE.test(contact) && contact.replace(/\D/g, "").length < 8) {
+      return { status: "error", message: "Their contact should be an email address or a phone number, or leave it empty." };
+    }
+    row.creator_contact = contact || null;
+    row.creator_aware = form.get("creator_aware") === "on";
     if (!row.creator_name) return { status: "error", message: "Please give the creator’s name." };
     if (!row.why) return { status: "error", message: "Please say why they deserve a room, with a sample if you can." };
   }

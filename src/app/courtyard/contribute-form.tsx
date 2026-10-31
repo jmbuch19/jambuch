@@ -228,10 +228,26 @@ export default function ContributeForm({ threads }: { threads: { id: string; lab
             )}
 
             {suggestion && (
-              <label className={y.field}>
-                Why their work deserves readers — and a sample if you have one
-                <textarea name="why" rows={4} maxLength={3000} required />
-              </label>
+              <>
+                <label className={y.field}>
+                  Why their work deserves readers — and a sample if you have one
+                  <textarea name="why" rows={4} maxLength={3000} required />
+                </label>
+                <label className={y.field}>
+                  Their email or WhatsApp number <small>optional</small>
+                  <input name="creator_contact" maxLength={320} autoComplete="off" />
+                  <small>
+                    Only Jaydeep sees this. Nothing is sent to them automatically: if it’s right, I’ll reach out
+                    personally and mention you.
+                  </small>
+                </label>
+                <div className={y.ticks}>
+                  <label>
+                    <input type="checkbox" name="creator_aware" />
+                    <span>They know I’m suggesting them.</span>
+                  </label>
+                </div>
+              </>
             )}
 
             {!suggestion ? (
