@@ -10,6 +10,7 @@ import ReadingGuard from "../../reading-guard";
 import { READER_BOOT_SCRIPT } from "../../reader-settings";
 import ReaderBar from "../../reader-bar";
 import ShareButton from "../../share-button";
+import InstallCard from "../../../install/install-card";
 import LetterInvite from "../../../letter-invite";
 import l from "../../library.module.css";
 
@@ -60,7 +61,13 @@ export default async function ChapterPage({ params }: Props) {
       </div>
 
       <main id="reader" className={`${l.reader} ${l.guarded}`}>
-        <ReaderBar textId="chapter-text" work={work.slug} path={entryPath(work.slug, chapter)} title={entryTitle(chapter)} />
+        <ReaderBar
+          textId="chapter-text"
+          work={work.slug}
+          book={work.title_gu ?? work.title}
+          path={entryPath(work.slug, chapter)}
+          title={entryTitle(chapter)}
+        />
         <ReadingGuard targetId="reader" chapterId={chapter.id} />
         <p className={l.printNote}>This chapter can be read online at jambuch.in{entryPath(work.slug, chapter)}</p>
         <p className={l.eyebrow}>
@@ -112,7 +119,15 @@ export default async function ChapterPage({ params }: Props) {
 
         <article id="chapter-text" className={`gu ${l.text}`} lang="gu">
           {paragraphs(chapter.body).map((b, i) =>
-            b.kind === "quote" ? <blockquote key={i}>{inline(b.text)}</blockquote> : <p key={i}>{inline(b.text)}</p>,
+            b.kind === "quote" ? (
+              <blockquote key={i} id={`p-${i + 1}`}>
+                {inline(b.text)}
+              </blockquote>
+            ) : (
+              <p key={i} id={`p-${i + 1}`}>
+                {inline(b.text)}
+              </p>
+            ),
           )}
         </article>
         {/* Sits at the end of the text: reaching it after real reading counts as finished. */}
@@ -125,35 +140,48 @@ export default async function ChapterPage({ params }: Props) {
           </aside>
         )}
 
+        {/* No dead end: one big step to the next chapter, or a way to hear when it's ready. */}
+        {next ? (
+          <Link href={entryPath(work.slug, next)} className={l.nextBig} rel="next">
+            <span className={l.nextLabel}>
+              <span className="gu">{next.section ? "આગળ વાંચો" : "આગળનું પ્રકરણ"}</span> ·{" "}
+              {next.section ? "Read on" : "Next chapter"} →
+            </span>
+            <strong className="gu">{entryTitle(next)}</strong>
+          </Link>
+        ) : (
+          <section className={l.waiting}>
+            <p className={l.waitingHead}>
+              {upcoming ? `${entryLabel(upcoming)} is on my desk` : "You’ve reached the latest chapter"}
+              {upcoming?.expected ? ` · ${upcoming.expected}` : ""}
+            </p>
+            <LetterInvite
+              variant="inline"
+              source="chapter waiting"
+              title="Tell me when it’s ready"
+              lede="New chapters come in the weekly letter: one email after each Sunday gathering, with what’s new in the library and the Courtyard. No account, and one tap to stop."
+              joinedNote="You get the weekly letter, so the next chapter will be in it as soon as it’s ready."
+            />
+          </section>
+        )}
         <nav className={l.pager} aria-label="Chapters">
-          {prev ? (
+          {prev && (
             <Link href={entryPath(work.slug, prev)} className={l.pageCard} rel="prev">
               <span>← Previous</span>
               <strong className="gu">{entryTitle(prev)}</strong>
             </Link>
-          ) : (
-            <Link href={base} className={l.pageCard}>
-              <span>← Back to</span>
-              <strong>All chapters</strong>
-            </Link>
           )}
-          {next ? (
-            <Link href={entryPath(work.slug, next)} className={`${l.pageCard} ${l.pageNext}`} rel="next">
-              <span>Next →</span>
-              <strong className="gu">{entryTitle(next)}</strong>
-            </Link>
-          ) : (
-            <div className={`${l.pageCard} ${l.pageWaiting}`}>
-              <span>{upcoming ? `${entryLabel(upcoming)} is on my desk` : "You’ve reached the latest chapter"}</span>
-              <strong>{upcoming?.expected ?? "More soon"}</strong>
-            </div>
-          )}
+          <Link href={base} className={l.pageCard}>
+            <span>{prev ? "Or see" : "← Back to"}</span>
+            <strong>All chapters</strong>
+          </Link>
         </nav>
         <div className={l.endShare}>
           <ShareButton />
         </div>
+        <InstallCard />
         {/* The weekly letter, offered only once the chapter is finished. */}
-        <LetterInvite variant="inline" source="book chapter" />
+        {next && <LetterInvite variant="inline" source="book chapter" />}
         <p className={l.privacy}>
           This library counts reading anonymously (chapters opened and finished) to learn what readers enjoy. No names,
           emails or locations are collected.

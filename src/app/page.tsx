@@ -6,6 +6,7 @@ import IdeaForm from "./idea-form";
 import YouTubePlayer from "./youtube-player";
 import LibraryTable from "./library-table";
 import s from "./home.module.css";
+import ContinueReading from "./library/continue-reading";
 
 // Content is edited in Supabase, so refresh the cached page every minute.
 export const revalidate = 60;
@@ -64,6 +65,10 @@ export default async function Home() {
       </header>
 
       <main>
+        {/* Shown only when this device (or the member's account) has a place in a book. */}
+        <div className={s.continueBar}>
+          <ContinueReading />
+        </div>
         <section id="top" className={s.hero}>
           <div className={s.heroMain}>
             {g("hero.name") && <p className={`gu ${s.heroGu}`}>{g("hero.name")}</p>}
@@ -490,6 +495,7 @@ function Footer({ t, g }: { t: (key: string) => string; g: (key: string) => stri
             </a>
           )}
           {email && <a href={`mailto:${email}`}>{email}</a>}
+          <a href="/install">Install on your phone</a>
         </div>
       </div>
     </footer>

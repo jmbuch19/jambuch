@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#F5F3EE" />
+    <meta name="robots" content="noindex" />
+    <title>Offline · jambuch</title>
+    <!-- Served by the service worker (public/sw.js) when there's no internet
+         and the page asked for was never opened on this device. Self-contained:
+         no scripts or styles from the site, which may not be stored yet. -->
+    <style>
+      body {
+        margin: 0;
+        padding: 40px 16px 56px;
+        background: #f5f3ee;
+        color: #1b1f1e;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        line-height: 1.55;
+      }
+      main {
+        max-width: 640px;
+        margin: 0 auto;
+      }
+      .logo {
+        font-family: Georgia, serif;
+        font-size: 28px;
+        margin: 0 0 32px;
+      }
+      .logo span {
+        color: #1e5c57;
+      }
+      h1 {
+        font-family: Georgia, serif;
+        font-weight: 500;
+        font-size: 30px;
+        margin: 0 0 8px;
+      }
+      p {
+        font-size: 18px;
+        margin: 0 0 12px;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 20px 0 0;
+      }
+      li + li {
+        margin-top: 12px;
+      }
+      a.place {
+        display: block;
+        min-height: 56px;
+        padding: 12px 18px;
+        border-radius: 12px;
+        background: #1e5c57;
+        color: #fff;
+        text-decoration: none;
+        font-size: 20px;
+      }
+      a.place small {
+        display: block;
+        font-size: 15px;
+        opacity: 0.85;
+      }
+      button {
+        margin-top: 24px;
+        min-height: 48px;
+        padding: 0 20px;
+        border: 1px solid #1e5c57;
+        border-radius: 10px;
+        background: #fff;
+        color: #1e5c57;
+        font-size: 17px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="logo">jambuch<span>.</span></p>
+      <h1>No internet just now</h1>
+      <p lang="gu">અત્યારે ઇન્ટરનેટ નથી. પહેલાં વાંચેલાં પ્રકરણો નીચેથી ખોલી શકો છો.</p>
+      <p id="lede">Chapters you have already opened on this phone still open:</p>
+      <ul id="places"></ul>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+    <script>
+      // Places this device knows (library/bookmarks.ts keys) whose page the
+      // service worker has kept.
+      (async function () {
+        function read(key) {
+          try {
+            var l = JSON.parse(localStorage.getItem(key) || "[]");
+            return Array.isArray(l) ? l : [];
+          } catch (e) {
+            return [];
+          }
+        }
+        var seen = {};
+        var all = read("reader-positions").concat(read("reader-bookmarks")).filter(function (p) {
+          if (!p || typeof p.path !== "string" || p.path.indexOf("/library/") !== 0 || seen[p.path]) return false;
+          return (seen[p.path] = true);
+        });
+        var list = document.getElementById("places");
+        for (var i = 0; i < all.length; i++) {
+          var p = all[i];
+          if (window.caches && !(await caches.match(p.path))) continue;
+          var a = document.createElement("a");
+          a.className = "place";
+          a.href = p.para > 0 ? p.path + "#p-" + (p.para + 1) : p.path;
+          a.lang = "gu";
+          a.textContent = p.title;
+          if (p.book) {
+            var s = document.createElement("small");
+            s.textContent = p.book;
+            a.appendChild(s);
+          }
+          var li = document.createElement("li");
+          li.appendChild(a);
+          list.appendChild(li);
+        }
+        if (!list.children.length) {
+          document.getElementById("lede").textContent = "None yet: chapters are kept once you have opened them.";
+        }
+      })();
+    </script>
+  </body>
+</html>

@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans, Newsreader, Noto_Serif_Gujarati } from "next/font/google";
 import Analytics from "./analytics";
+import { EARLY_PROMPT_SCRIPT } from "./install/install-state";
+import Pwa from "./pwa";
 import "./globals.css";
 
 const newsreader = Newsreader({
@@ -30,6 +32,8 @@ export const metadata: Metadata = {
   title: "Jaydeep Buch",
   description:
     "I carry world literature into Gujarati, guide students toward study abroad, and build software for the causes I care about. From Ahmedabad.",
+  // Added to an iPhone's home screen, it opens full screen like an app.
+  appleWebApp: { capable: true, title: "jambuch", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
@@ -44,8 +48,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${newsreader.variable} ${plex.variable} ${gujarati.variable}`}>
       <body>
+        <script dangerouslySetInnerHTML={{ __html: EARLY_PROMPT_SCRIPT }} />
         {children}
         <Analytics />
+        <Pwa />
       </body>
     </html>
   );

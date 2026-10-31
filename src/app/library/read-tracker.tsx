@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { markFinishedOne } from "../install/install-state";
 import { readerId } from "./reader-id";
 
 const IDLE_MS = 90_000; // no scroll, tap or key for this long: the reader has stepped away
@@ -66,6 +67,7 @@ export default function ReadTracker({ chapterId, minSeconds }: { chapterId: stri
     function checkFinished() {
       if (!finished && atEnd && active >= minSeconds) {
         finished = true;
+        markFinishedOne(); // from now on, the "keep jambuch on your home screen" card may show
         send(false);
       }
     }

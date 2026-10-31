@@ -1038,3 +1038,13 @@
 .footerLinks a:hover {
   color: #fff;
 }
+
+/* "Continue reading" above the hero, only when a place in a book is saved. */
+.continueBar {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 24px var(--gutter) 0;
+}
+.continueBar:empty {
+  display: none;
+}

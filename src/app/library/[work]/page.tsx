@@ -5,7 +5,7 @@ import { entryLabel, entryPath, sectionType } from "@/lib/book-sections";
 import { inline } from "@/lib/inline";
 import { guNumber, loadWork, type Chapter } from "@/lib/library";
 import LibraryHeader from "../header";
-import SavedPlace from "../saved-place";
+import ContinueReading from "../continue-reading";
 import l from "../library.module.css";
 
 export const revalidate = 60;
@@ -65,6 +65,11 @@ export default async function WorkPage({ params }: Props) {
     <>
       <LibraryHeader />
       <main>
+        {work.readable && (
+          <div className={l.continueTop}>
+            <ContinueReading work={slug} />
+          </div>
+        )}
         <section className={l.hero}>
           {work.cover_url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -138,7 +143,6 @@ export default async function WorkPage({ params }: Props) {
                     </span>
                   </div>
                 </div>
-                <SavedPlace work={slug} />
                 {first && (
                   <div className={l.buttons}>
                     <Link href={entryPath(slug, first)} className={l.btnAccent}>

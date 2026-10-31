@@ -213,7 +213,54 @@
   color: #fff;
 }
 
-/* "Continue where you left off": the place saved with ☆ in the reader. */
+/* "વાંચન ચાલુ રાખો · Continue reading": top of the homepage and book pages. */
+.continueTop {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 24px var(--gutter) 0;
+}
+.continueTop:empty {
+  display: none;
+}
+.continueWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.continueButton {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: 64px;
+  padding: 14px 22px;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  font-family: var(--font-body);
+}
+.continueButton:hover {
+  background: var(--accent-hover);
+  color: #fff;
+}
+.continueLabel {
+  font-size: 17px;
+  font-weight: 600;
+}
+.continueButton strong {
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.continueBook {
+  font-weight: 400;
+  opacity: 0.85;
+}
+.continueWrap .savedPlace {
+  margin-top: 0;
+}
+/* "Your saved place": the place saved with ☆ in the reader. */
 .savedPlace {
   display: flex;
   align-items: center;
@@ -672,6 +719,10 @@
   max-width: 100%;
   overflow-x: auto;
 }
+/* "#p-12" links (Continue reading) land below the sticky reading bar. */
+.text > * {
+  scroll-margin-top: 84px;
+}
 .text p + p {
   margin-top: 0.45em;
 }
@@ -889,11 +940,43 @@ a.pageCard:hover {
   border-color: var(--accent);
   color: var(--ink);
 }
-.pageNext {
-  text-align: right;
+/* End of a chapter: one big, unmistakable step on (56px+ tall, full width). */
+.nextBig {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: 56px;
+  margin-top: 44px;
+  padding: 14px 22px;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
 }
-.pageWaiting {
-  background: transparent;
-  border-style: dashed;
-  border-color: var(--border-strong);
+.nextBig:hover {
+  background: var(--accent-hover);
+  color: #fff;
+}
+.nextLabel {
+  font-size: 17px;
+  font-weight: 600;
+}
+.nextBig strong {
+  font-size: 21px;
+  font-weight: 600;
+}
+:global(html[data-reader-theme="night"]) .nextBig {
+  color: var(--paper);
+}
+.waiting {
+  margin-top: 44px;
+}
+.waitingHead {
+  margin: 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+.waiting > div {
+  margin-top: 10px;
 }

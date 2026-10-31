@@ -31,14 +31,31 @@ function writeState(v: "joined" | { until: number }) {
 // gentle reminder, by the policy: never on a first visit; only after real
 // reading (a second visit, or reaching the end of the page after 30 seconds);
 // "Not now" quiets it for 30 days; joining quiets it for good.
-export default function LetterInvite({ variant, source }: { variant: "inline" | "bar"; source: string }) {
+// "title" and "lede" change the inline wording (e.g. "Tell me when it's
+// ready" under an unfinished book); "joinedNote" is shown instead of nothing
+// to a reader who already gets the letter.
+export default function LetterInvite({
+  variant,
+  source,
+  title,
+  lede,
+  joinedNote,
+}: {
+  variant: "inline" | "bar";
+  source: string;
+  title?: string;
+  lede?: string;
+  joinedNote?: string;
+}) {
   const [show, setShow] = useState(variant === "inline");
   const [hidden, setHidden] = useState(false);
+  const [joined, setJoined] = useState(false);
 
   useEffect(() => {
     const s = readState();
     if (s.joined) {
       setHidden(true);
+      setJoined(true);
       return;
     }
     if (variant === "inline") return;
@@ -74,6 +91,13 @@ export default function LetterInvite({ variant, source }: { variant: "inline" | 
     return cleanup;
   }, [variant]);
 
+  if (joined && joinedNote && variant === "inline") {
+    return (
+      <div className={li.inline}>
+        <p className={li.done}>{joinedNote}</p>
+      </div>
+    );
+  }
   if (hidden || !show) return null;
 
   function notNow() {
@@ -95,18 +119,22 @@ export default function LetterInvite({ variant, source }: { variant: "inline" | 
   }
   return (
     <div className={li.inline}>
-      <LetterForm source={source} onJoined={() => writeState("joined")} />
+      <LetterForm source={source} title={title} lede={lede} onJoined={() => writeState("joined")} />
     </div>
   );
 }
 
 function LetterForm({
   source,
+  title,
+  lede,
   compact = false,
   onJoined,
   onNotNow,
 }: {
   source: string;
+  title?: string;
+  lede?: string;
   compact?: boolean;
   onJoined: () => void;
   onNotNow?: () => void;
@@ -150,10 +178,10 @@ function LetterForm({
         strategy="afterInteractive"
         onLoad={renderWidget}
       />
-      <p className={li.title}>{compact ? "Enjoying the Courtyard?" : "The weekly letter"}</p>
+      <p className={li.title}>{title ?? (compact ? "Enjoying the Courtyard?" : "The weekly letter")}</p>
       <p className={li.lede}>
-        One email after each gathering, with the pieces that joined that week. No account, nothing else, and one tap to
-        stop.
+        {lede ??
+          "One email after each gathering, with the pieces that joined that week. No account, nothing else, and one tap to stop."}
       </p>
       <input type="hidden" name="source" value={source} />
       <label className={li.honeypot} aria-hidden="true">

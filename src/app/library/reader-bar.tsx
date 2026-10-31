@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { findBookmark, removeBookmark, saveBookmark } from "./bookmarks";
+import { findBookmark, lastPosition, removeBookmark, saveBookmark, savePosition, sendPosition } from "./bookmarks";
 import {
   READER_DEFAULT_SIZE,
   READER_LARGE_FROM,
@@ -63,9 +63,20 @@ function SpacingIcon({ gap }: { gap: number }) {
 }
 const SPACING_GAPS: Record<ReaderSpacing, number> = { compact: 4, normal: 6, wide: 9 };
 
+// The paragraph at the top of the screen, just under the reading bar.
+function paragraphAtTop(textId: string, bar: HTMLElement | null) {
+  const text = document.getElementById(textId);
+  const barBottom = bar?.getBoundingClientRect().bottom ?? 0;
+  if (!text) return null;
+  const items = Array.from(text.children) as HTMLElement[];
+  const index = items.findIndex((p) => p.getBoundingClientRect().bottom > barBottom + 1);
+  return index < 0 ? null : { el: items[index], index, barBottom };
+}
+
 type Props = {
   textId: string; // the <article> holding the chapter's paragraphs
   work: string;
+  book: string; // the book's title
   path: string;
   title: string;
 };
@@ -76,7 +87,7 @@ type Props = {
 // the paragraph being read where it was. Choices are remembered in this
 // browser; the inline script in the chapter page applies them before first
 // paint, so the page never jumps.
-export default function ReaderBar({ textId, work, path, title }: Props) {
+export default function ReaderBar({ textId, work, book, path, title }: Props) {
   const [settings, setSettings] = useState<Settings>({
     size: READER_DEFAULT_SIZE,
     bold: false,
@@ -104,16 +115,63 @@ export default function ReaderBar({ textId, work, path, title }: Props) {
     apply(s);
     setSaved(!!findBookmark(path));
 
-    // Opened from "Continue where you left off": go to the saved paragraph.
+    // Opened from "Continue reading": go to the saved paragraph. Fonts and the
+    // chapter picture arrive a moment later and push the text down, so go
+    // there again as they land, until the reader scrolls on their own.
     const m = /^#p-(\d+)$/.exec(window.location.hash);
-    const target = m ? document.getElementById(textId)?.children[Number(m[1]) - 1] : null;
-    if (target) {
+    const target = m ? (document.getElementById(textId)?.children[Number(m[1]) - 1] as HTMLElement | undefined) : null;
+    let userMoved = false;
+    const stop = () => (userMoved = true);
+    const goToTarget = () => {
+      if (!target || userMoved) return;
       const bar = barRef.current?.getBoundingClientRect().height ?? 0;
       window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - bar - 8 });
+    };
+    if (target) {
+      goToTarget();
+      for (const e of ["touchstart", "wheel", "keydown", "mousedown"]) window.addEventListener(e, stop, { once: true, passive: true });
+      document.fonts?.ready.then(goToTarget);
+      window.addEventListener("load", goToTarget);
+      document.querySelectorAll("#reader img").forEach((img) => img.addEventListener("load", goToTarget));
     }
+
+    // Where the reader is, saved every few seconds and when the app is
+    // closed. The paragraph only moves on when they scroll, so opening a
+    // half-read chapter from the list keeps the place they had.
+    const existing = lastPosition(work);
+    let para = target ? Number(m![1]) - 1 : existing?.path === path ? existing.para : 0;
+    let sentAt = 0;
+    const record = (leaving = false) => {
+      const place = { path, work, title, book, para, at: Date.now() };
+      savePosition(place);
+      if (leaving || Date.now() - sentAt > 20_000) {
+        sentAt = Date.now();
+        sendPosition(place, leaving);
+      }
+    };
+    record();
+    const watch = window.setInterval(() => {
+      const text = document.getElementById(textId);
+      if (!text || document.visibilityState !== "visible") return;
+      const barBottom = barRef.current?.getBoundingClientRect().bottom ?? 0;
+      const now = text.getBoundingClientRect().top < barBottom ? (paragraphAtTop(textId, barRef.current)?.index ?? para) : 0;
+      if (now !== para) {
+        para = now;
+        record();
+      }
+    }, 3000);
+    const onHide = () => document.visibilityState === "hidden" && record(true);
+    const onLeave = () => record(true);
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", onLeave);
 
     // Leaving the reader restores the site's normal look.
     return () => {
+      window.clearInterval(watch);
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", onLeave);
+      for (const e of ["touchstart", "wheel", "keydown", "mousedown"]) window.removeEventListener(e, stop);
+      window.removeEventListener("load", goToTarget);
       const root = document.documentElement;
       delete root.dataset.readerTheme;
       delete root.dataset.readerBold;
@@ -122,7 +180,7 @@ export default function ReaderBar({ textId, work, path, title }: Props) {
       root.style.removeProperty("--reader-leading");
       window.clearTimeout(toastTimer.current);
     };
-  }, [path, textId]);
+  }, [path, textId, work, title, book]);
 
   useEffect(() => {
     if (!open) return;
@@ -138,16 +196,6 @@ export default function ReaderBar({ textId, work, path, title }: Props) {
     };
   }, [open]);
 
-  // The paragraph at the top of the screen, just under the bar.
-  function paragraphAtTop() {
-    const text = document.getElementById(textId);
-    const barBottom = barRef.current?.getBoundingClientRect().bottom ?? 0;
-    if (!text) return null;
-    const items = Array.from(text.children) as HTMLElement[];
-    const index = items.findIndex((p) => p.getBoundingClientRect().bottom > barBottom + 1);
-    return index < 0 ? null : { el: items[index], index, barBottom };
-  }
-
   function show(message: string) {
     setToast(message);
     window.clearTimeout(toastTimer.current);
@@ -160,7 +208,7 @@ export default function ReaderBar({ textId, work, path, title }: Props) {
     // scroll so that same spot sits under the bar again.
     const text = document.getElementById(textId);
     const reading = text && text.getBoundingClientRect().top < (barRef.current?.getBoundingClientRect().bottom ?? 0);
-    const top = reading ? paragraphAtTop() : null;
+    const top = reading ? paragraphAtTop(textId, barRef.current) : null;
     let into = 0;
     if (top) {
       const r = top.el.getBoundingClientRect();
@@ -187,7 +235,7 @@ export default function ReaderBar({ textId, work, path, title }: Props) {
       setSaved(false);
       show("દૂર કર્યું");
     } else {
-      saveBookmark({ path, work, title, para: paragraphAtTop()?.index ?? 0, at: Date.now() });
+      saveBookmark({ path, work, title, book, para: paragraphAtTop(textId, barRef.current)?.index ?? 0, at: Date.now() });
       setSaved(true);
       show("સાચવ્યું");
     }
