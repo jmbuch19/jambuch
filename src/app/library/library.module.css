@@ -602,6 +602,64 @@
 .guarded img {
   pointer-events: none;
 }
+/* The kind message shown when a copy/save attempt is blocked. */
+.guardToastWrap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--gutter);
+  pointer-events: none;
+}
+.guardToast {
+  position: relative;
+  pointer-events: auto;
+  max-width: 520px;
+  padding: 14px 44px 14px 18px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 0 10px 30px rgba(27, 31, 30, 0.25);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  animation: guardIn 0.18s ease-out;
+}
+.guardToast p {
+  margin: 0;
+}
+.guardToast p + p {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--on-dark-muted);
+}
+.guardToast button {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--on-dark-muted);
+  font-size: 20px;
+  cursor: pointer;
+}
+@keyframes guardIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .guardToast {
+    animation: none;
+  }
+}
+
 /* Printing (or "Save as PDF") gives only a pointer to the online chapter. */
 .printNote {
   display: none;

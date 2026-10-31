@@ -1,9 +1,24 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { readerId } from "./reader-id";
+import l from "./library.module.css";
 
 type Kind = "copy" | "select_all" | "save" | "print" | "right_click" | "drag" | "screenshot_key";
+
+// What the reader sees when an attempt is blocked: kind, not scolding, and
+// always pointing to the link, which brings new readers to the whole chapter.
+const MESSAGES: Record<Kind, string> = {
+  copy: "This translation is here to be read, not copied. To share it, use Share: it sends the link.",
+  select_all: "This translation is here to be read, not copied. To share it, use Share: it sends the link.",
+  save: "Saving the page isn’t available. The chapter stays here for you to read any time.",
+  print: "Printing isn’t available. The chapter stays here for you to read any time.",
+  right_click: "Long-press and right-click are off on this page, to protect the translator’s work. To share it, use Share.",
+  drag: "Long-press and right-click are off on this page, to protect the translator’s work. To share it, use Share.",
+  screenshot_key: "Please share the link rather than a screenshot, so others can read the whole chapter.",
+};
+const MESSAGE_GU = "આ અનુવાદ અહીં વાંચવા માટે છે. કૃપા કરીને લિંક શેર કરો.";
+const SHOW_MS = 4_500;
 
 const SHORTCUTS: Record<string, Kind> = { c: "copy", x: "copy", a: "select_all", s: "save", p: "print" };
 const SEND_AFTER_MS = 3_000; // gather a burst of attempts into one note
@@ -14,6 +29,15 @@ const SEND_AFTER_MS = 3_000; // gather a burst of attempts into one note
 // determined person with developer tools. Members' downloads come later
 // through their own signed, watermarked links.
 export default function ReadingGuard({ targetId, chapterId }: { targetId: string; chapterId: string }) {
+  const [message, setMessage] = useState<string | null>(null);
+
+  // One message at a time; a new attempt replaces it and restarts the timer.
+  useEffect(() => {
+    if (!message) return;
+    const t = setTimeout(() => setMessage(null), SHOW_MS);
+    return () => clearTimeout(t);
+  }, [message]);
+
   useEffect(() => {
     const area = document.getElementById(targetId);
     if (!area) return;
@@ -37,6 +61,7 @@ export default function ReadingGuard({ targetId, chapterId }: { targetId: string
       }
     }
     function note(kind: Kind) {
+      setMessage(MESSAGES[kind]);
       if (!counting) return;
       pending.set(kind, (pending.get(kind) ?? 0) + 1);
       timer ??= setTimeout(() => send(), SEND_AFTER_MS);
@@ -109,5 +134,19 @@ export default function ReadingGuard({ targetId, chapterId }: { targetId: string
     };
   }, [targetId, chapterId]);
 
-  return null;
+  return (
+    <div className={l.guardToastWrap} aria-live="polite" role="status">
+      {message && (
+        <div className={l.guardToast}>
+          <p>{message}</p>
+          <p className="gu" lang="gu">
+            {MESSAGE_GU}
+          </p>
+          <button type="button" onClick={() => setMessage(null)} aria-label="Close">
+            ×
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
