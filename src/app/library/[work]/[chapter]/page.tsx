@@ -8,7 +8,8 @@ import LibraryHeader from "../../header";
 import ReadTracker from "../../read-tracker";
 import ReadingGuard from "../../reading-guard";
 import { READER_BOOT_SCRIPT } from "../../reader-settings";
-import ReaderText from "../../reader-text";
+import ReaderBar from "../../reader-bar";
+import ShareButton from "../../share-button";
 import LetterInvite from "../../../letter-invite";
 import l from "../../library.module.css";
 
@@ -59,6 +60,7 @@ export default async function ChapterPage({ params }: Props) {
       </div>
 
       <main id="reader" className={`${l.reader} ${l.guarded}`}>
+        <ReaderBar textId="chapter-text" work={work.slug} path={entryPath(work.slug, chapter)} title={entryTitle(chapter)} />
         <ReadingGuard targetId="reader" chapterId={chapter.id} />
         <p className={l.printNote}>This chapter can be read online at jambuch.in{entryPath(work.slug, chapter)}</p>
         <p className={l.eyebrow}>
@@ -108,11 +110,11 @@ export default async function ChapterPage({ params }: Props) {
           </div>
         )}
 
-        <ReaderText>
+        <article id="chapter-text" className={`gu ${l.text}`} lang="gu">
           {paragraphs(chapter.body).map((b, i) =>
             b.kind === "quote" ? <blockquote key={i}>{inline(b.text)}</blockquote> : <p key={i}>{inline(b.text)}</p>,
           )}
-        </ReaderText>
+        </article>
         {/* Sits at the end of the text: reaching it after real reading counts as finished. */}
         <ReadTracker chapterId={chapter.id} minSeconds={Math.max(20, Math.round(readingSeconds(chapter.body) / 3))} />
 
@@ -147,6 +149,9 @@ export default async function ChapterPage({ params }: Props) {
             </div>
           )}
         </nav>
+        <div className={l.endShare}>
+          <ShareButton />
+        </div>
         {/* The weekly letter, offered only once the chapter is finished. */}
         <LetterInvite variant="inline" source="book chapter" />
         <p className={l.privacy}>
