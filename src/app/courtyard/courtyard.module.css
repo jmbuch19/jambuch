@@ -660,6 +660,33 @@
   opacity: 0.6;
   cursor: wait;
 }
+.oneMore {
+  padding: 8px 0;
+}
+.oneMore p {
+  margin: 0;
+}
+.oneMoreKicker {
+  color: var(--muted);
+  font-size: 15px;
+}
+.oneMore .oneMoreTitle {
+  margin: 6px 0 14px;
+  font-family: var(--font-heading);
+  font-size: clamp(24px, 4vw, 28px);
+  color: var(--ink);
+}
+.oneMore ol {
+  margin: 0 0 14px;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 15px;
+}
+.oneMore strong {
+  overflow-wrap: anywhere;
+}
 .done {
   padding: 28px 0;
   text-align: center;

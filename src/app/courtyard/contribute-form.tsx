@@ -23,6 +23,7 @@ export default function ContributeForm({ threads }: { threads: { id: string; lab
   const [threadFrom, setThreadFrom] = useState<string | null>(null);
   const threadLabel = threads.find((t) => t.id === threadFrom)?.label;
   const [sentKind, setSentKind] = useState<SubmissionKind>("single_piece");
+  const [sentTo, setSentTo] = useState("");
   const [fileError, setFileError] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
   const formTop = useRef<HTMLDivElement>(null);
@@ -92,6 +93,7 @@ export default function ContributeForm({ threads }: { threads: { id: string; lab
       data.delete("file");
     }
     setSentKind(kind);
+    setSentTo(String(data.get("email") ?? "").trim());
     startTransition(() => action(data));
   }
 
@@ -119,9 +121,23 @@ export default function ContributeForm({ threads }: { threads: { id: string; lab
 
       <div className={y.formCard}>
         {state.status === "sent" ? (
-          <div className={y.done} role="status">
-            <p>{DOORS.find((d) => d.kind === sentKind)!.thanks}</p>
-            <span>Check your email to confirm it’s you. I usually reply within a week.</span>
+          // Not done yet: it reaches Jaydeep only after the email link is clicked.
+          <div className={y.oneMore} role="status">
+            <p className={y.oneMoreKicker}>{DOORS.find((d) => d.kind === sentKind)!.thanks}</p>
+            <p className={y.oneMoreTitle}>One more step: check your email</p>
+            <ol>
+              <li>
+                I’ve sent a message to <strong>{sentTo || "your email"}</strong> titled{" "}
+                <em>“Please confirm what you sent to the Courtyard”</em>.
+              </li>
+              <li>
+                Open it and tap <strong>“Yes, I sent it”</strong>. Only then does your{" "}
+                {sentKind === "single_piece" ? "piece" : sentKind === "room_request" ? "request" : "suggestion"} reach me.
+              </li>
+            </ol>
+            <p className={y.small}>
+              The link works for 7 days. Not in your inbox? Check Spam or Promotions. I usually reply within a week.
+            </p>
           </div>
         ) : (
           <form onSubmit={onSubmit} className={y.form}>
@@ -282,6 +298,9 @@ export default function ContributeForm({ threads }: { threads: { id: string; lab
                 {fileError ?? state.message}
               </p>
             )}
+            <p className={y.small}>
+              After you send, I’ll email you a link to confirm it’s you. It reaches me only once you click it.
+            </p>
             <button type="submit" disabled={pending || preparing} className={y.send}>
               {preparing ? "Preparing photo…" : pending ? "Sending…" : door.send}
             </button>
