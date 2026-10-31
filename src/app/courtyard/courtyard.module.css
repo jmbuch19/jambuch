@@ -167,11 +167,88 @@
   color: var(--accent);
   font-weight: 500;
 }
+.finder {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 24px;
+}
+.search {
+  display: flex;
+  gap: 8px;
+}
+.search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 11px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 22px;
+  font-size: 15px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.search button {
+  flex: none;
+  padding: 0 18px;
+  border: none;
+  border-radius: 22px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+.filterLabel {
+  min-width: 52px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.filterSummary {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.seriesShelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+  gap: 16px;
+}
+.seriesCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  color: var(--ink);
+  text-decoration: none;
+}
+.seriesCard:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+.seriesCardTitle {
+  font-family: var(--font-heading);
+  font-size: 23px;
+  line-height: 1.25;
+}
+.seriesCardBy {
+  font-size: 14px;
+  color: var(--muted);
+}
+.seriesCardLatest {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
 .themeFilter {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
-  margin: 0 0 24px;
 }
 .themeFilter a {
   min-height: 36px;

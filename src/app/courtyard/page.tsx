@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Fragment } from "react";
 import { gatheringDay } from "@/lib/gathering";
-import { DOOR_HASH, REPLY_HASH, THEMES } from "@/lib/courtyard";
+import { DOOR_HASH, FORMS, REPLY_HASH, THEMES, kindLine } from "@/lib/courtyard";
 import { publicClient } from "@/lib/supabase";
 import { adminClient } from "@/lib/supabase-admin";
 import LibraryHeader from "../library/header";
@@ -59,6 +59,26 @@ async function seriesOf(pieces: Piece[]) {
   return map;
 }
 
+// Every series with at least one part on the thread, latest activity first.
+async function seriesList(pieces: Piece[]) {
+  const parts = new Map<string, Piece[]>();
+  for (const p of pieces) if (p.series_id) parts.set(p.series_id, [...(parts.get(p.series_id) ?? []), p]);
+  if (parts.size === 0) return [];
+  const { data } = await adminClient()
+    .from("courtyard_series")
+    .select("id, slug, title, name, form, themes, status")
+    .in("id", [...parts.keys()])
+    .in("status", ["active", "paused", "ended"])
+    .is("deleted_at", null);
+  return (data ?? [])
+    .map((s) => {
+      const own = parts.get(s.id) ?? [];
+      const last = own.reduce((a, b) => (a.gathering_at > b.gathering_at ? a : b));
+      return { ...s, parts: own.length, latest: last.title, latestAt: last.gathering_at };
+    })
+    .sort((a, b) => (a.latestAt < b.latestAt ? 1 : -1));
+}
+
 // The number for "Just send it on WhatsApp", set in Admin → Site text.
 async function whatsappNumber() {
   try {
@@ -113,14 +133,50 @@ const WHY = [
   },
 ];
 
-export default async function CourtyardPage({ searchParams }: { searchParams: Promise<{ theme?: string }> }) {
-  const { theme: rawTheme } = await searchParams;
-  const theme = THEMES.find((t) => t.value === rawTheme)?.value ?? null;
+type Filters = { theme: string | null; form: string | null; q: string };
+
+// A thread address with these filters (any left out are cleared).
+function filterHref(f: Filters) {
+  const params = new URLSearchParams();
+  if (f.form) params.set("form", f.form);
+  if (f.theme) params.set("theme", f.theme);
+  if (f.q) params.set("q", f.q);
+  const qs = params.toString();
+  return `/courtyard${qs ? `?${qs}` : ""}#thread`;
+}
+
+// Case- and accent-insensitive words, so "nostalgia" finds "Nostalgia" and
+// Gujarati text is matched as typed.
+const fold = (s: string) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+export default async function CourtyardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ theme?: string; form?: string; q?: string }>;
+}) {
+  const sp = await searchParams;
+  const filters: Filters = {
+    theme: THEMES.find((t) => t.value === sp.theme)?.value ?? null,
+    form: FORMS.find((f) => f.value === sp.form)?.value ?? null,
+    q: (sp.q ?? "").trim().slice(0, 80),
+  };
   const [allPieces, whatsapp] = await Promise.all([thread(), whatsappNumber()]);
-  const series = await seriesOf(allPieces);
-  // A theme filter narrows the thread but keeps its order: no rankings.
-  const pieces = theme ? allPieces.filter((p) => p.themes.includes(theme)) : allPieces;
+  const [series, seriesShelf] = await Promise.all([seriesOf(allPieces), seriesList(allPieces)]);
+
+  // Filters narrow the thread but keep its order: no rankings.
+  const words = fold(filters.q).split(/\s+/).filter(Boolean);
+  const pieces = allPieces.filter((p) => {
+    if (filters.theme && !p.themes.includes(filters.theme)) return false;
+    if (filters.form && p.form !== filters.form) return false;
+    if (words.length) {
+      const hay = fold([p.title, p.name, p.city, p.body, p.series_id ? series.get(p.series_id)?.title : ""].join(" "));
+      if (!words.every((w) => hay.includes(w))) return false;
+    }
+    return true;
+  });
+  const filtering = !!(filters.theme || filters.form || filters.q);
   const usedThemes = THEMES.filter((t) => allPieces.some((p) => p.themes.includes(t.value)));
+  const usedForms = FORMS.filter((f) => allPieces.some((p) => p.form === f.value));
   const byId = new Map(allPieces.map((p) => [p.id, p]));
   const threadLabel = (p: Piece) => `${p.name}’s “${p.title}”`;
 
@@ -182,6 +238,31 @@ export default async function CourtyardPage({ searchParams }: { searchParams: Pr
           </div>
         </section>
 
+        {seriesShelf.length > 0 && (
+          <section className={y.band} aria-labelledby="series">
+            <div className={y.bandInner}>
+              <h2 id="series" className={y.h2}>
+                Series
+              </h2>
+              <p className={y.sectionIntro}>One subject, part by part, from contributors who keep coming back.</p>
+              <div className={y.seriesShelf}>
+                {seriesShelf.map((s) => (
+                  <a key={s.slug} href={`/courtyard/series/${s.slug}`} className={y.seriesCard}>
+                    <span className={y.eyebrow}>{kindLine(s.form, s.themes)}</span>
+                    <span className={y.seriesCardTitle}>{s.title}</span>
+                    <span className={y.seriesCardBy}>
+                      by {s.name} · {s.parts} {s.parts === 1 ? "part" : "parts"}
+                      {s.status === "ended" ? " · complete" : ""}
+                    </span>
+                    {s.latest && <span className={y.seriesCardLatest}>Latest: {s.latest}</span>}
+                    <span className={y.doorGo}>Read the series →</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         <section className={`${y.band} ${y.bandAlt}`} aria-labelledby="thread">
           <div className={y.threadWrap}>
             <p className={`gu ${y.threadKicker}`}>વાતનો દોર</p>
@@ -192,24 +273,69 @@ export default async function CourtyardPage({ searchParams }: { searchParams: Pr
               Pieces in the order they were shared, like turns around the courtyard. Each one can answer the one before.
               No likes, no counts, no rankings.
             </p>
-            {usedThemes.length > 0 && (
-              <nav className={y.themeFilter} aria-label="Show pieces about">
-                <a href="/courtyard#thread" aria-current={theme ? undefined : "true"}>
-                  All
-                </a>
-                {usedThemes.map((t) => (
-                  <a
-                    key={t.value}
-                    href={`/courtyard?theme=${t.value}#thread`}
-                    aria-current={theme === t.value ? "true" : undefined}
-                  >
-                    {t.label}
-                  </a>
-                ))}
-              </nav>
+            {allPieces.length > 0 && (
+              <div className={y.finder}>
+                {/* A plain GET form: the search works without scripts and can be shared. */}
+                <form action="/courtyard" method="get" className={y.search} role="search">
+                  {filters.form && <input type="hidden" name="form" value={filters.form} />}
+                  {filters.theme && <input type="hidden" name="theme" value={filters.theme} />}
+                  <input
+                    type="search"
+                    name="q"
+                    defaultValue={filters.q}
+                    placeholder="Search titles, names, words…"
+                    aria-label="Search the thread"
+                    maxLength={80}
+                  />
+                  <button type="submit">Search</button>
+                </form>
+                {usedForms.length > 1 && (
+                  <nav className={y.themeFilter} aria-label="Show pieces of form">
+                    <span className={y.filterLabel}>Form</span>
+                    <a href={filterHref({ ...filters, form: null })} aria-current={filters.form ? undefined : "true"}>
+                      All
+                    </a>
+                    {usedForms.map((f) => (
+                      <a
+                        key={f.value}
+                        href={filterHref({ ...filters, form: f.value })}
+                        aria-current={filters.form === f.value ? "true" : undefined}
+                      >
+                        {f.label}
+                      </a>
+                    ))}
+                  </nav>
+                )}
+                {usedThemes.length > 0 && (
+                  <nav className={y.themeFilter} aria-label="Show pieces about">
+                    <span className={y.filterLabel}>About</span>
+                    <a href={filterHref({ ...filters, theme: null })} aria-current={filters.theme ? undefined : "true"}>
+                      All
+                    </a>
+                    {usedThemes.map((t) => (
+                      <a
+                        key={t.value}
+                        href={filterHref({ ...filters, theme: t.value })}
+                        aria-current={filters.theme === t.value ? "true" : undefined}
+                      >
+                        {t.label}
+                      </a>
+                    ))}
+                  </nav>
+                )}
+                {filtering && (
+                  <p className={y.filterSummary}>
+                    {pieces.length} {pieces.length === 1 ? "piece" : "pieces"}
+                    {filters.q && <> matching “{filters.q}”</>} ·{" "}
+                    <a href="/courtyard#thread">Show the whole thread</a>
+                  </p>
+                )}
+              </div>
             )}
             {pieces.length === 0 && (
-              <p className={y.empty}>{theme ? "Nothing on this theme yet." : "Nobody has begun the story yet."}</p>
+              <p className={y.empty}>
+                {filtering ? "Nothing matches that yet. Try another word, or show the whole thread." : "Nobody has begun the story yet."}
+              </p>
             )}
             <ol className={y.thread}>
               {pieces.map((p, i) => {
