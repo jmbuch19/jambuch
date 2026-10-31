@@ -28,7 +28,10 @@ import {
   declineSubmission,
   joinThreadNow,
   markReachedOut,
+  newContributorLink,
+  sendLetterNow,
   setGathering,
+  setLetterAuto,
   moveInvite,
   previewFile,
   publishSubmission,
@@ -103,6 +106,14 @@ export type SeriesRow = {
   followers: number; // confirmed followers
   last_part_at: string | null;
   created_at: string;
+};
+
+export type LetterInfo = {
+  auto: boolean;
+  confirmed: number;
+  pending: number;
+  history: { gathering_at: string; status: string; recipients: number; pieces: number }[];
+  next: { title: string; name: string; waiting: boolean }[];
 };
 
 type Draft = {
@@ -209,6 +220,7 @@ export default function CourtyardAdmin({
   invites,
   submissions,
   series,
+  letter,
   initialTab,
   limit,
   used,
@@ -220,7 +232,8 @@ export default function CourtyardAdmin({
   invites: InviteRow[];
   submissions: SubmissionRow[];
   series: SeriesRow[];
-  initialTab: "invites" | "requests" | "series";
+  letter: LetterInfo;
+  initialTab: "invites" | "requests" | "series" | "readers";
   limit: number;
   used: number;
   gathering: GatheringSetting;
@@ -241,6 +254,7 @@ export default function CourtyardAdmin({
   const [pending, start] = useTransition();
 
   const [editGathering, setEditGathering] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [copiedNote, setCopiedNote] = useState<string | null>(null);
   const nowIso = new Date().toISOString();
   // Approved pieces waiting for their gathering, grouped by when they join.
@@ -438,8 +452,20 @@ export default function CourtyardAdmin({
       return [
         s.status === "published" ? (
           <a key="v" className={c.action} href="/courtyard" target="_blank" rel="noopener noreferrer">
-            View on shelf
+            View on the thread
           </a>
+        ) : null,
+        s.status === "published" && s.kind === "single_piece" && !s.series_id ? (
+          <button
+            key="link"
+            type="button"
+            className={c.textLink}
+            disabled={pending}
+            title="Emails them a fresh personal link; the old one stops working"
+            onClick={() => run(() => newContributorLink(s.email))}
+          >
+            Send a fresh personal link
+          </button>
         ) : null,
         <DeleteDialog
           key="del"
@@ -601,7 +627,32 @@ export default function CourtyardAdmin({
         <button type="button" role="tab" aria-selected={tab === "series"} onClick={() => setTab("series")}>
           Series ({series.filter((s) => s.status === "active" || s.status === "paused").length})
         </button>
+        <button type="button" role="tab" aria-selected={tab === "readers"} onClick={() => setTab("readers")}>
+          Readers ({letter.confirmed})
+        </button>
       </div>
+
+      {tab === "readers" && (
+        <ReadersTab
+          letter={letter}
+          pending={pending}
+          nextGatheringAt={nextGatheringAt}
+          onAuto={(auto) => run(() => setLetterAuto(auto))}
+          onSendNow={() =>
+            start(async () => {
+              setError(null);
+              const res = await sendLetterNow();
+              if (!res.ok) setError(res.error);
+              else {
+                setError(null);
+                setNotice(res.message);
+                router.refresh();
+              }
+            })
+          }
+          notice={notice}
+        />
+      )}
 
       {tab === "series" && (
         <SeriesTab
@@ -867,6 +918,103 @@ export default function CourtyardAdmin({
             />
           )}
         </aside>
+      )}
+    </div>
+  );
+}
+
+// The weekly letter: who reads it, what the next one carries, what went out.
+function ReadersTab({
+  letter,
+  pending,
+  nextGatheringAt,
+  onAuto,
+  onSendNow,
+  notice,
+}: {
+  letter: LetterInfo;
+  pending: boolean;
+  nextGatheringAt: string;
+  onAuto: (auto: boolean) => void;
+  onSendNow: () => void;
+  notice: string | null;
+}) {
+  return (
+    <div className={c.readers}>
+      <div className={c.cards}>
+        <div className={c.card}>
+          <p>Readers</p>
+          <strong>{letter.confirmed}</strong>
+          <span className={c.meta}>{letter.pending} still to confirm</span>
+        </div>
+        <div className={c.card}>
+          <p>Next letter</p>
+          <strong className={c.gatheringWhen}>{gatheringShort(nextGatheringAt)}</strong>
+          <span className={c.meta}>{letter.next.length} {letter.next.length === 1 ? "piece" : "pieces"} so far</span>
+        </div>
+        <div className={c.card}>
+          <p>Sending</p>
+          <label className={c.autoToggle}>
+            <input type="checkbox" checked={letter.auto} disabled={pending} onChange={(e) => onAuto(e.target.checked)} />
+            Send automatically after each gathering
+          </label>
+        </div>
+      </div>
+      {notice && <p className={a.notice}>{notice}</p>}
+
+      <section className={c.queue}>
+        <h2>What the next letter will carry</h2>
+        {letter.next.length === 0 ? (
+          <p className={c.meta}>Nothing yet. A letter is never sent empty.</p>
+        ) : (
+          <ul>
+            {letter.next.map((p, i) => (
+              <li key={i}>
+                <div>
+                  <strong>{p.title}</strong> <span className={c.meta}>by {p.name}</span>
+                </div>
+                <span className={c.meta}>{p.waiting ? "joins at the gathering" : "on the thread"}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className={c.actions} style={{ marginTop: 12 }}>
+          <button type="button" className={c.primary} disabled={pending || letter.next.every((p) => p.waiting)} onClick={onSendNow}>
+            Send this week’s letter now
+          </button>
+          {/* A file download (CSV), not a page, so a plain link. */}
+          <a className={c.action} href="/admin/courtyard/readers" download>
+            Download readers (CSV)
+          </a>
+        </div>
+        <p className={c.meta}>
+          “Send now” sends what’s already on the thread; pieces still waiting for the gathering go in the next one.
+        </p>
+      </section>
+
+      {letter.history.length > 0 && (
+        <div className={c.tableWrap} style={{ marginTop: 16, borderTop: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
+          <table className={c.table} style={{ minWidth: 0 }}>
+            <thead>
+              <tr>
+                <th>Gathering</th>
+                <th>Letter</th>
+                <th>Pieces</th>
+                <th>Sent to</th>
+              </tr>
+            </thead>
+            <tbody>
+              {letter.history.map((l) => (
+                <tr key={l.gathering_at}>
+                  <td>{gatheringShort(l.gathering_at)}</td>
+                  <td>{l.status === "sent" ? "Sent" : l.status === "skipped" ? "Nothing new, not sent" : "Sending…"}</td>
+                  <td>{l.pieces || "—"}</td>
+                  <td>{l.status === "sent" ? `${l.recipients} readers` : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

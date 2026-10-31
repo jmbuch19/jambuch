@@ -6,8 +6,9 @@ import { requireAdmin } from "@/lib/admin";
 import { sendEmail } from "@/lib/email";
 import { INVITE_DAYS, newInviteLink, ROOM_TERMS, type InviteStage } from "@/lib/invites";
 import { DEFAULT_GATHERING, nextGathering, parseGathering } from "@/lib/gathering";
+import { sendGatheringLetter } from "@/lib/letter";
 import { fileRef, publishPrivate, signedPrivateUrl } from "@/lib/r2";
-import { seriesAddUrl } from "@/lib/series";
+import { contributorUrl, seriesAddUrl } from "@/lib/series";
 
 // Courtyard admin: create, resend and revoke invites, move them between
 // stages, and handle requests. Every action checks the admin role, and row-
@@ -263,6 +264,10 @@ export async function publishSubmission(
       .eq("id", id);
     if (upd) throw new Error(upd.message);
 
+    // A first approved piece (outside a series) makes its sender a contributor,
+    // with a personal link to share more without the form's confirmation step.
+    if (!s.series_id) await welcomeContributor(db, id);
+
     // Approving a series' first part opens the series and sends the
     // contributor their personal "add the next part" link.
     if (s.series_id) {
@@ -334,6 +339,116 @@ export async function declineSubmission(id: string, reply: string, send: boolean
     if (upd) throw new Error(upd.message);
     revalidatePath("/admin/courtyard");
     return { ok: true, emailed };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+// ---------------------------------------------------------------- the weekly letter
+
+export async function setLetterAuto(auto: boolean): Promise<{ ok: true } | Failed> {
+  try {
+    const { db } = await requireAdmin();
+    const { error } = await db.from("settings").upsert({ key: "courtyard.letter", value: { auto } });
+    if (error) throw new Error(error.message);
+    revalidatePath("/admin/courtyard");
+    return { ok: true };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+// Sends this gathering's letter now (e.g. when auto-send is off).
+export async function sendLetterNow(): Promise<{ ok: true; message: string } | Failed> {
+  try {
+    const { db } = await requireAdmin();
+    const r = await sendGatheringLetter(db, await siteUrl(), { force: true });
+    revalidatePath("/admin/courtyard");
+    if (r.status === "sent") return { ok: true, message: `Sent to ${r.recipients} readers, with ${r.pieces} pieces.` };
+    if (r.status === "nothing") throw new Error("Nothing new has joined the thread since the last letter.");
+    if (r.status === "already") throw new Error("This gathering’s letter has already gone out.");
+    throw new Error("The letter couldn’t be sent just now.");
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+// ---------------------------------------------------------------- contributors
+
+async function welcomeContributor(db: Awaited<ReturnType<typeof requireAdmin>>["db"], submissionId: string) {
+  const { data: sub } = await db.from("courtyard_submissions").select("name, email, city").eq("id", submissionId).single();
+  if (!sub) return;
+  const email = String(sub.email).toLowerCase();
+  const { data: existing } = await db
+    .from("courtyard_contributors")
+    .select("id")
+    .eq("email", email)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (existing) return; // they already have their link
+  const { data: c, error } = await db
+    .from("courtyard_contributors")
+    .insert({ email, name: sub.name, city: sub.city, link_sent_at: new Date().toISOString() })
+    .select("id, name, link_version")
+    .single();
+  if (error || !c) {
+    console.error("contributor insert failed:", error?.message);
+    return;
+  }
+  await sendEmail({
+    from: "Jaydeep Buch <courtyard@jambuch.in>",
+    to: email,
+    replyTo: process.env.ADMIN_EMAIL,
+    subject: "Your personal link to share more in the Courtyard",
+    text: [
+      `Dear ${c.name.split(" ")[0]},`,
+      "",
+      "I’ve approved your piece. It joins the Courtyard at the next gathering, and you’ll get a note that evening.",
+      "",
+      "Whenever you have something new to share, use your personal link. It already knows your name and email, so there’s no form to fill again and nothing to confirm:",
+      contributorUrl(await siteUrl(), c),
+      "",
+      "Keep it to yourself: it sends work under your name. If you ever lose it, the Courtyard page has “Get your link again”.",
+      "",
+      "Warmly,",
+      "Jaydeep",
+    ].join("\n"),
+  });
+}
+
+// A fresh personal link for a contributor (the old one stops working).
+export async function newContributorLink(email: string): Promise<{ ok: true } | Failed> {
+  try {
+    const { db } = await requireAdmin();
+    const { data: cur } = await db
+      .from("courtyard_contributors")
+      .select("id, name, link_version")
+      .eq("email", email.toLowerCase())
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (!cur) throw new Error("They aren’t a contributor yet: approve one of their pieces first.");
+    const version = cur.link_version + 1;
+    const { error } = await db
+      .from("courtyard_contributors")
+      .update({ link_version: version, link_sent_at: new Date().toISOString() })
+      .eq("id", cur.id);
+    if (error) throw new Error(error.message);
+    const ok = await sendEmail({
+      from: "Jaydeep Buch <courtyard@jambuch.in>",
+      to: email,
+      replyTo: process.env.ADMIN_EMAIL,
+      subject: "A fresh personal link for the Courtyard",
+      text: [
+        `Dear ${cur.name.split(" ")[0]},`,
+        "",
+        "Here is a fresh personal link for sharing in the Courtyard. Your old link no longer works.",
+        contributorUrl(await siteUrl(), { id: cur.id, link_version: version }),
+        "",
+        "Jaydeep",
+      ].join("\n"),
+    });
+    if (!ok) throw new Error("The new link was made, but the email didn’t send. Try again.");
+    return { ok: true };
   } catch (err) {
     return fail(err);
   }

@@ -32,9 +32,11 @@ export type SeriesMode = {
 export default function ContributeForm({
   threads = [],
   series,
+  contributor,
 }: {
   threads?: { id: string; label: string }[];
   series?: SeriesMode;
+  contributor?: { token: string; name: string; city: string | null }; // personal "share more" link
 }) {
   const [state, action, pending] = useActionState<ContributeState, FormData>(submitContribution, { status: "idle" });
   const [kind, setKind] = useState<SubmissionKind>("single_piece");
@@ -127,7 +129,17 @@ export default function ContributeForm({
   const room = kind === "room_request";
   const suggestion = kind === "suggestion";
 
-  // A part through the personal link goes straight to Jaydeep.
+  // Through a personal link it goes straight to Jaydeep.
+  if (state.status === "sent" && state.direct && contributor) {
+    return (
+      <div className={y.formCard}>
+        <div className={y.done} role="status">
+          <p>Thank you — it’s with me.</p>
+          <span>I’ll read it, and once approved it joins the thread at the next gathering.</span>
+        </div>
+      </div>
+    );
+  }
   if (state.status === "sent" && state.direct && series) {
     return (
       <div className={y.formCard}>
@@ -143,7 +155,7 @@ export default function ContributeForm({
 
   return (
     <div ref={formTop} className={y.contributeInner}>
-      {!series && (
+      {!series && !contributor && (
         <div className={y.doorPills} role="tablist" aria-label="What would you like to send?">
           {DOORS.map((d) => (
             <button
@@ -189,6 +201,12 @@ export default function ContributeForm({
             />
             <input type="hidden" name="kind" value={kind} />
             {series && <input type="hidden" name="series_token" value={series.token} />}
+            {contributor && <input type="hidden" name="contributor_token" value={contributor.token} />}
+            {contributor && (
+              <p className={y.threadNote}>
+                Sharing as <strong>{contributor.name}</strong>
+              </p>
+            )}
             {series && (
               <p className={y.threadNote}>
                 Part {series.nextPart} of <strong>“{series.title}”</strong>, by {series.name}
@@ -219,7 +237,7 @@ export default function ContributeForm({
               </div>
             )}
 
-            {!series && (
+            {!series && !contributor && (
               <div className={y.row}>
                 <label className={y.field}>
                   Your name
@@ -246,7 +264,7 @@ export default function ContributeForm({
               {!suggestion && !series && (
                 <label className={y.field}>
                   City <small>optional, shown as “by you, City”</small>
-                  <input name="city" maxLength={120} autoComplete="address-level2" />
+                  <input name="city" maxLength={120} autoComplete="address-level2" defaultValue={contributor?.city ?? ""} />
                 </label>
               )}
             </div>
@@ -403,7 +421,7 @@ export default function ContributeForm({
                 {fileError ?? state.message}
               </p>
             )}
-            {!series && (
+            {!series && !contributor && (
               <p className={y.small}>
                 After you send, I’ll email you a link to confirm it’s you. It reaches me only once you click it.
               </p>

@@ -5,7 +5,9 @@ import { DOOR_HASH, FORMS, REPLY_HASH, THEMES, kindLine } from "@/lib/courtyard"
 import { publicClient } from "@/lib/supabase";
 import { adminClient } from "@/lib/supabase-admin";
 import LibraryHeader from "../library/header";
+import LetterInvite from "../letter-invite";
 import ContributeForm from "./contribute-form";
+import GetLinkForm from "./get-link-form";
 import PieceTurn, { PIECE_COLUMNS, type Piece } from "./piece-turn";
 import y from "./courtyard.module.css";
 
@@ -363,6 +365,7 @@ export default async function CourtyardPage({
             <a href={`#${DOOR_HASH.single_piece}`} className={y.yourTurn}>
               Your turn — add to the thread →
             </a>
+            {allPieces.length > 0 && <LetterInvite variant="inline" source="courtyard thread" />}
           </div>
         </section>
 
@@ -416,9 +419,11 @@ export default async function CourtyardPage({
                 <span className={y.whatsappGo}>WhatsApp {whatsapp.shown} →</span>
               </a>
             )}
-            <ContributeForm threads={pieces.map((p) => ({ id: p.id, label: threadLabel(p) }))} />
+            <ContributeForm threads={allPieces.map((p) => ({ id: p.id, label: threadLabel(p) }))} />
+            <GetLinkForm />
           </div>
         </section>
+        <LetterInvite variant="bar" source="courtyard" />
       </main>
     </>
   );

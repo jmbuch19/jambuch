@@ -14,7 +14,7 @@ import {
 } from "@/lib/courtyard";
 import { sendEmail } from "@/lib/email";
 import { deleteForever, fileRef, r2Problem, uploadPrivate } from "@/lib/r2";
-import { seriesForLink, seriesSlug } from "@/lib/series";
+import { contributorForLink, contributorUrl, seriesAddUrl, seriesForLink, seriesSlug } from "@/lib/series";
 import { adminClient } from "@/lib/supabase-admin";
 import { passesTurnstile } from "@/lib/turnstile";
 
@@ -101,10 +101,18 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
     return { status: "error", message: "This series link no longer works. Please ask Jaydeep for a fresh one." };
   }
 
-  const kind = series ? "single_piece" : (str("kind") as SubmissionKind);
+  // A returning contributor's personal "share more" link: same idea.
+  const contributorToken = series ? "" : str("contributor_token", 200);
+  const contributor = contributorToken ? await contributorForLink(contributorToken) : null;
+  if (contributorToken && !contributor) {
+    return { status: "error", message: "This link no longer works. Use “Get your link again” on the Courtyard page." };
+  }
+  const known = series ?? contributor; // name and email come from the link, and no confirmation is needed
+
+  const kind = series || contributor ? "single_piece" : (str("kind") as SubmissionKind);
   if (!KINDS.includes(kind)) return { status: "error", message: "Please choose what you’d like to send." };
-  const name = series ? series.name : str("name", 200);
-  const email = series ? series.email : str("email", 320).toLowerCase();
+  const name = known ? known.name : str("name", 200);
+  const email = known ? known.email : str("email", 320).toLowerCase();
   const pieceForm = str("form");
   const themes = [...new Set(form.getAll("themes").map(String))];
   if (!name) return { status: "error", message: "Please give your name." };
@@ -120,7 +128,7 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
     email,
     form: pieceForm,
     themes,
-    city: series ? series.city : str("city", 120) || null,
+    city: series ? series.city : str("city", 120) || contributor?.city || null,
   };
   let links: string[] = [];
   try {
@@ -297,10 +305,10 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
     row.series_id = created.id;
   }
 
-  // A series part through the personal link arrives confirmed.
+  // Through a personal link (series or contributor) it arrives confirmed.
   let token: string | null = null;
-  if (series) {
-    row.series_id = series.id;
+  if (series) row.series_id = series.id;
+  if (known) {
     row.status = "new";
     row.confirmed_at = new Date().toISOString();
   } else {
@@ -315,7 +323,7 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
     return { status: "error", message: "Something went wrong on my side. Please try again in a little while." };
   }
 
-  if (series) {
+  if (known) {
     await notifyAdmin({
       kind,
       name,
@@ -324,7 +332,8 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
       themes,
       title: row.title as string,
       creator_name: null,
-      seriesTitle: series.title,
+      seriesTitle: series?.title ?? (startSeries ? seriesTitle : null),
+      seriesFirst: !series && startSeries,
     });
     return { status: "sent", direct: true };
   }
@@ -361,6 +370,45 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
     // against the sender's daily limit.
     await undo(saved.id);
     return { status: "error", message: "I couldn’t send the confirmation email. Please check the address and try again." };
+  }
+  return { status: "sent" };
+}
+
+// "Shared here before? Get your link again." Always the same answer, so the
+// form never reveals who has contributed; the email goes only to the address
+// on record, at most once every 10 minutes.
+export async function resendMyLink(_prev: ContributeState, form: FormData): Promise<ContributeState> {
+  const email = String(form.get("email") ?? "").trim().toLowerCase().slice(0, 320);
+  if (String(form.get("website") ?? "")) return { status: "sent" };
+  if (!EMAIL_RE.test(email)) return { status: "error", message: "Please give a valid email address." };
+  if (!(await passesTurnstile(String(form.get("cf-turnstile-response") ?? ""), "getlink"))) {
+    return { status: "error", message: "The spam check didn’t go through. Please try again." };
+  }
+  const db = adminClient();
+  const [{ data: c }, { data: s }] = await Promise.all([
+    db.from("courtyard_contributors").select("id, name, link_version, link_sent_at").eq("email", email).is("deleted_at", null).maybeSingle(),
+    db
+      .from("courtyard_series")
+      .select("id, title, name, add_link_version")
+      .eq("email", email)
+      .eq("status", "active")
+      .is("deleted_at", null)
+      .maybeSingle(),
+  ]);
+  const recent = c?.link_sent_at && Date.now() - new Date(c.link_sent_at).getTime() < 10 * 60 * 1000;
+  if ((c || s) && !recent) {
+    const site = await siteUrl();
+    const lines = [`Dear ${(c?.name ?? s!.name).split(" ")[0]},`, "", "Here are your personal links for the Courtyard at jambuch.in:", ""];
+    if (c) lines.push("To share another piece:", contributorUrl(site, c), "");
+    if (s) lines.push(`To add the next part of “${s.title}”:`, seriesAddUrl(site, { id: s.id, add_link_version: s.add_link_version }), "");
+    lines.push("Keep them to yourself: they send work under your name.", "", "Jaydeep");
+    await sendEmail({
+      from: "Jaydeep Buch <courtyard@jambuch.in>",
+      to: email,
+      subject: "Your personal links for the Courtyard",
+      text: lines.join("\n"),
+    });
+    if (c) await db.from("courtyard_contributors").update({ link_sent_at: new Date().toISOString() }).eq("id", c.id);
   }
   return { status: "sent" };
 }

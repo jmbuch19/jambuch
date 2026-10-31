@@ -9,6 +9,7 @@ import ReadTracker from "../../read-tracker";
 import ReadingGuard from "../../reading-guard";
 import { READER_BOOT_SCRIPT } from "../../reader-settings";
 import ReaderText from "../../reader-text";
+import LetterInvite from "../../../letter-invite";
 import l from "../../library.module.css";
 
 export const revalidate = 60;
@@ -146,10 +147,13 @@ export default async function ChapterPage({ params }: Props) {
             </div>
           )}
         </nav>
+        {/* The weekly letter, offered only once the chapter is finished. */}
+        <LetterInvite variant="inline" source="book chapter" />
         <p className={l.privacy}>
           This library counts reading anonymously (chapters opened and finished) to learn what readers enjoy. No names,
           emails or locations are collected.
         </p>
+        <LetterInvite variant="bar" source="book chapter" />
       </main>
     </>
   );

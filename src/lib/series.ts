@@ -51,6 +51,35 @@ export async function seriesForLink(token: string) {
   };
 }
 
+// ---------------------------------------------------------------- contributors
+
+export type Contributor = { id: string; email: string; name: string; city: string | null; link_version: number };
+
+// A returning contributor's personal "share more" link.
+export function contributorUrl(site: string, c: { id: string; link_version: number }) {
+  return `${site}/courtyard/share/${makeLink("contrib-share", c.id, c.link_version)}`;
+}
+
+export async function contributorForLink(token: string): Promise<Contributor | null> {
+  const parts = linkId(token);
+  if (!parts) return null;
+  const { data } = await adminClient()
+    .from("courtyard_contributors")
+    .select("id, email, name, city, link_version")
+    .eq("id", parts.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!data || !linkValid("contrib-share", token, data.link_version)) return null;
+  return data as Contributor;
+}
+
+// ---------------------------------------------------------------- Sunday letter readers
+
+export const readerConfirmUrl = (site: string, id: string) =>
+  `${site}/courtyard/letter/confirm/${makeLink("reader-confirm", id)}`;
+export const readerStopUrl = (site: string, id: string) =>
+  `${site}/courtyard/letter/stop/${makeLink("reader-stop", id)}`;
+
 // Follow / unfollow links for a follower row.
 export const followConfirmUrl = (site: string, followerId: string) =>
   `${site}/courtyard/follow/${makeLink("series-follow", followerId)}`;

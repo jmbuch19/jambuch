@@ -4,6 +4,7 @@ import { kindLine } from "@/lib/courtyard";
 import { adminClient } from "@/lib/supabase-admin";
 import LibraryHeader from "../../../library/header";
 import PieceTurn, { PIECE_COLUMNS, type Piece } from "../../piece-turn";
+import LetterInvite from "../../../letter-invite";
 import FollowForm from "./follow-form";
 import y from "../../courtyard.module.css";
 
@@ -101,6 +102,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ slug: s
             </p>
           </div>
         </section>
+        <LetterInvite variant="bar" source="series page" />
       </main>
     </>
   );

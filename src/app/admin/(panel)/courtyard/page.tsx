@@ -11,7 +11,7 @@ export default async function CourtyardPage({ searchParams }: { searchParams: Pr
   const { tab } = await searchParams;
   const { db } = await requireAdmin();
 
-  const [invitesRes, subsRes, limitRes, gatheringRes, seriesRes, followersRes] = await Promise.all([
+  const [invitesRes, subsRes, limitRes, gatheringRes, seriesRes, followersRes, readersRes, lettersRes, letterRes] = await Promise.all([
     // Never select token_hash: link fingerprints stay on the server.
     db
       .from("courtyard_invites")
@@ -36,7 +36,40 @@ export default async function CourtyardPage({ searchParams }: { searchParams: Pr
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),
     db.from("courtyard_series_followers").select("series_id").not("confirmed_at", "is", null),
+    db.from("courtyard_readers").select("confirmed_at"),
+    db
+      .from("courtyard_letters")
+      .select("gathering_at, status, recipients, piece_ids, sent_at")
+      .order("gathering_at", { ascending: false })
+      .limit(8),
+    db.from("settings").select("value").eq("key", "courtyard.letter").maybeSingle(),
   ]);
+  const readers = readersRes.data ?? [];
+  // What the next letter will carry: pieces on the thread not yet in a
+  // letter, plus those approved and waiting for the gathering.
+  const nowIso = new Date().toISOString();
+  const { data: unsentRaw } = await db
+    .from("courtyard_submissions")
+    .select("title, name, gathering_at")
+    .eq("kind", "single_piece")
+    .eq("status", "published")
+    .eq("family_only", false)
+    .is("letter_sent_at", null)
+    .is("deleted_at", null)
+    .order("gathering_at", { ascending: true })
+    .limit(60);
+  const letter = {
+    auto: (letterRes.data?.value as { auto?: boolean } | null)?.auto !== false,
+    confirmed: readers.filter((r) => r.confirmed_at).length,
+    pending: readers.filter((r) => !r.confirmed_at).length,
+    history: (lettersRes.data ?? []).map((l) => ({
+      gathering_at: l.gathering_at as string,
+      status: l.status as string,
+      recipients: l.recipients as number,
+      pieces: (l.piece_ids as string[]).length,
+    })),
+    next: (unsentRaw ?? []).map((p) => ({ title: p.title as string, name: p.name as string, waiting: (p.gathering_at as string) > nowIso })),
+  };
   const gathering = parseGathering(gatheringRes.data?.value);
 
   const invites = (invitesRes.data ?? []) as InviteRow[];
@@ -87,7 +120,8 @@ export default async function CourtyardPage({ searchParams }: { searchParams: Pr
       invites={invites}
       submissions={submissions}
       series={series}
-      initialTab={tab === "requests" ? "requests" : tab === "series" ? "series" : "invites"}
+      letter={letter}
+      initialTab={tab === "requests" ? "requests" : tab === "series" ? "series" : tab === "readers" ? "readers" : "invites"}
       limit={limit}
       used={used}
       gathering={gathering}

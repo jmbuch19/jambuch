@@ -373,6 +373,22 @@ a.name:hover {
   border-radius: var(--radius-sm);
   padding: 10px 14px;
 }
+.readers {
+  margin-top: 16px;
+}
+.autoToggle {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.autoToggle input {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+}
 .seriesTag {
   margin: 4px 0 2px;
   font-size: 13px;
