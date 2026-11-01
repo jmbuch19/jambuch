@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { entryLabel, entryPath, sectionType } from "@/lib/book-sections";
+import { VOICE_KEYS, isVoice, type Track } from "@/lib/audio-voices";
 import { inline } from "@/lib/inline";
+import { adminClient } from "@/lib/supabase-admin";
 import { guNumber, lookupEntry, paragraphs, readingSeconds, type Chapter } from "@/lib/library";
 import LibraryHeader from "../../header";
 import ReadTracker from "../../read-tracker";
 import ReadingGuard from "../../reading-guard";
 import { READER_BOOT_SCRIPT } from "../../reader-settings";
+import ListenPlayer from "../../listen-player";
 import ReaderBar from "../../reader-bar";
 import ShareButton from "../../share-button";
 import InstallCard from "../../../install/install-card";
@@ -39,12 +42,38 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: `${found.chapter.title} · ${found.work.title_gu ?? found.work.title} · jambuch.in` };
 }
 
+// The chapter's recordings in the Azure voices. One made before the text last
+// changed (a different number of paragraphs) is left out rather than played
+// out of step with the page. If the lookup fails, the chapter still opens,
+// just without listening.
+async function chapterTracks(chapterId: string, paragraphCount: number): Promise<Track[]> {
+  let rows: { voice: string; url: string; paragraph_ms: number[]; duration_ms: number }[] = [];
+  try {
+    const { data } = await adminClient()
+      .from("chapter_audio")
+      .select("voice, url, paragraph_ms, duration_ms")
+      .eq("chapter_id", chapterId);
+    rows = data ?? [];
+  } catch (e) {
+    console.error("chapter audio lookup failed:", (e as Error).message);
+  }
+  return rows
+    .flatMap((r): Track[] =>
+      isVoice(r.voice) && r.paragraph_ms.length === paragraphCount
+        ? [{ voice: r.voice, url: r.url, paragraphMs: r.paragraph_ms, durationMs: r.duration_ms }]
+        : [],
+    )
+    .sort((a, b) => VOICE_KEYS.indexOf(a.voice) - VOICE_KEYS.indexOf(b.voice));
+}
+
 export default async function ChapterPage({ params }: Props) {
   const found = await load(params);
   if (!found) notFound();
   const { work, chapter, prev, next, upcoming } = found;
   const base = `/library/${work.slug}`;
   const section = sectionType(chapter.section);
+  const body = paragraphs(chapter.body);
+  const tracks = await chapterTracks(chapter.id, body.length);
 
   return (
     <>
@@ -63,6 +92,7 @@ export default async function ChapterPage({ params }: Props) {
       <main id="reader" className={`${l.reader} ${l.guarded}`}>
         <ReaderBar
           textId="chapter-text"
+          listen={!chapter.audio_url && tracks.length > 0}
           work={work.slug}
           book={work.title_gu ?? work.title}
           path={entryPath(work.slug, chapter)}
@@ -108,6 +138,16 @@ export default async function ChapterPage({ params }: Props) {
           </figure>
         )}
 
+        {/* Your own reading comes first; otherwise the chapter in the Azure voices. */}
+        {!chapter.audio_url && tracks.length > 0 && (
+          <ListenPlayer
+            tracks={tracks}
+            textId="chapter-text"
+            path={entryPath(work.slug, chapter)}
+            title={entryTitle(chapter)}
+            book={work.title_gu ?? work.title}
+          />
+        )}
         {chapter.audio_url && (
           <div className={l.audio}>
             <p>Read aloud by Jaydeep</p>
@@ -118,7 +158,7 @@ export default async function ChapterPage({ params }: Props) {
         )}
 
         <article id="chapter-text" className={`gu ${l.text}`} lang="gu">
-          {paragraphs(chapter.body).map((b, i) =>
+          {body.map((b, i) =>
             b.kind === "quote" ? (
               <blockquote key={i} id={`p-${i + 1}`}>
                 {inline(b.text)}

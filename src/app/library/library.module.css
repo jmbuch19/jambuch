@@ -453,7 +453,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   margin: 0 calc(-1 * var(--gutter)) 28px;
   padding: 6px max(var(--gutter), env(safe-area-inset-right, 0px)) 6px max(var(--gutter), env(safe-area-inset-left, 0px));
   background: var(--paper);
@@ -461,7 +461,7 @@
 }
 .barGroup {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 .barButton {
   display: inline-flex;
@@ -469,9 +469,9 @@
   align-items: center;
   justify-content: center;
   gap: 1px;
-  min-width: 52px;
+  min-width: 48px;
   min-height: 52px;
-  padding: 3px 6px;
+  padding: 3px 4px;
   border: 1px solid var(--border-strong);
   border-radius: 10px;
   background: var(--surface);
@@ -940,6 +940,149 @@ a.pageCard:hover {
   border-color: var(--accent);
   color: var(--ink);
 }
+/* "સાંભળો · Listen": the start button under the title, then a player fixed
+   to the bottom of the screen while listening. */
+.listenStart {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 64px;
+  margin: 28px 0 0;
+  padding: 10px 18px;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.listenStart small {
+  display: block;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.listenIcon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--paper);
+  font-size: 17px;
+}
+.player {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px max(var(--gutter), env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px))
+    max(var(--gutter), env(safe-area-inset-left, 0px));
+  background: var(--surface);
+  color: var(--ink);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -8px 24px rgba(27, 31, 30, 0.12);
+  font-family: var(--font-body);
+}
+.playerTrack,
+.playerControls {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.playerControls {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.playerTrack input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  accent-color: var(--accent);
+}
+.playerTime {
+  flex: none;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.playerButton {
+  min-width: 48px;
+  height: 48px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 24px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.playerButton small {
+  font-size: 11px;
+}
+.playerMain {
+  min-width: 64px;
+  height: 56px;
+  border: none;
+  border-radius: 28px;
+  background: var(--accent);
+  color: var(--paper);
+  font-size: 20px;
+}
+.voicePick {
+  display: flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 24px;
+  overflow: hidden;
+}
+.voicePick button {
+  min-height: 46px;
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 16px;
+  cursor: pointer;
+}
+.voicePick button[aria-checked="true"] {
+  background: var(--accent);
+  color: var(--paper);
+  font-weight: 600;
+}
+.playerButton:focus-visible,
+.voicePick button:focus-visible,
+.listenStart:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+/* The paragraph being read aloud. */
+.text > .reading {
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 13%, transparent);
+  border-radius: 4px;
+}
+/* Room at the end of the page so the player never hides the last lines. */
+:global(html[data-listening]) .reader {
+  padding-bottom: 200px;
+}
+
 /* End of a chapter: one big, unmistakable step on (56px+ tall, full width). */
 .nextBig {
   display: flex;

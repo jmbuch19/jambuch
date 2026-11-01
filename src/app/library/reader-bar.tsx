@@ -75,6 +75,7 @@ function paragraphAtTop(textId: string, bar: HTMLElement | null) {
 
 type Props = {
   textId: string; // the <article> holding the chapter's paragraphs
+  listen?: boolean; // the chapter can be listened to (listen-player.tsx)
   work: string;
   book: string; // the book's title
   path: string;
@@ -87,7 +88,7 @@ type Props = {
 // the paragraph being read where it was. Choices are remembered in this
 // browser; the inline script in the chapter page applies them before first
 // paint, so the page never jumps.
-export default function ReaderBar({ textId, work, book, path, title }: Props) {
+export default function ReaderBar({ textId, listen = false, work, book, path, title }: Props) {
   const [settings, setSettings] = useState<Settings>({
     size: READER_DEFAULT_SIZE,
     bold: false,
@@ -97,6 +98,7 @@ export default function ReaderBar({ textId, work, book, path, title }: Props) {
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [listening, setListening] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
   const toastTimer = useRef<number>(undefined);
 
@@ -181,6 +183,13 @@ export default function ReaderBar({ textId, work, book, path, title }: Props) {
       window.clearTimeout(toastTimer.current);
     };
   }, [path, textId, work, title, book]);
+
+  useEffect(() => {
+    if (!listen) return;
+    const onState = (e: Event) => setListening((e as CustomEvent<{ playing: boolean }>).detail.playing);
+    window.addEventListener("jambuch:listen-state", onState);
+    return () => window.removeEventListener("jambuch:listen-state", onState);
+  }, [listen]);
 
   useEffect(() => {
     if (!open) return;
@@ -294,6 +303,30 @@ export default function ReaderBar({ textId, work, book, path, title }: Props) {
       </div>
 
       <div className={l.barGroup}>
+        {listen && (
+          <button
+            type="button"
+            className={l.barButton}
+            aria-pressed={listening}
+            onClick={() => window.dispatchEvent(new Event("jambuch:listen-toggle"))}
+            aria-label={listening ? "Pause listening · થોભો" : "Listen to this chapter · સાંભળો"}
+          >
+            <span className={l.barIcon} aria-hidden="true">
+              {listening ? (
+                "❚❚"
+              ) : (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 15v-3a8 8 0 0 1 16 0v3" />
+                  <rect x="3" y="14" width="5" height="7" rx="2" />
+                  <rect x="16" y="14" width="5" height="7" rx="2" />
+                </svg>
+              )}
+            </span>
+            <span className={`gu ${l.barCaption}`} aria-hidden="true">
+              {listening ? "થોભો" : "સાંભળો"}
+            </span>
+          </button>
+        )}
         <button
           type="button"
           className={`${l.barButton} ${l.saveButton}`}

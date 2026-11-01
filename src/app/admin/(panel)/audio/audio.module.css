@@ -1,0 +1,109 @@
+/* /admin/audio: which chapters are made in which voice. */
+
+.makeAll {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin: 20px 0 8px;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 16px;
+  font-size: 14px;
+}
+.bar {
+  flex: 1;
+  max-width: 420px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--row-line);
+}
+.bar i {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--accent);
+  transition: width 0.3s;
+}
+.book {
+  margin-top: 32px;
+}
+.book h2 {
+  margin: 0 0 12px;
+  font-size: 24px;
+}
+.current,
+.outdated,
+.none,
+.working {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.current {
+  color: var(--accent);
+  font-weight: 600;
+}
+.outdated {
+  color: #7a3e12;
+  font-weight: 600;
+}
+.none {
+  color: var(--muted);
+}
+.working {
+  color: var(--ink);
+}
+.listen {
+  font-weight: 400;
+  color: var(--accent);
+}
+.own {
+  margin-left: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #f6e7d6;
+  color: #7a3e12;
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+.lexicon {
+  width: 100%;
+  max-width: 560px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 18px;
+  line-height: 1.7;
+}
+.lexiconRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar i {
+    transition: none;
+  }
+}

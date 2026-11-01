@@ -135,3 +135,8 @@
     display: none;
   }
 }
+
+/* While a chapter is being listened to, the player owns the bottom of the screen. */
+:global(html[data-listening]) .barWrap {
+  display: none;
+}
