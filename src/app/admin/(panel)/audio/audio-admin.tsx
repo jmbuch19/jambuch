@@ -4,27 +4,26 @@ import { useMemo, useRef, useState } from "react";
 import { VOICES, type VoiceKey } from "@/lib/audio-voices";
 import a from "../../admin.module.css";
 import s from "./audio.module.css";
-import { saveLexicon } from "./actions";
+import { saveLexicon, saveVoiceChoice } from "./actions";
 
 type VoiceState = { state: "none" | "current" | "outdated"; durationMs: number | null; url: string | null };
-export type AudioBook = {
+type AudioChapter = {
   id: string;
+  label: string;
   title: string;
-  chapters: {
-    id: string;
-    label: string;
-    title: string;
-    characters: number;
-    ownRecording: boolean;
-    voices: Record<VoiceKey, VoiceState>;
-  }[];
+  characters: number;
+  ownRecording: boolean;
+  voiceOverride: VoiceKey | null; // null: the book's voice
+  voices: Record<VoiceKey, VoiceState>;
 };
+export type AudioBook = { id: string; title: string; voice: VoiceKey; chapters: AudioChapter[] };
 
 // Azure neural voices cost roughly this per million characters (pay-as-you-go
 // list price; the free account's credit pays for it first).
 const USD_PER_MILLION = 16;
 
 const minutes = (ms: number | null) => (ms ? `${Math.max(1, Math.round(ms / 60000))} min` : "");
+const chosen = (b: AudioBook, c: AudioChapter) => c.voiceOverride ?? b.voice;
 
 export default function AudioAdmin({
   books: initial,
@@ -40,36 +39,33 @@ export default function AudioAdmin({
   error: string | null;
 }) {
   const [books, setBooks] = useState(initial);
-  const [busy, setBusy] = useState<string | null>(null); // "chapterId:voice" being made
+  const [busy, setBusy] = useState<string | null>(null); // chapter being made
   const [progress, setProgress] = useState<{ done: number; total: number; failed: string[] } | null>(null);
   const stop = useRef(false);
   const [stopping, setStopping] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
   const [lexicon, setLexicon] = useState(initialLexicon);
   const [lexiconNote, setLexiconNote] = useState<string | null>(null);
 
-  // Everything still to make: missing or out of date, skipping chapters you recorded yourself.
+  // Still to make: each chapter in its chosen voice, if missing or out of
+  // date. Chapters you recorded yourself are skipped.
   const todo = useMemo(
     () =>
       books.flatMap((b) =>
         b.chapters
-          .filter((c) => !c.ownRecording)
-          .flatMap((c) => voices.filter((v) => c.voices[v].state !== "current").map((v) => ({ book: b, chapter: c, voice: v }))),
+          .filter((c) => !c.ownRecording && c.voices[chosen(b, c)].state !== "current")
+          .map((c) => ({ chapter: c, voice: chosen(b, c) })),
       ),
-    [books, voices],
+    [books],
   );
   const todoCharacters = todo.reduce((n, t) => n + t.chapter.characters, 0);
 
-  function mark(chapterId: string, voice: VoiceKey, v: VoiceState) {
-    setBooks((bs) =>
-      bs.map((b) => ({
-        ...b,
-        chapters: b.chapters.map((c) => (c.id === chapterId ? { ...c, voices: { ...c.voices, [voice]: v } } : c)),
-      })),
-    );
+  function update(fn: (b: AudioBook) => AudioBook) {
+    setBooks((bs) => bs.map(fn));
   }
 
   async function make(chapterId: string, voice: VoiceKey) {
-    setBusy(`${chapterId}:${voice}`);
+    setBusy(chapterId);
     try {
       const res = await fetch("/admin/audio/make", {
         method: "POST",
@@ -78,7 +74,14 @@ export default function AudioAdmin({
       });
       const out = await res.json().catch(() => ({ error: `The server answered ${res.status}.` }));
       if (!res.ok || out.error) throw new Error(out.error ?? `The server answered ${res.status}.`);
-      mark(chapterId, voice, { state: "current", durationMs: out.durationMs, url: out.url });
+      update((b) => ({
+        ...b,
+        chapters: b.chapters.map((c) =>
+          c.id === chapterId
+            ? { ...c, voices: { ...c.voices, [voice]: { state: "current", durationMs: out.durationMs, url: out.url } } }
+            : c,
+        ),
+      }));
       return null;
     } catch (e) {
       return (e as Error).message;
@@ -101,13 +104,23 @@ export default function AudioAdmin({
     }
   }
 
-  async function makeOne(chapterId: string) {
-    const failed: string[] = [];
-    for (const v of voices) {
-      const why = await make(chapterId, v);
-      if (why) failed.push(`${VOICES[v].en}: ${why}`);
-    }
-    if (failed.length) setProgress({ done: 0, total: 0, failed });
+  async function makeOne(chapterId: string, voice: VoiceKey) {
+    const why = await make(chapterId, voice);
+    if (why) setProgress({ done: 0, total: 0, failed: [why] });
+  }
+
+  async function setBookVoice(bookId: string, voice: VoiceKey) {
+    update((b) => (b.id === bookId ? { ...b, voice } : b));
+    const r = await saveVoiceChoice("book", bookId, voice);
+    setNote("error" in r ? r.error : null);
+  }
+
+  async function setChapterVoice(bookId: string, chapterId: string, voice: VoiceKey | null) {
+    update((b) =>
+      b.id === bookId ? { ...b, chapters: b.chapters.map((c) => (c.id === chapterId ? { ...c, voiceOverride: voice } : c)) } : b,
+    );
+    const r = await saveVoiceChoice("chapter", chapterId, voice);
+    setNote("error" in r ? r.error : null);
   }
 
   async function onSaveLexicon() {
@@ -123,11 +136,13 @@ export default function AudioAdmin({
     <>
       <h1 className={a.title}>Listening</h1>
       <p className={a.intro}>
-        Chapters read aloud by Azure’s Gujarati voices, {voices.map((v) => VOICES[v].en).join(" and ")}. Each chapter is
-        made once per voice and saved on media.jambuch.in; listeners play that file and never use Azure. Chapters with
-        your own recording keep it and are skipped by “Make all”.
+        Chapters read aloud by Azure’s Gujarati voices. Choose a voice for each book, and for any chapter that should
+        sound different; readers hear only that voice. Each chapter is made once and saved on media.jambuch.in;
+        listeners play that file and never use Azure. Chapters with your own recording keep it and are skipped by
+        “Make all”.
       </p>
       {error && <p className={a.error}>{error}</p>}
+      {note && <p className={a.error}>{note}</p>}
       {!azureReady && (
         <p className={a.error}>Azure isn’t set up here: add AZURE_SPEECH_KEY and AZURE_SPEECH_REGION in Vercel.</p>
       )}
@@ -136,8 +151,8 @@ export default function AudioAdmin({
         <div>
           <strong>
             {todo.length === 0
-              ? "Every chapter is made in every voice."
-              : `${todo.length} ${todo.length === 1 ? "recording" : "recordings"} to make`}
+              ? "Every chapter is made in its voice."
+              : `${todo.length} ${todo.length === 1 ? "chapter" : "chapters"} to make`}
           </strong>
           {todo.length > 0 && (
             <span className={a.mutedSmall}>
@@ -148,10 +163,14 @@ export default function AudioAdmin({
           )}
         </div>
         {running ? (
-          <button type="button" className={a.secondary} onClick={() => {
+          <button
+            type="button"
+            className={a.secondary}
+            onClick={() => {
               stop.current = true;
               setStopping(true);
-            }}>
+            }}
+          >
             Stop after this one
           </button>
         ) : (
@@ -185,61 +204,84 @@ export default function AudioAdmin({
 
       {books.map((b) => (
         <section key={b.id} className={s.book}>
-          <h2 className="gu">{b.title}</h2>
+          <div className={s.bookHead}>
+            <h2 className="gu">{b.title}</h2>
+            <label className={s.voiceSelect}>
+              Voice for this book
+              <select value={b.voice} onChange={(e) => setBookVoice(b.id, e.target.value as VoiceKey)} disabled={running}>
+                {voices.map((v) => (
+                  <option key={v} value={v}>
+                    {VOICES[v].en} · {VOICES[v].gu}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           <div className={a.tableWrap}>
             <table className={a.table}>
               <thead>
                 <tr>
                   <th>Chapter</th>
-                  {voices.map((v) => (
-                    <th key={v}>
-                      {VOICES[v].en} · <span className="gu">{VOICES[v].gu}</span>
-                    </th>
-                  ))}
+                  <th>Voice</th>
+                  <th>Recording</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
                 {b.chapters.map((c) => {
-                  const needs = voices.some((v) => c.voices[v].state !== "current");
+                  const v = chosen(b, c);
+                  const st = c.voices[v];
                   return (
                     <tr key={c.id}>
                       <td className="gu">
                         {c.label} {c.title}
                         {c.ownRecording && <span className={s.own}>Your recording</span>}
                       </td>
-                      {voices.map((v) => {
-                        const st = c.voices[v];
-                        const working = busy === `${c.id}:${v}`;
-                        return (
-                          <td key={v}>
-                            {working ? (
-                              <span className={s.working}>Making…</span>
-                            ) : st.state === "current" ? (
-                              <span className={s.current}>
-                                ✓ {minutes(st.durationMs)}
-                                {st.url && (
-                                  <a href={st.url} target="_blank" rel="noopener noreferrer" className={s.listen}>
-                                    Listen
-                                  </a>
-                                )}
-                              </span>
-                            ) : st.state === "outdated" ? (
-                              <span className={s.outdated}>Out of date</span>
-                            ) : (
-                              <span className={s.none}>Not made</span>
+                      <td>
+                        <label className={s.srOnly} htmlFor={`voice-${c.id}`}>
+                          Voice for {c.title}
+                        </label>
+                        <select
+                          id={`voice-${c.id}`}
+                          className={s.rowSelect}
+                          value={c.voiceOverride ?? ""}
+                          onChange={(e) => setChapterVoice(b.id, c.id, (e.target.value || null) as VoiceKey | null)}
+                          disabled={running}
+                        >
+                          <option value="">Book’s voice ({VOICES[b.voice].en})</option>
+                          {voices.map((x) => (
+                            <option key={x} value={x}>
+                              {VOICES[x].en} · {VOICES[x].gu}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        {busy === c.id ? (
+                          <span className={s.working}>Making…</span>
+                        ) : st.state === "current" ? (
+                          <span className={s.current}>
+                            ✓ {minutes(st.durationMs)}
+                            {st.url && (
+                              <a href={st.url} target="_blank" rel="noopener noreferrer" className={s.listen}>
+                                Listen
+                              </a>
                             )}
-                          </td>
-                        );
-                      })}
+                          </span>
+                        ) : st.state === "outdated" ? (
+                          <span className={s.outdated}>Out of date</span>
+                        ) : (
+                          <span className={s.none}>Not made</span>
+                        )}
+                      </td>
                       <td>
                         <button
                           type="button"
                           className={a.secondary}
-                          onClick={() => makeOne(c.id)}
+                          onClick={() => makeOne(c.id, v)}
                           disabled={!azureReady || !!busy || running}
                         >
-                          {needs ? "Make" : "Make again"}
+                          {st.state === "current" ? "Make again" : "Make"}
                         </button>
                       </td>
                     </tr>

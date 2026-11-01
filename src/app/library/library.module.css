@@ -1037,6 +1037,11 @@ a.pageCard:hover {
 .playerButton small {
   font-size: 11px;
 }
+.playerClose {
+  flex: none;
+  border-color: transparent;
+  color: var(--muted);
+}
 .playerMain {
   min-width: 64px;
   height: 56px;

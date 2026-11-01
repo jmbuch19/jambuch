@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { VOICES, type VoiceKey } from "./audio-voices";
+import { VOICES, isVoice, type VoiceKey } from "./audio-voices";
 import { entrySlug } from "./book-sections";
 import { guNumber, paragraphs } from "./library";
 import { deleteForever, fileRef, uploadPublic } from "./r2";
@@ -21,6 +21,23 @@ const PARAGRAPH_PAUSE = "700ms";
 const TITLE_PAUSE = "1000ms";
 const MAX_PIECE = 3000; // characters per request; long paragraphs are split at sentences
 const PARALLEL = 4;
+
+// Which voice reads what: a voice per book, and per chapter where Jaydeep
+// wants a different one. Kept in settings ("audio.voices").
+export type VoiceChoices = { books: Record<string, VoiceKey>; chapters: Record<string, VoiceKey> };
+export const DEFAULT_VOICE: VoiceKey = "niranjan";
+
+export async function loadVoiceChoices(db: SupabaseClient): Promise<VoiceChoices> {
+  const { data } = await db.from("settings").select("value").eq("key", "audio.voices").maybeSingle();
+  const v = (data?.value ?? {}) as Partial<VoiceChoices>;
+  const clean = (o: unknown) =>
+    Object.fromEntries(Object.entries((o ?? {}) as Record<string, unknown>).filter(([, x]) => isVoice(x))) as Record<string, VoiceKey>;
+  return { books: clean(v.books), chapters: clean(v.chapters) };
+}
+
+export function voiceFor(choices: VoiceChoices, workId: string, chapterId: string): VoiceKey {
+  return choices.chapters[chapterId] ?? choices.books[workId] ?? DEFAULT_VOICE;
+}
 
 export type LexiconEntry = { word: string; say: string };
 

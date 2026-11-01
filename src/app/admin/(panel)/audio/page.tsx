@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/admin";
-import { audioHash, azureReady, chapterScript, loadLexicon } from "@/lib/audio";
+import { DEFAULT_VOICE, audioHash, azureReady, chapterScript, loadLexicon, loadVoiceChoices } from "@/lib/audio";
 import { VOICE_KEYS, type VoiceKey } from "@/lib/audio-voices";
 import { bookOrder, entryLabel } from "@/lib/book-sections";
 import { guNumber } from "@/lib/library";
@@ -9,7 +9,7 @@ import AudioAdmin, { type AudioBook } from "./audio-admin";
 // and whether that audio still matches the text and pronunciation list.
 export default async function AudioPage() {
   const { db } = await requireAdmin();
-  const [worksRes, chaptersRes, audioRes, lexiconRes, lexicon] = await Promise.all([
+  const [worksRes, chaptersRes, audioRes, lexiconRes, lexicon, choices] = await Promise.all([
     db.from("works").select("id, slug, title, title_gu, readable").is("deleted_at", null).order("sort_order"),
     db
       .from("chapters")
@@ -20,6 +20,7 @@ export default async function AudioPage() {
     db.from("chapter_audio").select("chapter_id, voice, text_hash, duration_ms, characters, url"),
     db.from("settings").select("value").eq("key", "audio.lexicon").maybeSingle(),
     loadLexicon(db),
+    loadVoiceChoices(db),
   ]);
   const made = new Map((audioRes.data ?? []).map((r) => [`${r.chapter_id}:${r.voice}`, r]));
 
@@ -28,6 +29,7 @@ export default async function AudioPage() {
     .map((w) => ({
       id: w.id as string,
       title: (w.title_gu ?? w.title) as string,
+      voice: choices.books[w.id] ?? DEFAULT_VOICE,
       chapters: bookOrder((chaptersRes.data ?? []).filter((c) => c.work_id === w.id && c.body?.trim())).map((c) => {
         const script = chapterScript(c, lexicon);
         const voices = Object.fromEntries(
@@ -43,6 +45,7 @@ export default async function AudioPage() {
           title: c.title as string,
           characters: script.characters,
           ownRecording: !!c.audio_url,
+          voiceOverride: choices.chapters[c.id] ?? null,
           voices,
         };
       }),

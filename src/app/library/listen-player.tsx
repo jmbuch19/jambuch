@@ -51,6 +51,7 @@ export default function ListenPlayer({ tracks, textId, path, title, book }: Prop
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(tracks[0].durationMs / 1000);
   const current = useRef(-2);
+  const active = useRef(false); // the player is open; once closed, late audio events change nothing
   const lastHandScroll = useRef(0);
   const pendingSeek = useRef<number | null>(null);
 
@@ -66,6 +67,7 @@ export default function ListenPlayer({ tracks, textId, path, title, book }: Prop
   // Highlight the paragraph being read and keep it on screen.
   const follow = useCallback(
     (seconds: number) => {
+      if (!active.current) return;
       const i = paragraphAt(track, seconds * 1000);
       if (i === current.current) return;
       const items = document.getElementById(textId)?.children;
@@ -97,6 +99,7 @@ export default function ListenPlayer({ tracks, textId, path, title, book }: Prop
   function start() {
     const a = audio.current;
     if (!a) return;
+    active.current = true;
     setOpen(true);
     if (!a.currentSrc || a.currentTime === 0) {
       const saved = readJson<Record<string, number>>(PLACES_KEY, {})[path];
@@ -281,6 +284,7 @@ export default function ListenPlayer({ tracks, textId, path, title, book }: Prop
   }, [playing]);
 
   function close() {
+    active.current = false;
     audio.current?.pause();
     setOpen(false);
     const items = document.getElementById(textId)?.children;
@@ -326,6 +330,9 @@ export default function ListenPlayer({ tracks, textId, path, title, book }: Prop
               }}
             />
             <span className={l.playerTime}>{clock(duration)}</span>
+            <button type="button" className={`${l.playerButton} ${l.playerClose}`} onClick={close} aria-label="Close the player">
+              ✕
+            </button>
           </div>
           <div className={l.playerControls}>
             <button type="button" className={l.playerButton} onClick={() => skip(-15)} aria-label="Back 15 seconds">
@@ -358,9 +365,6 @@ export default function ListenPlayer({ tracks, textId, path, title, book }: Prop
                 ))}
               </div>
             )}
-            <button type="button" className={l.playerButton} onClick={close} aria-label="Close the player">
-              ✕
-            </button>
           </div>
         </div>
       )}

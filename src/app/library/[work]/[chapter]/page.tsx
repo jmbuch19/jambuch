@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { entryLabel, entryPath, sectionType } from "@/lib/book-sections";
-import { VOICE_KEYS, isVoice, type Track } from "@/lib/audio-voices";
+import { loadVoiceChoices, voiceFor } from "@/lib/audio";
+import { isVoice, type Track, type VoiceKey } from "@/lib/audio-voices";
 import { inline } from "@/lib/inline";
 import { adminClient } from "@/lib/supabase-admin";
 import { guNumber, lookupEntry, paragraphs, readingSeconds, type Chapter } from "@/lib/library";
@@ -44,26 +45,31 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 // The chapter's recordings in the Azure voices. One made before the text last
 // changed (a different number of paragraphs) is left out rather than played
-// out of step with the page. If the lookup fails, the chapter still opens,
-// just without listening.
-async function chapterTracks(chapterId: string, paragraphCount: number): Promise<Track[]> {
+// out of step with the page. Readers hear only the voice Jaydeep chose for
+// the chapter (or its book); if that one isn't made yet, another made voice
+// stands in. If the lookup fails, the chapter still opens, just without
+// listening.
+async function chapterTracks(workId: string, chapterId: string, paragraphCount: number): Promise<Track[]> {
   let rows: { voice: string; url: string; paragraph_ms: number[]; duration_ms: number }[] = [];
+  let voice: VoiceKey = "niranjan";
   try {
-    const { data } = await adminClient()
-      .from("chapter_audio")
-      .select("voice, url, paragraph_ms, duration_ms")
-      .eq("chapter_id", chapterId);
+    const db = adminClient();
+    const [{ data }, choices] = await Promise.all([
+      db.from("chapter_audio").select("voice, url, paragraph_ms, duration_ms").eq("chapter_id", chapterId),
+      loadVoiceChoices(db),
+    ]);
     rows = data ?? [];
+    voice = voiceFor(choices, workId, chapterId);
   } catch (e) {
     console.error("chapter audio lookup failed:", (e as Error).message);
   }
-  return rows
-    .flatMap((r): Track[] =>
-      isVoice(r.voice) && r.paragraph_ms.length === paragraphCount
-        ? [{ voice: r.voice, url: r.url, paragraphMs: r.paragraph_ms, durationMs: r.duration_ms }]
-        : [],
-    )
-    .sort((a, b) => VOICE_KEYS.indexOf(a.voice) - VOICE_KEYS.indexOf(b.voice));
+  const tracks = rows.flatMap((r): Track[] =>
+    isVoice(r.voice) && r.paragraph_ms.length === paragraphCount
+      ? [{ voice: r.voice, url: r.url, paragraphMs: r.paragraph_ms, durationMs: r.duration_ms }]
+      : [],
+  );
+  const pick = tracks.find((t) => t.voice === voice) ?? tracks[0];
+  return pick ? [pick] : [];
 }
 
 export default async function ChapterPage({ params }: Props) {
@@ -73,7 +79,7 @@ export default async function ChapterPage({ params }: Props) {
   const base = `/library/${work.slug}`;
   const section = sectionType(chapter.section);
   const body = paragraphs(chapter.body);
-  const tracks = await chapterTracks(chapter.id, body.length);
+  const tracks = await chapterTracks(work.id, chapter.id, body.length);
 
   return (
     <>

@@ -40,6 +40,30 @@
   margin: 0 0 12px;
   font-size: 24px;
 }
+.bookHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 20px;
+}
+.voiceSelect {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.voiceSelect select,
+.rowSelect {
+  min-height: 38px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+}
 .current,
 .outdated,
 .none,
