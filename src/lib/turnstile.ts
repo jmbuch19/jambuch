@@ -13,7 +13,14 @@ export async function passesTurnstile(token: string, action: string): Promise<bo
       .map((h) => h.trim())
       .filter(Boolean),
   );
-  if (!secret || hostnames.size === 0 || !token || token.length > 2048) return false;
+  if (!secret || hostnames.size === 0) {
+    console.warn("turnstile: TURNSTILE_SECRET_KEY or TURNSTILE_HOSTNAMES is not set");
+    return false;
+  }
+  if (!token || token.length > 2048) {
+    console.warn("turnstile: no usable token for", action, "(sent before the check finished, or the browser blocked it)");
+    return false;
+  }
 
   const h = await headers();
   const ip = h.get("cf-connecting-ip") ?? h.get("x-forwarded-for")?.split(",")[0];
@@ -26,10 +33,25 @@ export async function passesTurnstile(token: string, action: string): Promise<bo
       body,
       signal: AbortSignal.timeout(10_000),
     });
-    if (!res.ok) return false;
-    const data = (await res.json()) as { success?: boolean; action?: string; hostname?: string };
-    return data.success === true && data.action === action && hostnames.has(data.hostname ?? "");
-  } catch {
+    if (!res.ok) {
+      console.warn("turnstile: siteverify answered", res.status, "for", action);
+      return false;
+    }
+    const data = (await res.json()) as { success?: boolean; action?: string; hostname?: string; "error-codes"?: string[] };
+    const ok = data.success === true && data.action === action && hostnames.has(data.hostname ?? "");
+    // Why a check failed, so a visitor's "the spam check didn't go through" can be traced.
+    if (!ok) {
+      console.warn("turnstile failed:", {
+        form: action,
+        success: data.success,
+        errors: data["error-codes"],
+        tokenAction: data.action,
+        hostname: data.hostname,
+      });
+    }
+    return ok;
+  } catch (e) {
+    console.warn("turnstile: siteverify unreachable for", action, e instanceof Error ? e.message : e);
     return false;
   }
 }

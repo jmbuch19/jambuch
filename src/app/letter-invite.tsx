@@ -144,6 +144,9 @@ function LetterForm({
   const [changing, setChanging] = useState(false);
   const widgetEl = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
+  // The spam check runs in the background; the button waits for it, so a
+  // quick tap can't send the form before there is a token to check.
+  const [check, setCheck] = useState<"waiting" | "ready" | "blocked">("waiting");
 
   function renderWidget() {
     if (!window.turnstile || !widgetEl.current || widgetId.current !== null) return;
@@ -151,15 +154,27 @@ function LetterForm({
       sitekey: SITE_KEY,
       action: "letter",
       appearance: "interaction-only",
+      callback: () => setCheck("ready"),
+      "expired-callback": () => setCheck("waiting"),
+      "error-callback": () => setCheck("blocked"),
     });
   }
   useEffect(renderWidget, []);
+  // Still no answer after a while: most likely the browser blocks Cloudflare.
+  useEffect(() => {
+    if (check !== "waiting") return;
+    const t = setTimeout(() => setCheck((c) => (c === "waiting" ? "blocked" : c)), 20000);
+    return () => clearTimeout(t);
+  }, [check]);
   // The form came back after "Change it": its spam check needs a fresh widget.
   useEffect(() => {
     if (changing) renderWidget();
   }, [changing]);
   useEffect(() => {
-    if (state.status === "error" && widgetId.current !== null) window.turnstile?.reset(widgetId.current);
+    if (state.status === "error" && widgetId.current !== null) {
+      setCheck("waiting");
+      window.turnstile?.reset(widgetId.current);
+    }
     if (state.status === "sent") onJoined();
   }, [state, onJoined]);
 
@@ -183,6 +198,7 @@ function LetterForm({
               localStorage.removeItem(STATE_KEY);
             } catch {}
             widgetId.current = null;
+            setCheck("waiting");
             setChanging(true);
           }}
         >
@@ -198,6 +214,7 @@ function LetterForm({
         src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
         strategy="afterInteractive"
         onLoad={renderWidget}
+        onError={() => setCheck("blocked")}
       />
       <p className={li.title}>{title ?? (compact ? "Enjoying the Courtyard?" : "The weekly letter")}</p>
       <p className={li.lede}>
@@ -220,11 +237,17 @@ function LetterForm({
           placeholder="Your email"
           aria-label="Your email"
         />
-        <button type="submit" disabled={pending}>
-          {pending ? "Sending…" : "Send me the letter"}
+        <button type="submit" disabled={pending || check !== "ready"}>
+          {pending ? "Sending…" : check === "waiting" ? "Checking…" : "Send me the letter"}
         </button>
       </div>
       <div ref={widgetEl} />
+      {check === "blocked" && (
+        <p className={li.error} role="alert">
+          The spam check couldn’t run in this browser. An ad blocker or a strict privacy setting usually causes it:
+          allow jambuch.in, or open this page in Chrome or Safari, then reload.
+        </p>
+      )}
       {state.status === "error" && (
         <p className={li.error} role="alert">
           {state.message}

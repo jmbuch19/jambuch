@@ -10,7 +10,14 @@ declare global {
     turnstile?: {
       render: (
         el: HTMLElement,
-        opts: { sitekey: string; action?: string; appearance?: "always" | "execute" | "interaction-only" },
+        opts: {
+          sitekey: string;
+          action?: string;
+          appearance?: "always" | "execute" | "interaction-only";
+          callback?: (token: string) => void;
+          "error-callback"?: () => void;
+          "expired-callback"?: () => void;
+        },
       ) => string;
       reset: (id?: string) => void;
     };
