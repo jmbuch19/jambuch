@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { VOICES, isVoice, type VoiceKey } from "./audio-voices";
+import { VOICES, isVoice, type ProductionKey, type VoiceKey } from "./audio-voices";
 import { entrySlug } from "./book-sections";
 import { guNumber, paragraphs } from "./library";
 import { deleteForever, fileRef, uploadPublic } from "./r2";
@@ -219,4 +219,79 @@ export async function makeChapterAudio(db: SupabaseClient, chapterId: string, vo
     if (ref) await deleteForever(ref).catch(() => {});
   }
   return { url, durationMs: Math.round(at), characters: script.characters, hash };
+}
+
+// Audio plays are made outside the site (on Jaydeep's PC) and uploaded. They
+// follow the text itself, not a voice or the pronunciation list, so a change
+// to any paragraph marks them out of date.
+export function productionHash(body: string | null) {
+  return createHash("sha256")
+    .update(JSON.stringify(["production", paragraphs(body).map((b) => b.text)]))
+    .digest("hex")
+    .slice(0, 16);
+}
+
+export type ProductionTimings = { durationMs: number; paragraphMs: number[] };
+
+// Why these timings can't go with a chapter of `count` paragraphs, or null.
+export function timingsProblem(t: ProductionTimings, count: number): string | null {
+  const ms = t.paragraphMs;
+  if (!Number.isFinite(t.durationMs) || t.durationMs < 1000 || t.durationMs > 4 * 3600_000) {
+    return "The length in the timings file looks wrong.";
+  }
+  if (!Array.isArray(ms) || ms.length !== count) {
+    return `The timings are for ${Array.isArray(ms) ? ms.length : 0} paragraphs, but this chapter has ${count}. Was the text changed since the audio was made?`;
+  }
+  if (ms.some((x, i) => !Number.isInteger(x) || x < 0 || x >= t.durationMs || (i > 0 && x <= ms[i - 1]))) {
+    return "The paragraph times in the timings file are out of order.";
+  }
+  return null;
+}
+
+// Saves an uploaded production (the MP3 and where each paragraph starts) and
+// replaces any earlier one of the same kind. A new upload is never paused.
+export async function saveProduction(
+  db: SupabaseClient,
+  chapterId: string,
+  kind: ProductionKey,
+  mp3: Uint8Array,
+  t: ProductionTimings,
+) {
+  const { data: c, error } = await db
+    .from("chapters")
+    .select("id, number, section, legacy_number, title, body, works!inner(slug)")
+    .eq("id", chapterId)
+    .maybeSingle();
+  if (error || !c) throw new Error(error?.message ?? "Chapter not found.");
+  const work = (Array.isArray(c.works) ? c.works[0] : c.works) as { slug: string };
+  const body = paragraphs(c.body);
+  const problem = timingsProblem(t, body.length);
+  if (problem) throw new Error(problem);
+
+  const hash = productionHash(c.body);
+  // A new name for every upload: media.jambuch.in caches files for a year.
+  const key = `audio/${work.slug}/${entrySlug(c)}-${kind}-${hash}-${Date.now().toString(36)}.mp3`;
+  const url = await uploadPublic(key, mp3.buffer as ArrayBuffer, "audio/mpeg");
+
+  const { data: old } = await db.from("chapter_audio").select("url").eq("chapter_id", chapterId).eq("voice", kind).maybeSingle();
+  const { error: saveError } = await db.from("chapter_audio").upsert(
+    {
+      chapter_id: chapterId,
+      voice: kind,
+      url,
+      paragraph_ms: t.paragraphMs,
+      duration_ms: Math.round(t.durationMs),
+      text_hash: hash,
+      characters: body.reduce((n, b) => n + b.text.length, 0),
+      paused: false,
+      created_at: new Date().toISOString(),
+    },
+    { onConflict: "chapter_id,voice" },
+  );
+  if (saveError) throw new Error(saveError.message);
+  if (old?.url && old.url !== url) {
+    const ref = fileRef(old.url);
+    if (ref) await deleteForever(ref).catch(() => {});
+  }
+  return { url, durationMs: Math.round(t.durationMs) };
 }

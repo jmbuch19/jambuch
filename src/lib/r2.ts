@@ -117,6 +117,15 @@ export async function uploadPrivate(key: string, body: ArrayBuffer, contentType:
   return `${PRIVATE_PREFIX}${key}`;
 }
 
+// Reads a file from the private bucket (e.g. one piece of a large upload).
+export async function readPrivate(key: string) {
+  const { s, client } = r2();
+  if (!s.privateBucket) throw new Error("Can't read the file: R2_PRIVATE_BUCKET is not set.");
+  const res = await client.fetch(objectUrl(s.privateBucket, key));
+  if (!res.ok) throw new Error(`Couldn't read ${key} from R2 (${res.status}).`);
+  return new Uint8Array(await res.arrayBuffer());
+}
+
 // Publishing: moves a private file to the public bucket under the same key
 // and returns its media.jambuch.in link.
 export async function publishPrivate(f: FileRef) {

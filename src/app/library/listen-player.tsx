@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { VOICES, type Track, type VoiceKey } from "@/lib/audio-voices";
+import { trackLabel, type Track, type TrackKey } from "@/lib/audio-voices";
 import l from "./library.module.css";
 
 const VOICE_KEY = "listen-voice";
@@ -37,7 +37,8 @@ function paragraphAt(track: Track, ms: number) {
 
 type Props = { tracks: Track[]; textId: string; path: string; title: string; book: string };
 
-// "સાંભળો · Listen": the chapter read aloud, in the voice the reader picks.
+// "સાંભળો · Listen": the chapter read aloud, in the voice the reader picks
+// (or, for an audio play, with or without its music and sound effects).
 // While it plays, the paragraph being read is highlighted and the page
 // follows it; tapping a paragraph plays from there. Voice, speed and the
 // place in each chapter are remembered on this device. Lock-screen controls
@@ -46,7 +47,7 @@ export default function ListenPlayer({ tracks, textId, path, title, book }: Prop
   const audio = useRef<HTMLAudioElement>(null);
   const [open, setOpen] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [voice, setVoice] = useState<VoiceKey>(tracks[0].voice);
+  const [voice, setVoice] = useState<TrackKey>(tracks[0].voice);
   const [rate, setRate] = useState(1);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(tracks[0].durationMs / 1000);
@@ -59,7 +60,7 @@ export default function ListenPlayer({ tracks, textId, path, title, book }: Prop
 
   useEffect(() => {
     const v = localStorage.getItem(VOICE_KEY);
-    if (tracks.some((t) => t.voice === v)) setVoice(v as VoiceKey);
+    if (tracks.some((t) => t.voice === v)) setVoice(v as TrackKey);
     const r = Number(localStorage.getItem(RATE_KEY));
     if (RATES.includes(r)) setRate(r);
   }, [tracks]);
@@ -141,7 +142,7 @@ export default function ListenPlayer({ tracks, textId, path, title, book }: Prop
   }
 
   // Same place in the other voice: same paragraph, same share of it.
-  function switchVoice(v: VoiceKey) {
+  function switchVoice(v: TrackKey) {
     const a = audio.current;
     const to = tracks.find((t) => t.voice === v);
     if (!to || v === voice) return;
@@ -222,7 +223,7 @@ export default function ListenPlayer({ tracks, textId, path, title, book }: Prop
     if (!("mediaSession" in navigator)) return;
     navigator.mediaSession.metadata = new MediaMetadata({
       title,
-      artist: `${book} · ${VOICES[voice].gu}`,
+      artist: `${book} · ${trackLabel(voice).gu}`,
       album: "jambuch",
       artwork: [{ src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" }],
     });
@@ -303,7 +304,7 @@ export default function ListenPlayer({ tracks, textId, path, title, book }: Prop
         <span>
           <span className="gu">{playing ? "સાંભળો છો" : "સાંભળો"}</span> · {playing ? "Playing" : "Listen to this chapter"}
           <small>
-            {minutes} min · <span className="gu">{VOICES[voice].gu}</span>
+            {minutes} min · <span className="gu">{trackLabel(voice).gu}</span>
           </small>
         </span>
       </button>
@@ -360,7 +361,7 @@ export default function ListenPlayer({ tracks, textId, path, title, book }: Prop
                     className="gu"
                     onClick={() => switchVoice(t.voice)}
                   >
-                    {VOICES[t.voice].gu}
+                    {trackLabel(t.voice).gu}
                   </button>
                 ))}
               </div>

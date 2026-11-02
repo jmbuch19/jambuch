@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { entryLabel, entryPath, sectionType } from "@/lib/book-sections";
-import { loadVoiceChoices, voiceFor } from "@/lib/audio";
-import { isVoice, type Track, type VoiceKey } from "@/lib/audio-voices";
+import { loadVoiceChoices, productionHash, voiceFor } from "@/lib/audio";
+import { isProduction, isVoice, type Track, type TrackKey, type VoiceKey } from "@/lib/audio-voices";
 import { inline } from "@/lib/inline";
 import { adminClient } from "@/lib/supabase-admin";
 import { guNumber, lookupEntry, paragraphs, readingSeconds, type Chapter } from "@/lib/library";
@@ -43,19 +43,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: `${found.chapter.title} · ${found.work.title_gu ?? found.work.title} · jambuch.in` };
 }
 
-// The chapter's recordings in the Azure voices. One made before the text last
+// The chapter's recordings. An uploaded audio play comes first, with its
+// voice-only version as the other choice, unless it is paused or made for
+// different text. Otherwise the Azure voice: one made before the text last
 // changed (a different number of paragraphs) is left out rather than played
-// out of step with the page. Readers hear only the voice Jaydeep chose for
-// the chapter (or its book); if that one isn't made yet, another made voice
-// stands in. If the lookup fails, the chapter still opens, just without
+// out of step with the page, and readers hear only the voice Jaydeep chose
+// for the chapter (or its book); if that one isn't made yet, another made
+// voice stands in. If the lookup fails, the chapter still opens, just without
 // listening.
-async function chapterTracks(workId: string, chapterId: string, paragraphCount: number): Promise<Track[]> {
-  let rows: { voice: string; url: string; paragraph_ms: number[]; duration_ms: number }[] = [];
+async function chapterTracks(workId: string, chapterId: string, body: string | null, paragraphCount: number): Promise<Track[]> {
+  let rows: { voice: string; url: string; paragraph_ms: number[]; duration_ms: number; text_hash: string; paused: boolean }[] = [];
   let voice: VoiceKey = "niranjan";
   try {
     const db = adminClient();
     const [{ data }, choices] = await Promise.all([
-      db.from("chapter_audio").select("voice, url, paragraph_ms, duration_ms").eq("chapter_id", chapterId),
+      db.from("chapter_audio").select("voice, url, paragraph_ms, duration_ms, text_hash, paused").eq("chapter_id", chapterId),
       loadVoiceChoices(db),
     ]);
     rows = data ?? [];
@@ -63,11 +65,15 @@ async function chapterTracks(workId: string, chapterId: string, paragraphCount: 
   } catch (e) {
     console.error("chapter audio lookup failed:", (e as Error).message);
   }
-  const tracks = rows.flatMap((r): Track[] =>
-    isVoice(r.voice) && r.paragraph_ms.length === paragraphCount
-      ? [{ voice: r.voice, url: r.url, paragraphMs: r.paragraph_ms, durationMs: r.duration_ms }]
-      : [],
-  );
+  const usable = rows.filter((r) => r.paragraph_ms.length === paragraphCount);
+  const track = (r: (typeof rows)[number]): Track => ({ voice: r.voice as TrackKey, url: r.url, paragraphMs: r.paragraph_ms, durationMs: r.duration_ms });
+
+  const hash = productionHash(body);
+  const productions = usable.filter((r) => isProduction(r.voice) && !r.paused && r.text_hash === hash);
+  const play = productions.find((r) => r.voice === "play");
+  if (play) return [play, ...productions.filter((r) => r.voice === "spoken")].map(track);
+
+  const tracks = usable.filter((r) => isVoice(r.voice)).map(track);
   const pick = tracks.find((t) => t.voice === voice) ?? tracks[0];
   return pick ? [pick] : [];
 }
@@ -79,7 +85,7 @@ export default async function ChapterPage({ params }: Props) {
   const base = `/library/${work.slug}`;
   const section = sectionType(chapter.section);
   const body = paragraphs(chapter.body);
-  const tracks = await chapterTracks(work.id, chapter.id, body.length);
+  const tracks = await chapterTracks(work.id, chapter.id, chapter.body, body.length);
 
   return (
     <>

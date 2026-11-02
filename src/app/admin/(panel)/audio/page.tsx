@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/admin";
-import { DEFAULT_VOICE, audioHash, azureReady, chapterScript, loadLexicon, loadVoiceChoices } from "@/lib/audio";
+import { DEFAULT_VOICE, audioHash, azureReady, chapterScript, loadLexicon, loadVoiceChoices, productionHash } from "@/lib/audio";
 import { VOICE_KEYS, type VoiceKey } from "@/lib/audio-voices";
 import { bookOrder, entryLabel } from "@/lib/book-sections";
 import { guNumber } from "@/lib/library";
@@ -17,7 +17,7 @@ export default async function AudioPage() {
       .eq("status", "ready")
       .eq("published", true)
       .is("deleted_at", null),
-    db.from("chapter_audio").select("chapter_id, voice, text_hash, duration_ms, characters, url"),
+    db.from("chapter_audio").select("chapter_id, voice, text_hash, duration_ms, characters, url, paused"),
     db.from("settings").select("value").eq("key", "audio.lexicon").maybeSingle(),
     loadLexicon(db),
     loadVoiceChoices(db),
@@ -39,6 +39,10 @@ export default async function AudioPage() {
             return [v, { state, durationMs: row?.duration_ms ?? null, url: row?.url ?? null }];
           }),
         ) as AudioBook["chapters"][number]["voices"];
+        // The uploaded audio play, if any (and its voice-only version).
+        const play = made.get(`${c.id}:play`);
+        const spoken = made.get(`${c.id}:spoken`);
+        const playHash = productionHash(c.body);
         return {
           id: c.id as string,
           label: c.section ? entryLabel(c) : `${guNumber(c.number ?? 0)}.`,
@@ -47,6 +51,15 @@ export default async function AudioPage() {
           ownRecording: !!c.audio_url,
           voiceOverride: choices.chapters[c.id] ?? null,
           voices,
+          play: play
+            ? {
+                state: play.text_hash === playHash ? ("current" as const) : ("outdated" as const),
+                durationMs: play.duration_ms,
+                url: play.url,
+                spokenUrl: spoken?.url ?? null,
+                paused: !!play.paused,
+              }
+            : null,
         };
       }),
     }))

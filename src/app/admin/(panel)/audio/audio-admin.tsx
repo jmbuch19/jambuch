@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { VOICES, type VoiceKey } from "@/lib/audio-voices";
+import { PIECE_BYTES, VOICES, type ProductionKey, type VoiceKey } from "@/lib/audio-voices";
 import a from "../../admin.module.css";
 import s from "./audio.module.css";
-import { saveLexicon, saveVoiceChoice } from "./actions";
+import { finishAudioPlay, saveLexicon, saveVoiceChoice, setProductionPaused, uploadAudioPiece } from "./actions";
 
 type VoiceState = { state: "none" | "current" | "outdated"; durationMs: number | null; url: string | null };
+type PlayState = { state: "current" | "outdated"; durationMs: number; url: string; spokenUrl: string | null; paused: boolean };
 type AudioChapter = {
   id: string;
   label: string;
@@ -15,6 +16,7 @@ type AudioChapter = {
   ownRecording: boolean;
   voiceOverride: VoiceKey | null; // null: the book's voice
   voices: Record<VoiceKey, VoiceState>;
+  play: PlayState | null; // the uploaded audio play
 };
 export type AudioBook = { id: string; title: string; voice: VoiceKey; chapters: AudioChapter[] };
 
@@ -24,6 +26,8 @@ const USD_PER_MILLION = 16;
 
 const minutes = (ms: number | null) => (ms ? `${Math.max(1, Math.round(ms / 60000))} min` : "");
 const chosen = (b: AudioBook, c: AudioChapter) => c.voiceOverride ?? b.voice;
+// Readers hear the audio play instead of Azure.
+const playLive = (c: AudioChapter) => c.play?.state === "current" && !c.play.paused;
 
 export default function AudioAdmin({
   books: initial,
@@ -46,14 +50,24 @@ export default function AudioAdmin({
   const [note, setNote] = useState<string | null>(null);
   const [lexicon, setLexicon] = useState(initialLexicon);
   const [lexiconNote, setLexiconNote] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<{ chapterId: string; done: number; total: number } | null>(null);
+  const [rowNotes, setRowNotes] = useState<Record<string, string>>({});
+  const rowNote = (id: string, text: string | null) =>
+    setRowNotes((n) => {
+      const next = { ...n };
+      if (text) next[id] = text;
+      else delete next[id];
+      return next;
+    });
 
   // Still to make: each chapter in its chosen voice, if missing or out of
-  // date. Chapters you recorded yourself are skipped.
+  // date. Chapters you recorded yourself, and chapters whose audio play
+  // readers hear, are skipped.
   const todo = useMemo(
     () =>
       books.flatMap((b) =>
         b.chapters
-          .filter((c) => !c.ownRecording && c.voices[chosen(b, c)].state !== "current")
+          .filter((c) => !c.ownRecording && !playLive(c) && c.voices[chosen(b, c)].state !== "current")
           .map((c) => ({ chapter: c, voice: chosen(b, c) })),
       ),
     [books],
@@ -123,6 +137,79 @@ export default function AudioAdmin({
     setNote("error" in r ? r.error : null);
   }
 
+  function setPlay(chapterId: string, fn: (p: PlayState | null) => PlayState | null) {
+    update((b) => ({ ...b, chapters: b.chapters.map((c) => (c.id === chapterId ? { ...c, play: fn(c.play) } : c)) }));
+  }
+
+  // Upload: the audio play MP3, its timings file and (optional) the voice-only
+  // MP3, chosen together. Each MP3 goes up in pieces, then the site joins them.
+  async function uploadPlay(chapterId: string, list: FileList | null) {
+    const files = Array.from(list ?? []);
+    const json = files.find((f) => /.json$/i.test(f.name));
+    const mp3s = files.filter((f) => /.mp3$/i.test(f.name));
+    const spoken = mp3s.find((f) => /voice[-_ ]?only|spoken/i.test(f.name));
+    const play = mp3s.find((f) => f !== spoken);
+    if (!json || !play) {
+      rowNote(chapterId, "Choose the audio play MP3 and its timings.json together (the voice-only MP3 too, if there is one).");
+      return;
+    }
+    let timings: Parameters<typeof finishAudioPlay>[1];
+    try {
+      timings = JSON.parse(await json.text());
+    } catch {
+      rowNote(chapterId, "The timings file couldn’t be read.");
+      return;
+    }
+    rowNote(chapterId, null);
+    const jobs: { kind: ProductionKey; file: File }[] = [{ kind: "play", file: play }];
+    if (spoken) jobs.push({ kind: "spoken", file: spoken });
+    const total = jobs.reduce((n, j) => n + Math.ceil(j.file.size / PIECE_BYTES), 0);
+    let done = 0;
+    setUploading({ chapterId, done, total });
+    try {
+      const uploaded: { kind: ProductionKey; id: string; pieces: number }[] = [];
+      for (const j of jobs) {
+        const id = crypto.randomUUID();
+        const pieces = Math.ceil(j.file.size / PIECE_BYTES);
+        for (let i = 0; i < pieces; i++) {
+          const form = new FormData();
+          form.set("id", id);
+          form.set("index", String(i));
+          form.set("piece", j.file.slice(i * PIECE_BYTES, (i + 1) * PIECE_BYTES));
+          const r = await uploadAudioPiece(form);
+          if ("error" in r) throw new Error(r.error);
+          setUploading({ chapterId, done: ++done, total });
+        }
+        uploaded.push({ kind: j.kind, id, pieces });
+      }
+      const r = await finishAudioPlay(chapterId, timings, uploaded);
+      if ("error" in r) throw new Error(r.error);
+      const p = r.saved.find((x) => x.kind === "play")!;
+      const sp = r.saved.find((x) => x.kind === "spoken");
+      setPlay(chapterId, (old) => ({
+        state: "current",
+        durationMs: p.durationMs,
+        url: p.url,
+        spokenUrl: sp?.url ?? (spoken ? null : (old?.spokenUrl ?? null)),
+        paused: false,
+      }));
+      rowNote(chapterId, "Saved. Readers now hear the audio play.");
+    } catch (e) {
+      rowNote(chapterId, (e as Error).message || "The upload didn’t go through. Please try again.");
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  async function setPaused(chapterId: string, paused: boolean) {
+    setPlay(chapterId, (p) => (p ? { ...p, paused } : p));
+    const r = await setProductionPaused(chapterId, paused);
+    if ("error" in r) {
+      setPlay(chapterId, (p) => (p ? { ...p, paused: !paused } : p));
+      rowNote(chapterId, r.error);
+    }
+  }
+
   async function onSaveLexicon() {
     setLexiconNote("Saving…");
     const r = await saveLexicon(lexicon);
@@ -140,6 +227,13 @@ export default function AudioAdmin({
         sound different; readers hear only that voice. Each chapter is made once and saved on media.jambuch.in;
         listeners play that file and never use Azure. Chapters with your own recording keep it and are skipped by
         “Make all”.
+      </p>
+      <p className={a.intro}>
+        <strong>Audio plays</strong> (cast, music and sound effects, made with ElevenLabs) are uploaded per chapter:
+        choose the audio play MP3, its timings.json and the voice-only MP3 together. Where one is uploaded, readers
+        hear it instead of Azure and can switch to voice only; “Use Azure instead” brings the Azure voice back without
+        deleting it. If the chapter’s text changes, the audio play shows “Out of date” and readers hear Azure until a new
+        one is uploaded.
       </p>
       {error && <p className={a.error}>{error}</p>}
       {note && <p className={a.error}>{note}</p>}
@@ -225,6 +319,7 @@ export default function AudioAdmin({
                   <th>Voice</th>
                   <th>Recording</th>
                   <th />
+                  <th>Audio play</th>
                 </tr>
               </thead>
               <tbody>
@@ -283,6 +378,56 @@ export default function AudioAdmin({
                         >
                           {st.state === "current" ? "Make again" : "Make"}
                         </button>
+                      </td>
+                      <td className={s.playCell}>
+                        {uploading?.chapterId === c.id ? (
+                          <span className={s.working}>
+                            Uploading… {uploading.done < uploading.total ? `${Math.round((uploading.done / uploading.total) * 100)}%` : "saving"}
+                          </span>
+                        ) : c.play ? (
+                          <>
+                            {c.play.state === "outdated" ? (
+                              <span className={s.outdated}>Out of date</span>
+                            ) : (
+                              <span className={c.play.paused ? s.none : s.current}>
+                                {c.play.paused ? "Paused · readers hear Azure" : `✓ ${minutes(c.play.durationMs)}`}
+                                <a href={c.play.url} target="_blank" rel="noopener noreferrer" className={s.listen}>
+                                  Listen
+                                </a>
+                                {c.play.spokenUrl && (
+                                  <a href={c.play.spokenUrl} target="_blank" rel="noopener noreferrer" className={s.listen}>
+                                    Voice only
+                                  </a>
+                                )}
+                              </span>
+                            )}
+                            {c.play.state === "current" && (
+                              <button
+                                type="button"
+                                className={a.secondary}
+                                onClick={() => setPaused(c.id, !c.play!.paused)}
+                                disabled={!!uploading}
+                              >
+                                {c.play.paused ? "Use audio play" : "Use Azure instead"}
+                              </button>
+                            )}
+                          </>
+                        ) : null}
+                        <label className={`${a.secondary} ${s.uploadButton}`} aria-disabled={!!uploading}>
+                          {c.play ? "Upload again" : "Upload"}
+                          <input
+                            type="file"
+                            multiple
+                            accept=".mp3,.json,audio/mpeg,application/json"
+                            className={s.srOnly}
+                            disabled={!!uploading}
+                            onChange={(e) => {
+                              void uploadPlay(c.id, e.target.files);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                        {rowNotes[c.id] && <span className={s.rowNote}>{rowNotes[c.id]}</span>}
                       </td>
                     </tr>
                   );

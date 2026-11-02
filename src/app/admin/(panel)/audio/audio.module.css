@@ -131,3 +131,26 @@
     transition: none;
   }
 }
+
+/* Audio play column: status, switch, upload, and a note under them. */
+.playCell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 260px;
+}
+.uploadButton {
+  position: relative;
+  cursor: pointer;
+}
+.uploadButton[aria-disabled="true"] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.rowNote {
+  flex-basis: 100%;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: normal;
+}
