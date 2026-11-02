@@ -1,13 +1,16 @@
 /* Admin: plain and practical, using the site's tokens. */
 
 .logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-family: var(--font-heading);
   font-size: 22px;
   font-weight: 600;
   color: var(--ink);
   text-decoration: none;
 }
-.logo span {
+.word span {
   color: var(--accent);
 }
 

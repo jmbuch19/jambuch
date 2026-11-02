@@ -7,6 +7,7 @@ import YouTubePlayer from "./youtube-player";
 import LibraryTable from "./library-table";
 import s from "./home.module.css";
 import ContinueReading from "./library/continue-reading";
+import LogoMark, { LogoIntro } from "./logo-mark";
 
 // Content is edited in Supabase, so refresh the cached page every minute.
 export const revalidate = 60;
@@ -42,7 +43,10 @@ export default async function Home() {
       <header className={s.header}>
         <nav className={s.nav} aria-label="Main">
           <a href="#top" className={s.logo}>
-            jambuch<span>.</span>
+            <LogoMark size={32} />
+            <span className={s.word}>
+              jambuch<span>.</span>
+            </span>
           </a>
           <div className={s.navLinks}>
             {sections
@@ -71,6 +75,7 @@ export default async function Home() {
         </div>
         <section id="top" className={s.hero}>
           <div className={s.heroMain}>
+            <LogoIntro />
             {g("hero.name") && <p className={`gu ${s.heroGu}`}>{g("hero.name")}</p>}
             <h1 className={s.heroName}>{t("hero.name") || "Jaydeep Buch"}</h1>
             <p className={s.heroIntro}>{inline(t("hero.intro"))}</p>

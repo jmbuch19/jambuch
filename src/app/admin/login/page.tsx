@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import LogoMark from "../../logo-mark";
 import { signOut } from "./actions";
 import LoginForm from "./login-form";
 import a from "../admin.module.css";
@@ -22,7 +23,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <main className={a.loginWrap}>
       <div className={a.loginCard}>
         <Link href="/" className={a.logo}>
-          jambuch<span>.</span>
+          <LogoMark size={26} />
+          <span className={a.word}>
+            jambuch<span>.</span>
+          </span>
         </Link>
         <h1 className={a.loginTitle}>Admin</h1>
         {message && (

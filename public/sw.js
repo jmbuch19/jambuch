@@ -8,6 +8,8 @@ const PAGES = `pages-${VERSION}`; // chapter and book pages, home, /continue
 const STATIC = `static-${VERSION}`; // scripts, styles, fonts (hashed names never change)
 const IMAGES = `images-${VERSION}`; // chapter pictures from media.jambuch.in
 const LIMITS = { [PAGES]: 60, [STATIC]: 250, [IMAGES]: 80 };
+// Any edit to this file refetches these into the same cache (saved chapters
+// stay). Last refresh: dark-green round J logo, 2026-11-02.
 const PRECACHE = ["/continue", "/offline.html", "/icons/icon-192.png"];
 const NETWORK_WAIT_MS = 3500; // slower than this, open the saved copy
 

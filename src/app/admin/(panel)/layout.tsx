@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin";
 import { TABLES } from "@/lib/admin-tables";
+import LogoMark from "../../logo-mark";
 import { signOut } from "../login/actions";
 import a from "../admin.module.css";
 
@@ -13,7 +14,10 @@ export default async function PanelLayout({ children }: { children: React.ReactN
     <div className={a.shell}>
       <aside className={a.side}>
         <Link href="/admin" className={a.logo}>
-          jambuch<span>.</span> admin
+          <LogoMark size={26} />
+          <span className={a.word}>
+            jambuch<span>.</span> admin
+          </span>
         </Link>
         <nav className={a.sideNav} aria-label="Admin">
           {TABLES.filter((t) => !t.ownPage).map((t) => (
