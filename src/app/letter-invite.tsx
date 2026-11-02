@@ -1,11 +1,10 @@
 "use client";
 
-import Script from "next/script";
-import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent } from "react";
+import { startTransition, useActionState, useEffect, useState, type FormEvent } from "react";
 import { joinLetter, type LetterState } from "./courtyard/letter/actions";
+import { SpamCheckBox, sendLabel, useSpamCheck } from "./spam-check";
 import li from "./letter-invite.module.css";
 
-const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 const STATE_KEY = "letter.state"; // "joined", or { until: ms } after "Not now"
 const VISITS_KEY = "letter.visits";
 const QUIET_DAYS = 30;
@@ -142,40 +141,16 @@ function LetterForm({
   const [state, action, pending] = useActionState<LetterState, FormData>(joinLetter, { status: "idle" });
   // "Wrong address? Change it": back to the form, and this device forgets it joined.
   const [changing, setChanging] = useState(false);
-  const widgetEl = useRef<HTMLDivElement>(null);
-  const widgetId = useRef<string | null>(null);
-  // The spam check runs in the background; the button waits for it, so a
-  // quick tap can't send the form before there is a token to check.
-  const [check, setCheck] = useState<"waiting" | "ready" | "blocked">("waiting");
-
-  function renderWidget() {
-    if (!window.turnstile || !widgetEl.current || widgetId.current !== null) return;
-    widgetId.current = window.turnstile.render(widgetEl.current, {
-      sitekey: SITE_KEY,
-      action: "letter",
-      appearance: "interaction-only",
-      callback: () => setCheck("ready"),
-      "expired-callback": () => setCheck("waiting"),
-      "error-callback": () => setCheck("blocked"),
-    });
-  }
-  useEffect(renderWidget, []);
-  // Still no answer after a while: most likely the browser blocks Cloudflare.
-  useEffect(() => {
-    if (check !== "waiting") return;
-    const t = setTimeout(() => setCheck((c) => (c === "waiting" ? "blocked" : c)), 20000);
-    return () => clearTimeout(t);
-  }, [check]);
+  const check = useSpamCheck("letter");
   // The form came back after "Change it": its spam check needs a fresh widget.
   useEffect(() => {
-    if (changing) renderWidget();
+    if (changing) check.render();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the form comes back
   }, [changing]);
   useEffect(() => {
-    if (state.status === "error" && widgetId.current !== null) {
-      setCheck("waiting");
-      window.turnstile?.reset(widgetId.current);
-    }
+    if (state.status === "error") check.reset();
     if (state.status === "sent") onJoined();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the result changes
   }, [state, onJoined]);
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -197,8 +172,7 @@ function LetterForm({
             try {
               localStorage.removeItem(STATE_KEY);
             } catch {}
-            widgetId.current = null;
-            setCheck("waiting");
+            check.forget();
             setChanging(true);
           }}
         >
@@ -210,12 +184,6 @@ function LetterForm({
 
   return (
     <form onSubmit={onSubmit} className={li.form}>
-      <Script
-        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-        strategy="afterInteractive"
-        onLoad={renderWidget}
-        onError={() => setCheck("blocked")}
-      />
       <p className={li.title}>{title ?? (compact ? "Enjoying the Courtyard?" : "The weekly letter")}</p>
       <p className={li.lede}>
         {lede ??
@@ -237,17 +205,11 @@ function LetterForm({
           placeholder="Your email"
           aria-label="Your email"
         />
-        <button type="submit" disabled={pending || check !== "ready"}>
-          {pending ? "Sending…" : check === "waiting" ? "Checking…" : "Send me the letter"}
+        <button type="submit" disabled={pending || check.status !== "ready"}>
+          {sendLabel(check, pending, "Send me the letter")}
         </button>
       </div>
-      <div ref={widgetEl} />
-      {check === "blocked" && (
-        <p className={li.error} role="alert">
-          The spam check couldn’t run in this browser. An ad blocker or a strict privacy setting usually causes it:
-          allow jambuch.in, or open this page in Chrome or Safari, then reload.
-        </p>
-      )}
+      <SpamCheckBox check={check} noteClass={li.error} />
       {state.status === "error" && (
         <p className={li.error} role="alert">
           {state.message}

@@ -1,51 +1,16 @@
 "use client";
 
-import Script from "next/script";
-import { startTransition, useActionState, useEffect, useRef, type FormEvent } from "react";
+import { startTransition, useActionState, useEffect, type FormEvent } from "react";
 import { submitIdea, type IdeaState } from "./ideas-action";
+import { SpamCheckBox, sendLabel, useSpamCheck } from "./spam-check";
 import s from "./home.module.css";
-
-declare global {
-  interface Window {
-    turnstile?: {
-      render: (
-        el: HTMLElement,
-        opts: {
-          sitekey: string;
-          action?: string;
-          appearance?: "always" | "execute" | "interaction-only";
-          callback?: (token: string) => void;
-          "error-callback"?: () => void;
-          "expired-callback"?: () => void;
-        },
-      ) => string;
-      reset: (id?: string) => void;
-    };
-  }
-}
-
-const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 export default function IdeaForm() {
   const [state, action, pending] = useActionState<IdeaState, FormData>(submitIdea, { status: "idle" });
-  const widgetEl = useRef<HTMLDivElement>(null);
-  const widgetId = useRef<string | null>(null);
-
-  // The widget adds a hidden "cf-turnstile-response" input to the form.
-  function renderWidget() {
-    if (!window.turnstile || !widgetEl.current || widgetId.current !== null) return;
-    // The server checks this action, so tokens from other widgets don't count.
-    // "interaction-only": the check runs unseen and shows itself only when the
-    // visitor must click something. Otherwise its "Success!" box looked as if
-    // the idea had already been sent.
-    widgetId.current = window.turnstile.render(widgetEl.current, {
-      sitekey: SITE_KEY,
-      action: "idea",
-      appearance: "interaction-only",
-    });
-  }
-
-  useEffect(renderWidget, []);
+  // "interaction-only": the check runs unseen and shows itself only when the
+  // visitor must tick something. Otherwise its "Success!" box looked as if the
+  // idea had already been sent.
+  const check = useSpamCheck("idea");
 
   // Submitted by hand rather than <form action>, because React clears a form
   // after an action and the visitor would lose their text if a check failed.
@@ -57,7 +22,8 @@ export default function IdeaForm() {
 
   // A token works only once, so get a fresh one after a failed attempt.
   useEffect(() => {
-    if (state.status === "error" && widgetId.current !== null) window.turnstile?.reset(widgetId.current);
+    if (state.status === "error") check.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the result changes
   }, [state]);
 
   if (state.status === "sent") {
@@ -71,11 +37,6 @@ export default function IdeaForm() {
 
   return (
     <form onSubmit={onSubmit} className={s.ideaForm}>
-      <Script
-        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-        strategy="afterInteractive"
-        onLoad={renderWidget}
-      />
       <div className={s.fieldRow}>
         <label className={s.field}>
           Your name
@@ -103,14 +64,14 @@ export default function IdeaForm() {
         Leave this empty
         <input type="text" name="website" tabIndex={-1} autoComplete="off" />
       </label>
-      <div ref={widgetEl} />
+      <SpamCheckBox check={check} noteClass={s.ideaError} />
       {state.status === "error" && (
         <p className={s.ideaError} role="alert">
           {state.message}
         </p>
       )}
-      <button type="submit" disabled={pending} className={s.ideaSend}>
-        {pending ? "Sending…" : "Send idea"}
+      <button type="submit" disabled={pending || check.status !== "ready"} className={s.ideaSend}>
+        {sendLabel(check, pending, "Send idea")}
       </button>
     </form>
   );

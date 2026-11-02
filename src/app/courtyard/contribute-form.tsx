@@ -1,13 +1,11 @@
 "use client";
 
-import Script from "next/script";
 import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 import { shrinkImage } from "@/app/admin/(panel)/[table]/[id]/shrink-image";
 import { DOOR_HASH, FORMS, MAX_FILE_BYTES, MAX_THEMES, REPLY_HASH, THEMES, type SubmissionKind } from "@/lib/courtyard";
+import { SpamCheckBox, sendLabel, useSpamCheck } from "../spam-check";
 import { submitContribution, type ContributeState } from "./actions";
 import y from "./courtyard.module.css";
-
-const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 const DOORS: { kind: SubmissionKind; label: string; send: string; thanks: string }[] = [
   { kind: "single_piece", label: "Share one piece", send: "Send my piece", thanks: "Thank you — your piece is with me." },
@@ -49,22 +47,12 @@ export default function ContributeForm({
   const [fileError, setFileError] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
   const formTop = useRef<HTMLDivElement>(null);
-  const widgetEl = useRef<HTMLDivElement>(null);
-  const widgetId = useRef<string | null>(null);
-
-  function renderWidget() {
-    if (!window.turnstile || !widgetEl.current || widgetId.current !== null) return;
-    widgetId.current = window.turnstile.render(widgetEl.current, {
-      sitekey: SITE_KEY,
-      action: "courtyard",
-      appearance: "interaction-only",
-    });
-  }
-  useEffect(renderWidget, []);
+  const check = useSpamCheck("courtyard");
 
   // A token works only once, so get a fresh one after a failed attempt.
   useEffect(() => {
-    if (state.status === "error" && widgetId.current !== null) window.turnstile?.reset(widgetId.current);
+    if (state.status === "error") check.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the result changes
   }, [state]);
 
   // The door cards and links like /courtyard#ask-room open the matching door.
@@ -194,11 +182,6 @@ export default function ContributeForm({
           </div>
         ) : (
           <form onSubmit={onSubmit} className={y.form}>
-            <Script
-              src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-              strategy="afterInteractive"
-              onLoad={renderWidget}
-            />
             <input type="hidden" name="kind" value={kind} />
             {series && <input type="hidden" name="series_token" value={series.token} />}
             {contributor && <input type="hidden" name="contributor_token" value={contributor.token} />}
@@ -415,7 +398,7 @@ export default function ContributeForm({
               Leave this empty
               <input type="text" name="website" tabIndex={-1} autoComplete="off" />
             </label>
-            <div ref={widgetEl} />
+            <SpamCheckBox check={check} noteClass={y.error} />
             {(fileError || state.status === "error") && (
               <p className={y.error} role="alert">
                 {fileError ?? state.message}
@@ -426,8 +409,8 @@ export default function ContributeForm({
                 After you send, I’ll email you a link to confirm it’s you. It reaches me only once you click it.
               </p>
             )}
-            <button type="submit" disabled={pending || preparing} className={y.send}>
-              {preparing ? "Preparing photo…" : pending ? "Sending…" : series ? `Send part ${series.nextPart}` : door.send}
+            <button type="submit" disabled={pending || preparing || check.status !== "ready"} className={y.send}>
+              {preparing ? "Preparing photo…" : sendLabel(check, pending, series ? `Send part ${series.nextPart}` : door.send)}
             </button>
           </form>
         )}

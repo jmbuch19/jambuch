@@ -1,32 +1,23 @@
 "use client";
 
-import Script from "next/script";
-import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent } from "react";
+import { startTransition, useActionState, useEffect, useState, type FormEvent } from "react";
+import { SpamCheckBox, sendLabel, useSpamCheck } from "../spam-check";
 import { resendMyLink, type ContributeState } from "./actions";
 import y from "./courtyard.module.css";
-
-const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 // "Shared here before? Get your link again." Folded away until opened.
 export default function GetLinkForm() {
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState<ContributeState, FormData>(resendMyLink, { status: "idle" });
-  const widgetEl = useRef<HTMLDivElement>(null);
-  const widgetId = useRef<string | null>(null);
+  const check = useSpamCheck("getlink");
 
-  function renderWidget() {
-    if (!window.turnstile || !widgetEl.current || widgetId.current !== null) return;
-    widgetId.current = window.turnstile.render(widgetEl.current, {
-      sitekey: SITE_KEY,
-      action: "getlink",
-      appearance: "interaction-only",
-    });
-  }
   useEffect(() => {
-    if (open) renderWidget();
+    if (open) check.render();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once the form is opened
   }, [open]);
   useEffect(() => {
-    if (state.status === "error" && widgetId.current !== null) window.turnstile?.reset(widgetId.current);
+    if (state.status === "error") check.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the result changes
   }, [state]);
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -47,20 +38,15 @@ export default function GetLinkForm() {
         </p>
       ) : (
         <form onSubmit={onSubmit} className={y.followForm}>
-          <Script
-            src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-            strategy="afterInteractive"
-            onLoad={renderWidget}
-          />
           <label className={y.honeypot} aria-hidden="true">
             Leave this empty
             <input type="text" name="website" tabIndex={-1} autoComplete="off" />
           </label>
           <input type="email" name="email" required autoComplete="email" placeholder="The email you shared with" aria-label="Your email" />
-          <button type="submit" className={y.send} disabled={pending}>
-            {pending ? "Sending…" : "Email my link"}
+          <button type="submit" className={y.send} disabled={pending || check.status !== "ready"}>
+            {sendLabel(check, pending, "Email my link")}
           </button>
-          <div ref={widgetEl} />
+          <SpamCheckBox check={check} noteClass={y.error} />
           {state.status === "error" && (
             <p className={y.error} role="alert">
               {state.message}
