@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { PIECE_BYTES, VOICES, type ProductionKey, type VoiceKey } from "@/lib/audio-voices";
 import a from "../../admin.module.css";
 import s from "./audio.module.css";
-import { finishAudioPlay, saveLexicon, saveVoiceChoice, setProductionPaused, uploadAudioPiece } from "./actions";
+import { finishAudioPlay, saveLexicon, saveVoiceChoice, setAzureForReaders, setProductionPaused, uploadAudioPiece } from "./actions";
 
 type VoiceState = { state: "none" | "current" | "outdated"; durationMs: number | null; url: string | null };
 type PlayState = { state: "current" | "outdated"; durationMs: number; url: string; spokenUrl: string | null; paused: boolean };
@@ -32,12 +32,14 @@ const playLive = (c: AudioChapter) => c.play?.state === "current" && !c.play.pau
 export default function AudioAdmin({
   books: initial,
   azureReady,
+  azureForReaders: initialAzureOn,
   lexicon: initialLexicon,
   voices,
   error,
 }: {
   books: AudioBook[];
   azureReady: boolean;
+  azureForReaders: boolean;
   lexicon: string;
   voices: VoiceKey[];
   error: string | null;
@@ -50,6 +52,7 @@ export default function AudioAdmin({
   const [note, setNote] = useState<string | null>(null);
   const [lexicon, setLexicon] = useState(initialLexicon);
   const [lexiconNote, setLexiconNote] = useState<string | null>(null);
+  const [azureOn, setAzureOn] = useState(initialAzureOn);
   const [uploading, setUploading] = useState<{ chapterId: string; done: number; total: number } | null>(null);
   const [rowNotes, setRowNotes] = useState<Record<string, string>>({});
   const rowNote = (id: string, text: string | null) =>
@@ -201,6 +204,17 @@ export default function AudioAdmin({
     }
   }
 
+  async function toggleAzure() {
+    const on = !azureOn;
+    if (!on && !window.confirm("Turn off the Azure voices for readers? Chapters without an audio play will have no Listen button. Nothing is deleted, and you can turn them back on any time.")) return;
+    setAzureOn(on);
+    const r = await setAzureForReaders(on);
+    if ("error" in r) {
+      setAzureOn(!on);
+      setNote(r.error);
+    }
+  }
+
   async function setPaused(chapterId: string, paused: boolean) {
     setPlay(chapterId, (p) => (p ? { ...p, paused } : p));
     const r = await setProductionPaused(chapterId, paused);
@@ -235,6 +249,19 @@ export default function AudioAdmin({
         deleting it. If the chapter’s text changes, the audio play shows “Out of date” and readers hear Azure until a new
         one is uploaded.
       </p>
+      <div className={s.azureSwitch}>
+        <div>
+          <strong>Azure voices for readers: {azureOn ? "On" : "Off"}</strong>
+          <span className={a.mutedSmall}>
+            {azureOn
+              ? " · Readers hear an audio play where one is uploaded, and the Azure voice everywhere else."
+              : " · Readers hear only audio plays; other chapters have no Listen button. Azure recordings stay saved here."}
+          </span>
+        </div>
+        <button type="button" className={a.secondary} onClick={toggleAzure}>
+          {azureOn ? "Turn off for readers" : "Turn on for readers"}
+        </button>
+      </div>
       {error && <p className={a.error}>{error}</p>}
       {note && <p className={a.error}>{note}</p>}
       {!azureReady && (

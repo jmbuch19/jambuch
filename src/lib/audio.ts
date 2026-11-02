@@ -39,6 +39,14 @@ export function voiceFor(choices: VoiceChoices, workId: string, chapterId: strin
   return choices.chapters[chapterId] ?? choices.books[workId] ?? DEFAULT_VOICE;
 }
 
+// Whether readers hear the Azure voices at all ("audio.azure_readers"). When
+// off, only audio plays are offered; the Azure recordings stay saved for the
+// admin and come back when it is turned on again.
+export async function azureForReaders(db: SupabaseClient): Promise<boolean> {
+  const { data } = await db.from("settings").select("value").eq("key", "audio.azure_readers").maybeSingle();
+  return data?.value !== false;
+}
+
 export type LexiconEntry = { word: string; say: string };
 
 // Pronunciation fixes, kept in settings as lines "word = say as".

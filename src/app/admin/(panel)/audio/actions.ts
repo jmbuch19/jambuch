@@ -84,6 +84,16 @@ export async function finishAudioPlay(
   return { ok: true, saved };
 }
 
+// Turns the Azure voices on or off for readers (the recordings stay saved).
+export async function setAzureForReaders(on: boolean): Promise<{ ok: true } | { error: string }> {
+  const { db } = await requireAdmin();
+  const { error } = await db.from("settings").upsert({ key: "audio.azure_readers", value: on });
+  if (error) return { error: error.message };
+  revalidatePath("/admin/audio");
+  revalidatePath("/library/[work]/[chapter]", "page");
+  return { ok: true };
+}
+
 // "Use Azure instead": readers hear the Azure voice while the audio play is
 // paused; it stays saved and comes back with one tap.
 export async function setProductionPaused(chapterId: string, paused: boolean): Promise<{ ok: true } | { error: string }> {

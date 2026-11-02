@@ -154,3 +154,17 @@
   color: var(--muted);
   white-space: normal;
 }
+
+/* Azure voices on/off for readers. */
+.azureSwitch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}

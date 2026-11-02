@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/admin";
-import { DEFAULT_VOICE, audioHash, azureReady, chapterScript, loadLexicon, loadVoiceChoices, productionHash } from "@/lib/audio";
+import { DEFAULT_VOICE, audioHash, azureForReaders, azureReady, chapterScript, loadLexicon, loadVoiceChoices, productionHash } from "@/lib/audio";
 import { VOICE_KEYS, type VoiceKey } from "@/lib/audio-voices";
 import { bookOrder, entryLabel } from "@/lib/book-sections";
 import { guNumber } from "@/lib/library";
@@ -9,7 +9,7 @@ import AudioAdmin, { type AudioBook } from "./audio-admin";
 // and whether that audio still matches the text and pronunciation list.
 export default async function AudioPage() {
   const { db } = await requireAdmin();
-  const [worksRes, chaptersRes, audioRes, lexiconRes, lexicon, choices] = await Promise.all([
+  const [worksRes, chaptersRes, audioRes, lexiconRes, lexicon, choices, azureOn] = await Promise.all([
     db.from("works").select("id, slug, title, title_gu, readable").is("deleted_at", null).order("sort_order"),
     db
       .from("chapters")
@@ -21,6 +21,7 @@ export default async function AudioPage() {
     db.from("settings").select("value").eq("key", "audio.lexicon").maybeSingle(),
     loadLexicon(db),
     loadVoiceChoices(db),
+    azureForReaders(db),
   ]);
   const made = new Map((audioRes.data ?? []).map((r) => [`${r.chapter_id}:${r.voice}`, r]));
 
@@ -69,6 +70,7 @@ export default async function AudioPage() {
     <AudioAdmin
       books={books}
       azureReady={azureReady()}
+      azureForReaders={azureOn}
       lexicon={typeof lexiconRes.data?.value === "string" ? lexiconRes.data.value : ""}
       voices={VOICE_KEYS as VoiceKey[]}
       error={worksRes.error?.message ?? chaptersRes.error?.message ?? audioRes.error?.message ?? null}

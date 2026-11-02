@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { entryLabel, entryPath, sectionType } from "@/lib/book-sections";
-import { loadVoiceChoices, productionHash, voiceFor } from "@/lib/audio";
+import { azureForReaders, loadVoiceChoices, productionHash, voiceFor } from "@/lib/audio";
 import { isProduction, isVoice, type Track, type TrackKey, type VoiceKey } from "@/lib/audio-voices";
 import { inline } from "@/lib/inline";
 import { adminClient } from "@/lib/supabase-admin";
@@ -49,19 +49,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 // changed (a different number of paragraphs) is left out rather than played
 // out of step with the page, and readers hear only the voice Jaydeep chose
 // for the chapter (or its book); if that one isn't made yet, another made
-// voice stands in. If the lookup fails, the chapter still opens, just without
+// voice stands in, unless Jaydeep has turned the Azure voices off for
+// readers. If the lookup fails, the chapter still opens, just without
 // listening.
 async function chapterTracks(workId: string, chapterId: string, body: string | null, paragraphCount: number): Promise<Track[]> {
   let rows: { voice: string; url: string; paragraph_ms: number[]; duration_ms: number; text_hash: string; paused: boolean }[] = [];
   let voice: VoiceKey = "niranjan";
+  let azure = true;
   try {
     const db = adminClient();
-    const [{ data }, choices] = await Promise.all([
+    const [{ data }, choices, azureOn] = await Promise.all([
       db.from("chapter_audio").select("voice, url, paragraph_ms, duration_ms, text_hash, paused").eq("chapter_id", chapterId),
       loadVoiceChoices(db),
+      azureForReaders(db),
     ]);
     rows = data ?? [];
     voice = voiceFor(choices, workId, chapterId);
+    azure = azureOn;
   } catch (e) {
     console.error("chapter audio lookup failed:", (e as Error).message);
   }
@@ -72,6 +76,7 @@ async function chapterTracks(workId: string, chapterId: string, body: string | n
   const productions = usable.filter((r) => isProduction(r.voice) && !r.paused && r.text_hash === hash);
   const play = productions.find((r) => r.voice === "play");
   if (play) return [play, ...productions.filter((r) => r.voice === "spoken")].map(track);
+  if (!azure) return [];
 
   const tracks = usable.filter((r) => isVoice(r.voice)).map(track);
   const pick = tracks.find((t) => t.voice === voice) ?? tracks[0];
