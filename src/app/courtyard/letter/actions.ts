@@ -7,7 +7,8 @@ import { linkId, linkValid } from "@/lib/signed-links";
 import { adminClient } from "@/lib/supabase-admin";
 import { passesTurnstile } from "@/lib/turnstile";
 
-export type LetterState = { status: "idle" | "sent" | "error"; message?: string };
+// "sent" carries the address the confirmation went to, so a typo can be seen and corrected.
+export type LetterState = { status: "idle" | "sent" | "error"; message?: string; email?: string };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -30,7 +31,7 @@ export async function joinLetter(_prev: LetterState, form: FormData): Promise<Le
 
   const db = adminClient();
   const { data: existing } = await db.from("courtyard_readers").select("id, confirmed_at").eq("email", email).maybeSingle();
-  if (existing?.confirmed_at) return { status: "sent" }; // already reading; say nothing more
+  if (existing?.confirmed_at) return { status: "sent", email }; // already reading; say nothing more
   let id = existing?.id as string | undefined;
   if (!id) {
     const { data, error } = await db.from("courtyard_readers").insert({ name, email, source }).select("id").single();
@@ -58,7 +59,7 @@ export async function joinLetter(_prev: LetterState, form: FormData): Promise<Le
     ].join("\n"),
   });
   if (!ok) return { status: "error", message: "I couldn’t send the confirmation email. Please check the address." };
-  return { status: "sent" };
+  return { status: "sent", email };
 }
 
 export async function confirmReader(token: string): Promise<{ ok: boolean }> {

@@ -140,6 +140,8 @@ function LetterForm({
   onNotNow?: () => void;
 }) {
   const [state, action, pending] = useActionState<LetterState, FormData>(joinLetter, { status: "idle" });
+  // "Wrong address? Change it": back to the form, and this device forgets it joined.
+  const [changing, setChanging] = useState(false);
   const widgetEl = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
 
@@ -152,6 +154,10 @@ function LetterForm({
     });
   }
   useEffect(renderWidget, []);
+  // The form came back after "Change it": its spam check needs a fresh widget.
+  useEffect(() => {
+    if (changing) renderWidget();
+  }, [changing]);
   useEffect(() => {
     if (state.status === "error" && widgetId.current !== null) window.turnstile?.reset(widgetId.current);
     if (state.status === "sent") onJoined();
@@ -160,13 +166,28 @@ function LetterForm({
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
+    setChanging(false);
     startTransition(() => action(data));
   }
 
-  if (state.status === "sent") {
+  if (state.status === "sent" && !changing) {
     return (
       <p className={li.done} role="status">
-        Thank you. Check your email and open the link to confirm. Then the letter comes after each gathering.
+        Thank you. I’ve sent a confirmation to <strong>{state.email ?? "your email"}</strong>: open the link in it, and
+        the letter comes after each gathering. Not there in a few minutes? Look in Spam or Promotions.{" "}
+        <button
+          type="button"
+          className={li.notNow}
+          onClick={() => {
+            try {
+              localStorage.removeItem(STATE_KEY);
+            } catch {}
+            widgetId.current = null;
+            setChanging(true);
+          }}
+        >
+          Wrong address? Change it
+        </button>
       </p>
     );
   }
