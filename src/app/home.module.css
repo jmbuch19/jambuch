@@ -1051,3 +1051,64 @@
 .continueBar:empty {
   display: none;
 }
+
+/* ------------------------------------------------------------ the two desks */
+/* Mine ("On my desk now") and the guests' ("From the Courtyard"), stacked. */
+.desks {
+  flex: 1 1 300px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.desks > .desk {
+  flex: none;
+}
+.deskGu {
+  margin: -10px 0 14px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.guestTitle {
+  display: block;
+  font-weight: 500;
+}
+.guestBy {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+}
+.guestFoot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: 16px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+}
+.guestFoot a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.guestEmpty {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.guestEmpty a {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+/* On a phone, the guests' desk shows its first piece; "More from the Courtyard" leads to the rest. */
+@media (max-width: 639px) {
+  .guestDesk .deskList li:nth-child(n + 2) {
+    display: none;
+  }
+}

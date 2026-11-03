@@ -22,7 +22,7 @@ export default async function CourtyardPage({ searchParams }: { searchParams: Pr
     db
       .from("courtyard_submissions")
       .select(
-        "id, kind, status, name, email, city, form, themes, title, body, file_url, file_type, file_name, links, about, creator_name, relation, why, creator_contact, creator_aware, invite_id, family_only, thread_from, gathering_at, gathering_notified_at, series_id, series_part, created_at, published_at, media_interest, media_stage, media_kind, media_note, media_url, media_asked_at, media_answered_at",
+        "id, kind, status, name, email, city, form, themes, title, body, file_url, file_type, file_name, links, about, creator_name, relation, why, creator_contact, creator_aware, invite_id, family_only, thread_from, gathering_at, gathering_notified_at, series_id, series_part, created_at, published_at, media_interest, media_stage, media_kind, media_note, media_url, media_asked_at, media_answered_at, home_pinned",
       )
       .neq("status", "unconfirmed")
       .is("deleted_at", null)

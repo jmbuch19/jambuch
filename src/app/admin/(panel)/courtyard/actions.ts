@@ -707,3 +707,30 @@ export async function clearMedia(id: string): Promise<{ ok: true } | Failed> {
     return fail(err);
   }
 }
+
+// ---------------------------------------------------------------- the guests' desk
+
+// "Feature on the home page": a pinned piece stays on the "From the Courtyard"
+// desk (before this week's pieces) until it is unpinned.
+export async function setHomePinned(id: string, pinned: boolean): Promise<{ ok: true } | Failed> {
+  try {
+    const { db } = await requireAdmin();
+    // Family-circle pieces never go public, so they can't be pinned (unpinning is always fine).
+    const { data, error } = await db
+      .from("courtyard_submissions")
+      .update({ home_pinned: pinned })
+      .eq("id", id)
+      .eq("kind", "single_piece")
+      .eq("status", "published")
+      .in("family_only", pinned ? [false] : [false, true])
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error("Only an approved, public single piece can be featured (not one for the family circle only).");
+    revalidatePath("/");
+    revalidatePath("/admin/courtyard");
+    return { ok: true };
+  } catch (err) {
+    return fail(err);
+  }
+}

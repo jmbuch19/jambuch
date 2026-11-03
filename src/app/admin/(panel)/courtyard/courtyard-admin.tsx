@@ -30,6 +30,7 @@ import { ROOM_TERMS, STAGE_LABELS, type InviteStage } from "@/lib/invite-stages"
 import DeleteDialog from "../../delete-dialog";
 import {
   askMediaConsent,
+  setHomePinned,
   clearMedia,
   markMediaMade,
   shortlistMedia,
@@ -107,6 +108,7 @@ export type SubmissionRow = {
   media_url: string | null;
   media_asked_at: string | null;
   media_answered_at: string | null;
+  home_pinned: boolean; // on the home page's "From the Courtyard" desk until unpinned
 };
 
 export type SeriesRow = {
@@ -481,6 +483,18 @@ export default function CourtyardAdmin({
         s.status === "published" && s.kind === "single_piece" ? (
           <button key="media" type="button" className={c.action} onClick={() => setPanel({ mode: "media", s })}>
             🎧 Audio / video
+          </button>
+        ) : null,
+        s.status === "published" && s.kind === "single_piece" && !s.family_only ? (
+          <button
+            key="pin"
+            type="button"
+            className={c.action}
+            disabled={pending}
+            title="Keeps it on the home page's “From the Courtyard” desk, before this week’s pieces"
+            onClick={() => run(() => setHomePinned(s.id, !s.home_pinned))}
+          >
+            {s.home_pinned ? "Unpin from the home page" : "📌 Feature on the home page"}
           </button>
         ) : null,
         s.status === "published" && s.kind === "single_piece" && !s.series_id ? (
@@ -1252,6 +1266,9 @@ function SubmissionCard({ s, children }: { s: SubmissionRow; children: React.Rea
             {s.status !== "new" && ` · ${statusText(s)}`}
           </span>
           {s.family_only && <span className={`${c.badge} ${c.badgeInline} ${c.toneAmber} ${c.badgeAfter}`}>Family circle only</span>}
+          {s.home_pinned && (
+            <span className={`${c.badge} ${c.badgeInline} ${c.toneGreen} ${c.badgeAfter}`}>📌 On the home page</span>
+          )}
           {(s.media_stage || s.media_interest) && (
             <span className={`${c.badge} ${c.badgeInline} ${s.media_stage ? c.toneBlue : c.toneGrey} ${c.badgeAfter}`}>
               {s.media_stage ? `🎧 ${MEDIA_STAGE_LABELS[s.media_stage]}` : "🎧 Would welcome audio/video"}

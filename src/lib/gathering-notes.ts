@@ -10,7 +10,7 @@ import { unfollowUrl } from "./series";
 export async function sendGatheringNotes(db: SupabaseClient, siteUrl = "https://jambuch.in") {
   const { data, error } = await db
     .from("courtyard_submissions")
-    .select("id, name, email, title")
+    .select("id, name, email, title, family_only")
     .eq("kind", "single_piece")
     .eq("status", "published")
     .lte("gathering_at", new Date().toISOString())
@@ -33,6 +33,13 @@ export async function sendGatheringNotes(db: SupabaseClient, siteUrl = "https://
         `Your turn is in the courtyard tonight. Your piece “${p.title}” has joined the thread at jambuch.in, alongside everyone else who shared this week:`,
         url,
         "",
+        // Public pieces also take turns on the home page's "From the Courtyard" desk.
+        ...(p.family_only
+          ? []
+          : [
+              "This week the pieces from the gathering also take turns on the “From the Courtyard” desk on the home page, jambuch.in, so yours may greet visitors there too.",
+              "",
+            ]),
         "If it moves you, pick up someone else’s thread too.",
         "",
         "Warmly,",

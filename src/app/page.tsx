@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { loadHome, type HomeContent, type Project } from "@/lib/content";
+import { loadGuestDesk } from "@/lib/guest-desk";
 import { inline } from "@/lib/inline";
 import { youtubeId } from "@/lib/youtube";
 import IdeaForm from "./idea-form";
@@ -30,7 +31,7 @@ type Section = {
 };
 
 export default async function Home() {
-  const c = await loadHome();
+  const [c, guests] = await Promise.all([loadHome(), loadGuestDesk()]);
   const t = (key: string) => c.text[key]?.en ?? "";
   const g = (key: string) => c.text[key]?.gu ?? "";
 
@@ -88,25 +89,62 @@ export default async function Home() {
               </a>
             </div>
           </div>
-          {c.desk.length > 0 && (
-            <aside className={s.desk}>
-              <p className={s.eyebrow}>{t("desk.title") || "On my desk now"}</p>
-              <ul className={s.deskList}>
-                {c.desk.map((d) => (
-                  <li key={d.id}>
-                    {d.link ? (
-                      <a {...linkProps(d.link)} className={s.deskLink}>
-                        {inline(d.text)}
-                        <span className={s.deskGo}>{d.link.startsWith("/library/") ? "Read" : "Open"} →</span>
-                      </a>
-                    ) : (
-                      <span>{inline(d.text)}</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
+          {/* Two desks: mine, and the guests' ("From the Courtyard"). */}
+          <div className={s.desks}>
+            {c.desk.length > 0 && (
+              <aside className={s.desk}>
+                <p className={s.eyebrow}>{t("desk.title") || "On my desk now"}</p>
+                <ul className={s.deskList}>
+                  {c.desk.map((d) => (
+                    <li key={d.id}>
+                      {d.link ? (
+                        <a {...linkProps(d.link)} className={s.deskLink}>
+                          {inline(d.text)}
+                          <span className={s.deskGo}>{d.link.startsWith("/library/") ? "Read" : "Open"} →</span>
+                        </a>
+                      ) : (
+                        <span>{inline(d.text)}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </aside>
+            )}
+            <aside className={`${s.desk} ${s.guestDesk}`} aria-label="From the Courtyard">
+              <p className={s.eyebrow}>From the Courtyard</p>
+              <p className={`gu ${s.deskGu}`}>આ અઠવાડિયે આંગણામાંથી</p>
+              {guests.length > 0 ? (
+                <>
+                  <ul className={s.deskList}>
+                    {guests.map((p) => (
+                      <li key={p.id}>
+                        <a href={`/courtyard#piece-${p.id}`} className={s.deskLink}>
+                          <span className={s.guestTitle}>
+                            “{p.title}”{p.hasAudioStory && " 🎧"}
+                          </span>
+                          <span className={s.guestBy}>
+                            by {p.name}
+                            {p.city ? `, ${p.city}` : ""} · {p.form}
+                          </span>
+                          <span className={s.deskGo}>{p.go} →</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className={s.guestFoot}>
+                    <a href="/courtyard" className={s.guestMore}>
+                      More from the Courtyard →
+                    </a>
+                    <a href="/courtyard#share-piece">Share yours</a>
+                  </p>
+                </>
+              ) : (
+                <p className={s.guestEmpty}>
+                  Your piece could sit here, with your name on it. <a href="/courtyard#share-piece">Share it in the Courtyard →</a>
+                </p>
+              )}
             </aside>
-          )}
+          </div>
         </section>
 
         {sections.map((sec, i) => {
