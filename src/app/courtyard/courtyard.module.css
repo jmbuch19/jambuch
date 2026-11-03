@@ -982,3 +982,47 @@
   background: var(--paper-alt);
   border-radius: var(--radius-sm);
 }
+
+/* "May I make it into an audio story or video?": the creator's answer page. */
+.mediaPromise {
+  margin: 0 0 24px;
+  padding-left: 20px;
+  line-height: 1.7;
+}
+.mediaChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.secondaryButton {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  padding: 12px 22px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* A made audio story or video, on the piece itself. */
+.mediaLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.mediaLink:hover {
+  background: var(--accent-hover);
+}

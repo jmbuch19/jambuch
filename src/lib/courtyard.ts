@@ -126,3 +126,32 @@ export function declineTemplate(s: {
         : `Thank you for telling me about ${s.creator_name ?? "them"}. I’m grateful you thought of the Courtyard. I can’t take this further just now, but I’ve kept your note.`;
   return `Dear ${first},\n\n${body}\n\nWarmly,\nJaydeep`;
 }
+
+// Audio stories and videos: chosen by Jaydeep for a few approved pieces, and
+// made only after the creator says yes.
+export type MediaStage = "shortlisted" | "asked" | "agreed" | "declined" | "made";
+export type MediaKind = "audio" | "video" | "both";
+
+export const MEDIA_KIND_LABELS: Record<MediaKind, string> = {
+  audio: "Audio story",
+  video: "Video for YouTube",
+  both: "Audio story and video",
+};
+
+export const MEDIA_STAGE_LABELS: Record<MediaStage, string> = {
+  shortlisted: "Shortlisted",
+  asked: "Asked the creator",
+  agreed: "Creator said yes",
+  declined: "Creator said no, thank you",
+  made: "Made",
+};
+
+// What the editor weighs before shortlisting.
+export const MEDIA_CHECKLIST = [
+  "Does it suit listening or watching? A story with voices, a poem, a memory told aloud.",
+  "About 3 to 15 minutes when read aloud.",
+  "It is their own work, and anyone recognisable in it has agreed.",
+  "This month's budget: only a few pieces, so credits and time stay in hand.",
+];
+
+export const isMediaKind = (v: unknown): v is MediaKind => v === "audio" || v === "video" || v === "both";

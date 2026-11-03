@@ -386,6 +386,15 @@ export default function ContributeForm({
                   <input type="checkbox" name="family_only" />
                   <span>Show it only to my family circle for now. I can make it public later.</span>
                 </label>
+                {kind === "single_piece" && (
+                  <label>
+                    <input type="checkbox" name="media_interest" />
+                    <span>
+                      I’d be glad for this to be considered for an audio story or a video. (Optional: Jaydeep chooses a few
+                      pieces, and always asks me before anything is made.)
+                    </span>
+                  </label>
+                )}
               </div>
             ) : (
               <p className={y.small}>

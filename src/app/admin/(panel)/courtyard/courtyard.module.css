@@ -596,3 +596,30 @@ a.name:hover {
   font-size: 12px;
   overflow-wrap: anywhere;
 }
+
+/* Audio & video: shortlisted pieces and pieces whose creators would welcome it. */
+.mediaList {
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.mediaList h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+.mediaList ul {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.mediaList li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}

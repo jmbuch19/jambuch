@@ -7,7 +7,7 @@ import y from "./courtyard.module.css";
 // One approved piece, as it appears on the thread and on series pages.
 // Only these columns are ever read for the public: never email or IP.
 export const PIECE_COLUMNS =
-  "id, name, city, form, themes, title, body, file_url, file_type, links, thread_from, published_at, gathering_at, series_id, series_part";
+  "id, name, city, form, themes, title, body, file_url, file_type, links, thread_from, published_at, gathering_at, series_id, series_part, media_stage, media_url";
 
 export type Piece = {
   id: string;
@@ -25,6 +25,8 @@ export type Piece = {
   gathering_at: string;
   series_id: string | null;
   series_part: number | null;
+  media_stage: string | null; // "made": its audio story or video is up
+  media_url: string | null;
 };
 
 function host(url: string) {
@@ -57,6 +59,10 @@ export default function PieceTurn({
   const video = p.links.map(youtubeId).find((id): id is string => !!id);
   const otherLinks = p.links.filter((l) => !youtubeId(l));
   const long = !open && (p.body?.length ?? 0) > 420;
+  // The audio story or video Jaydeep made of it (with the creator's yes).
+  const made = p.media_stage === "made" && p.media_url ? p.media_url : null;
+  const madeVideo = made ? youtubeId(made) : null;
+  const madeAudio = made && !madeVideo && /\.(mp3|m4a|ogg|wav)(\?|$)/i.test(made) ? made : null;
 
   return (
     <li id={`piece-${p.id}`} className={y.turn}>
@@ -87,6 +93,23 @@ export default function PieceTurn({
           <img src={p.file_url!} alt={p.title} loading="lazy" className={y.pieceImg} />
         )}
         {video && <YouTubePlayer id={video} title={p.title} />}
+        {madeVideo && madeVideo !== video && (
+          <>
+            <p className={y.eyebrow}>▶ The video story</p>
+            <YouTubePlayer id={madeVideo} title={`${p.title} · video story`} />
+          </>
+        )}
+        {madeAudio && (
+          <>
+            <p className={y.eyebrow}>🎧 Listen to the audio story</p>
+            <audio controls preload="none" src={madeAudio} className={y.audio} />
+          </>
+        )}
+        {made && !madeVideo && !madeAudio && (
+          <a href={made} target="_blank" rel="noopener noreferrer" className={y.mediaLink}>
+            🎧 Listen to the audio story →
+          </a>
+        )}
         {p.body &&
           (long ? (
             <details className={y.more}>

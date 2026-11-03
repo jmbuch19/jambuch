@@ -176,6 +176,7 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
     row.own_work = form.get("own_work") === "on";
     row.permission = form.get("permission") === "on";
     row.family_only = form.get("family_only") === "on";
+    row.media_interest = kind === "single_piece" && form.get("media_interest") === "on";
     if (!row.own_work || !row.permission) {
       return { status: "error", message: "Please tick both boxes: that it’s your own work, and that I may publish it." };
     }

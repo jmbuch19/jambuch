@@ -6,11 +6,16 @@ import { useEffect, useState, useTransition } from "react";
 import {
   FORMS,
   KIND_LABELS,
+  MEDIA_CHECKLIST,
+  MEDIA_KIND_LABELS,
+  MEDIA_STAGE_LABELS,
   STATUS_LABELS,
   declineTemplate,
   formLabel,
   kindLine,
   themeNotes,
+  type MediaKind,
+  type MediaStage,
   type SubmissionKind,
   type SubmissionStatus,
 } from "@/lib/courtyard";
@@ -24,6 +29,10 @@ import {
 import { ROOM_TERMS, STAGE_LABELS, type InviteStage } from "@/lib/invite-stages";
 import DeleteDialog from "../../delete-dialog";
 import {
+  askMediaConsent,
+  clearMedia,
+  markMediaMade,
+  shortlistMedia,
   createInvite,
   declineSubmission,
   joinThreadNow,
@@ -90,6 +99,14 @@ export type SubmissionRow = {
   gathering_notified_at: string | null;
   created_at: string;
   published_at: string | null;
+  // Audio story / video, chosen by Jaydeep and made only with the creator's yes.
+  media_interest: boolean; // they ticked "consider it for audio or video"
+  media_stage: MediaStage | null;
+  media_kind: MediaKind | null;
+  media_note: string | null;
+  media_url: string | null;
+  media_asked_at: string | null;
+  media_answered_at: string | null;
 };
 
 export type SeriesRow = {
@@ -132,7 +149,8 @@ type Panel =
   | { mode: "new" }
   | { mode: "sent"; sent: InviteSent & { name: string } }
   | { mode: "review"; s: SubmissionRow; fileUrl: string | null }
-  | { mode: "decline"; s: SubmissionRow };
+  | { mode: "decline"; s: SubmissionRow }
+  | { mode: "media"; s: SubmissionRow };
 
 // The invite form's crafts are the forms; a submission's form becomes its craft.
 const CRAFTS = FORMS.map((f) => f.label);
@@ -265,6 +283,11 @@ export default function CourtyardAdmin({
   const fresh = filtered.filter((s) => s.status === "new");
   const handled = filtered.filter((s) => s.status !== "new");
   const newCount = submissions.filter((s) => s.status === "new").length;
+  // Audio & video: pieces in progress first, then ones whose creators would welcome it.
+  const MEDIA_ORDER: (MediaStage | null)[] = ["agreed", "asked", "shortlisted", "made", "declined", null];
+  const mediaPieces = submissions
+    .filter((s) => s.kind === "single_piece" && s.status === "published" && (s.media_stage || s.media_interest))
+    .sort((x, y) => MEDIA_ORDER.indexOf(x.media_stage) - MEDIA_ORDER.indexOf(y.media_stage));
   const atLimit = used >= limit;
 
   useEffect(() => {
@@ -454,6 +477,11 @@ export default function CourtyardAdmin({
           <a key="v" className={c.action} href="/courtyard" target="_blank" rel="noopener noreferrer">
             View on the thread
           </a>
+        ) : null,
+        s.status === "published" && s.kind === "single_piece" ? (
+          <button key="media" type="button" className={c.action} onClick={() => setPanel({ mode: "media", s })}>
+            🎧 Audio / video
+          </button>
         ) : null,
         s.status === "published" && s.kind === "single_piece" && !s.series_id ? (
           <button
@@ -765,6 +793,28 @@ export default function CourtyardAdmin({
               </button>
             ))}
           </div>
+          {mediaPieces.length > 0 && (
+            <section className={c.mediaList}>
+              <h2>🎧 Audio &amp; video</h2>
+              <p className={c.meta}>Pieces you’ve shortlisted, and approved pieces whose creators would welcome it.</p>
+              <ul>
+                {mediaPieces.map((m) => (
+                  <li key={m.id}>
+                    <div>
+                      <strong>{m.title}</strong>{" "}
+                      <span className={c.meta}>
+                        by {m.name} · {m.media_stage ? MEDIA_STAGE_LABELS[m.media_stage] : "would welcome it"}
+                        {m.media_kind && ` · ${MEDIA_KIND_LABELS[m.media_kind]}`}
+                      </span>
+                    </div>
+                    <button type="button" className={c.action} onClick={() => setPanel({ mode: "media", s: m })}>
+                      Open
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           {fresh.length === 0 && <p className={a.intro}>Nothing new. Only confirmed submissions appear here.</p>}
           {fresh.map((s) => (
             <SubmissionCard key={s.id} s={s}>
@@ -794,7 +844,9 @@ export default function CourtyardAdmin({
                   ? "Review & publish"
                   : panel.mode === "decline"
                     ? "Not now"
-                    : "New invite"}
+                    : panel.mode === "media"
+                      ? "Audio & video"
+                      : "New invite"}
             </h2>
             <button type="button" aria-label="Close" onClick={close}>
               ×
@@ -906,6 +958,18 @@ export default function CourtyardAdmin({
               nextGatheringAt={nextGatheringAt}
               onPublish={(edits, when) => run(() => publishSubmission(panel.s.id, edits, when), close)}
               onDecline={() => setPanel({ mode: "decline", s: panel.s })}
+            />
+          )}
+
+          {panel.mode === "media" && (
+            <MediaPanel
+              s={panel.s}
+              pending={pending}
+              error={error}
+              onShortlist={(kind, note) => run(() => shortlistMedia(panel.s.id, kind, note), close)}
+              onAsk={() => run(() => askMediaConsent(panel.s.id), close)}
+              onMade={(url) => run(() => markMediaMade(panel.s.id, url), close)}
+              onClear={() => run(() => clearMedia(panel.s.id), close)}
             />
           )}
 
@@ -1188,6 +1252,11 @@ function SubmissionCard({ s, children }: { s: SubmissionRow; children: React.Rea
             {s.status !== "new" && ` · ${statusText(s)}`}
           </span>
           {s.family_only && <span className={`${c.badge} ${c.badgeInline} ${c.toneAmber} ${c.badgeAfter}`}>Family circle only</span>}
+          {(s.media_stage || s.media_interest) && (
+            <span className={`${c.badge} ${c.badgeInline} ${s.media_stage ? c.toneBlue : c.toneGrey} ${c.badgeAfter}`}>
+              {s.media_stage ? `🎧 ${MEDIA_STAGE_LABELS[s.media_stage]}` : "🎧 Would welcome audio/video"}
+            </span>
+          )}
         </div>
         {s.series_title && (
           <div className={c.seriesTag}>
@@ -1371,6 +1440,125 @@ function DeclinePanel({
       <button type="button" className={c.primary} disabled={pending} onClick={() => onSend(reply, sendIt)}>
         {pending ? "Declining…" : sendIt ? "Send reply and decline" : "Decline without a reply"}
       </button>
+    </div>
+  );
+}
+
+// Audio story / video for one approved piece: shortlist (a note to self),
+// ask the creator by email, and once they say yes, paste the link when made.
+function MediaPanel({
+  s,
+  pending,
+  error,
+  onShortlist,
+  onAsk,
+  onMade,
+  onClear,
+}: {
+  s: SubmissionRow;
+  pending: boolean;
+  error: string | null;
+  onShortlist: (kind: MediaKind, note: string) => void;
+  onAsk: () => void;
+  onMade: (url: string) => void;
+  onClear: () => void;
+}) {
+  const [kind, setKind] = useState<MediaKind>(s.media_kind ?? "audio");
+  const [note, setNote] = useState(s.media_note ?? "");
+  const [url, setUrl] = useState(s.media_url ?? "");
+  const stage = s.media_stage;
+  const first = s.name.split(" ")[0];
+  return (
+    <div className={c.form}>
+      <p className={c.meta}>
+        “{s.title}” by {s.name} &lt;{s.email}&gt;
+      </p>
+      <p className={c.meta}>
+        {s.media_interest
+          ? `✓ ${first} ticked: would welcome an audio story or video.`
+          : `${first} didn’t tick the box; asking is still fine.`}
+      </p>
+      {stage && (
+        <p className={c.meta}>
+          Now: <strong>{MEDIA_STAGE_LABELS[stage]}</strong>
+          {stage === "asked" && s.media_asked_at && ` · asked ${day(s.media_asked_at)}`}
+          {(stage === "agreed" || stage === "declined") && s.media_answered_at && ` · answered ${day(s.media_answered_at)}`}
+        </p>
+      )}
+
+      {(!stage || stage === "shortlisted") && (
+        <>
+          <div className={c.terms}>
+            <p>Before you shortlist</p>
+            <ul>
+              {MEDIA_CHECKLIST.map((x) => (
+                <li key={x}>{x}</li>
+              ))}
+            </ul>
+          </div>
+          <label>
+            Make it into
+            <select value={kind} onChange={(e) => setKind(e.target.value as MediaKind)}>
+              {(Object.keys(MEDIA_KIND_LABELS) as MediaKind[]).map((k) => (
+                <option key={k} value={k}>
+                  {MEDIA_KIND_LABELS[k]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Note <small>only for you: voices, music, ideas</small>
+            <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+          </label>
+        </>
+      )}
+      {stage && stage !== "shortlisted" && s.media_note && <p className={c.meta}>Your note: {s.media_note}</p>}
+
+      {(stage === "agreed" || stage === "made") && (
+        <label>
+          Link to the audio or YouTube video <small>shown on the piece once saved</small>
+          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://media.jambuch.in/… or https://youtu.be/…" />
+        </label>
+      )}
+
+      {error && (
+        <p className={a.error} role="alert">
+          {error}
+        </p>
+      )}
+      <div className={c.actions}>
+        {!stage && (
+          <button type="button" className={c.primary} disabled={pending} onClick={() => onShortlist(kind, note)}>
+            {pending ? "Saving…" : "Shortlist"}
+          </button>
+        )}
+        {stage === "shortlisted" && (
+          <>
+            <button type="button" className={c.primary} disabled={pending} onClick={onAsk}>
+              {pending ? "Sending…" : `Ask ${first} by email`}
+            </button>
+            <button type="button" className={c.action} disabled={pending} onClick={() => onShortlist(kind, note)}>
+              Save changes
+            </button>
+          </>
+        )}
+        {stage === "asked" && (
+          <button type="button" className={c.action} disabled={pending} onClick={onAsk}>
+            {pending ? "Sending…" : "Ask again"}
+          </button>
+        )}
+        {(stage === "agreed" || stage === "made") && (
+          <button type="button" className={c.primary} disabled={pending || !url.trim()} onClick={() => onMade(url)}>
+            {pending ? "Saving…" : stage === "made" ? "Update the link" : "Mark as made"}
+          </button>
+        )}
+        {stage && (
+          <button type="button" className={c.danger} disabled={pending} onClick={onClear}>
+            {stage === "made" ? "Take it off the piece" : "Remove from the shortlist"}
+          </button>
+        )}
+      </div>
+      {stage === "declined" && <p className={c.meta}>{first} said no, thank you. Nothing will be made.</p>}
     </div>
   );
 }

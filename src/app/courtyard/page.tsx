@@ -133,6 +133,10 @@ const WHY = [
     title: "Kept for the next generation",
     text: "Letters, recipes, songs an elder sang: safe from a broken phone, credited to the person who made them.",
   },
+  {
+    title: "Heard, not only read",
+    text: "Each month I choose a few pieces to become audio stories or short videos, with your name on them and only with your yes. You don’t need to know any technology: that part is mine.",
+  },
 ];
 
 type Filters = { theme: string | null; form: string | null; q: string };
@@ -226,8 +230,8 @@ export default async function CourtyardPage({
               ))}
             </div>
             <p className={y.whyFoot}>
-              <strong>What I won’t promise:</strong> big numbers. <strong>What I will:</strong> care, credit, and
-              permanence.
+              <strong>What I won’t promise:</strong> big numbers. <strong>What I will:</strong> care, credit, permanence,
+              and a helping hand to be heard and seen.
             </p>
           </div>
         </section>

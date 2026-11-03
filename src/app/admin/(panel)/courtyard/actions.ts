@@ -9,6 +9,8 @@ import { DEFAULT_GATHERING, nextGathering, parseGathering } from "@/lib/gatherin
 import { sendGatheringLetter } from "@/lib/letter";
 import { fileRef, publishPrivate, signedPrivateUrl } from "@/lib/r2";
 import { contributorUrl, seriesAddUrl } from "@/lib/series";
+import { MEDIA_KIND_LABELS, isMediaKind, type MediaKind } from "@/lib/courtyard";
+import { makeLink } from "@/lib/signed-links";
 
 // Courtyard admin: create, resend and revoke invites, move them between
 // stages, and handle requests. Every action checks the admin role, and row-
@@ -583,6 +585,123 @@ export async function setRoomLimit(limit: number): Promise<{ ok: true } | Failed
       .upsert({ key: "courtyard.room_limit_per_year", value: limit });
     if (error) throw new Error(error.message);
     revalidatePath("/admin/courtyard");
+    return { ok: true };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+// ---------------------------------------------------------------- audio stories and videos
+
+// The creator's answer page. The link is signed, so only the email's reader can
+// answer. Not exported: everything exported here can be called from a browser.
+function mediaConsentUrl(site: string, id: string) {
+  return `${site}/courtyard/media/${makeLink("media-consent", id)}`;
+}
+
+// Shortlisting is Jaydeep's note to himself: nothing is sent.
+export async function shortlistMedia(id: string, kind: MediaKind, note: string): Promise<{ ok: true } | Failed> {
+  try {
+    const { db } = await requireAdmin();
+    if (!isMediaKind(kind)) throw new Error("Choose audio, video, or both.");
+    const { data, error } = await db
+      .from("courtyard_submissions")
+      .update({ media_stage: "shortlisted", media_kind: kind, media_note: note.trim().slice(0, 2000) || null })
+      .eq("id", id)
+      .eq("kind", "single_piece")
+      .eq("status", "published")
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error("Only an approved single piece can be shortlisted.");
+    revalidatePath("/admin/courtyard");
+    return { ok: true };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+// Asks the creator by email. Nothing is made without their yes.
+export async function askMediaConsent(id: string): Promise<{ ok: true } | Failed> {
+  try {
+    const { db } = await requireAdmin();
+    const { data: s, error } = await db
+      .from("courtyard_submissions")
+      .select("id, name, email, title, media_stage, media_kind")
+      .eq("id", id)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!s || !s.media_stage || s.media_stage === "made") throw new Error("Shortlist the piece first.");
+    const what = isMediaKind(s.media_kind) ? MEDIA_KIND_LABELS[s.media_kind].toLowerCase() : "audio story or video";
+    const sent = await sendEmail({
+      from: "Jaydeep Buch <courtyard@jambuch.in>",
+      to: s.email,
+      replyTo: process.env.ADMIN_EMAIL,
+      subject: `May I make “${s.title ?? "your piece"}” into an ${what.startsWith("audio") ? "audio story" : "video"}?`,
+      text: [
+        `Dear ${s.name.split(" ")[0]},`,
+        "",
+        `I’d love to turn your piece “${s.title ?? "your piece"}” in the Courtyard into an ${what}: read aloud by a voice, with a little music and sound where it helps, and always credited to you.`,
+        "",
+        "Nothing is made without your yes, and you can say no without any reason. If you agree, I’ll share it with you before it goes up, and you can ask me to take it down at any time.",
+        "",
+        "Please tell me here:",
+        mediaConsentUrl(await siteUrl(), s.id),
+        "",
+        "Warmly,",
+        "Jaydeep",
+      ].join("\n"),
+    });
+    if (!sent) throw new Error("The email didn’t send. Please try again.");
+    const { error: upd } = await db
+      .from("courtyard_submissions")
+      .update({ media_stage: "asked", media_asked_at: new Date().toISOString(), media_answered_at: null })
+      .eq("id", id);
+    if (upd) throw new Error(upd.message);
+    revalidatePath("/admin/courtyard");
+    return { ok: true };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+// Made: the audio or YouTube link shows on the piece.
+export async function markMediaMade(id: string, url: string): Promise<{ ok: true } | Failed> {
+  try {
+    const { db } = await requireAdmin();
+    const link = url.trim();
+    if (!/^https:\/\/\S+$/.test(link) || link.length > 500) throw new Error("Paste the full https:// link to the audio or the YouTube video.");
+    const { data, error } = await db
+      .from("courtyard_submissions")
+      .update({ media_stage: "made", media_url: link })
+      .eq("id", id)
+      .in("media_stage", ["agreed", "made"])
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error("It can be marked as made only after the creator has said yes.");
+    revalidatePath("/admin/courtyard");
+    revalidatePath("/courtyard");
+    revalidatePath("/courtyard/series/[slug]", "page");
+    return { ok: true };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+// Off the shortlist (or off the page): everything but the creator's own wish is forgotten.
+export async function clearMedia(id: string): Promise<{ ok: true } | Failed> {
+  try {
+    const { db } = await requireAdmin();
+    const { error } = await db
+      .from("courtyard_submissions")
+      .update({ media_stage: null, media_kind: null, media_note: null, media_url: null, media_asked_at: null, media_answered_at: null })
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+    revalidatePath("/admin/courtyard");
+    revalidatePath("/courtyard");
+    revalidatePath("/courtyard/series/[slug]", "page");
     return { ok: true };
   } catch (err) {
     return fail(err);
