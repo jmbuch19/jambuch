@@ -5,6 +5,7 @@
 // in the contribute form.
 export const FORMS = [
   { value: "prose", label: "Writing", formLabel: "Writing (prose)" },
+  { value: "anecdote", label: "Anecdote", formLabel: "Anecdote / short story" },
   { value: "poetry", label: "Poetry", formLabel: "Poetry" },
   { value: "photography", label: "Photography", formLabel: "Photography" },
   { value: "music", label: "Music", formLabel: "Music & recordings" },
@@ -34,6 +35,22 @@ export const MAX_THEMES = 2;
 // Longest text a piece may hold. Series parts can be whole book chapters (and
 // Gujarati counts every vowel sign), so they get more room than single pieces.
 export const BODY_MAX = { piece: 20000, part: 100000 } as const;
+
+// What a contributor is sharing: one piece, or the first of many. A series
+// grows in parts, a book in chapters (and its chapters are copy-protected).
+export type Shape = "piece" | "series" | "book";
+export const SHAPES: { value: Shape; label: string; hint: string }[] = [
+  { value: "piece", label: "One piece", hint: "An anecdote, a poem, a photo, a recipe: complete in itself." },
+  { value: "series", label: "A series", hint: "One subject, parts to come over time, e.g. notes on the Upanishads." },
+  { value: "book", label: "A book", hint: "Your book, chapter by chapter over time, e.g. a memoir or a novel." },
+];
+
+// The word for one instalment of a series or book.
+export function unit(shape: string | null | undefined) {
+  return shape === "book"
+    ? { one: "chapter", many: "chapters", One: "Chapter", whole: "book" }
+    : { one: "part", many: "parts", One: "Part", whole: "series" };
+}
 
 export function formLabel(value: string | null | undefined) {
   return FORMS.find((f) => f.value === value)?.label ?? "Other";
@@ -86,6 +103,7 @@ export const REPLY_HASH = "reply-";
 // Avatar colours in the thread, by form (from the design's tints).
 export const FORM_TINT: Record<string, string> = {
   prose: "#F6E7D6",
+  anecdote: "#F3E2DA",
   poetry: "#EFE3D0",
   photography: "#DCE6E4",
   music: "#E1DFE6",

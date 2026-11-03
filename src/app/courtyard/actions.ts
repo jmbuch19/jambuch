@@ -11,6 +11,8 @@ import {
   MAX_THEMES,
   THEMES,
   kindLine,
+  unit,
+  type Shape,
   type SubmissionKind,
 } from "@/lib/courtyard";
 import { sendEmail } from "@/lib/email";
@@ -63,13 +65,15 @@ async function notifyAdmin(s: {
   creator_name: string | null;
   seriesTitle?: string | null;
   seriesFirst?: boolean;
+  seriesShape?: string | null;
 }) {
   const admin = process.env.ADMIN_EMAIL;
   if (!admin) return;
+  const u = unit(s.seriesShape);
   const what = s.seriesTitle
     ? s.seriesFirst
-      ? `first part of a new series, “${s.seriesTitle}”,`
-      : `new part of “${s.seriesTitle}”`
+      ? `first ${u.one} of a new ${u.whole}, “${s.seriesTitle}”,`
+      : `new ${u.one} of “${s.seriesTitle}”`
     : KIND_LABELS[s.kind].toLowerCase();
   await sendEmail({
     from: "jambuch.in <courtyard@jambuch.in>",
@@ -143,7 +147,10 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
   const hasFile = file instanceof File && file.size > 0;
 
   // Starting a series with this piece.
-  const startSeries = !series && kind === "single_piece" && form.get("series_start") === "on";
+  // One piece, or the first of a series or book.
+  const shape: Shape = form.get("shape") === "book" ? "book" : form.get("shape") === "series" ? "series" : "piece";
+  const startSeries = !series && kind === "single_piece" && shape !== "piece";
+  const u = unit(series ? series.shape : shape);
   const seriesTitle = str("series_title", 120);
   const seriesDescription = str("series_description", 1000);
 
@@ -159,7 +166,9 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
     if (!row.body && !hasFile && links.length === 0) {
       return { status: "error", message: "Please add the text, a file, or a link to your piece." };
     }
-    if (startSeries && !seriesTitle) return { status: "error", message: "Please give your series a name." };
+    if (startSeries && !seriesTitle) {
+      return { status: "error", message: shape === "book" ? "Please give the title of your book." : "Please give your series a name." };
+    }
   } else if (kind === "room_request") {
     row.about = str("about", 3000) || null;
     if (!row.about) return { status: "error", message: "Please tell me a little about your work." };
@@ -258,7 +267,7 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
     if (open) {
       return {
         status: "error",
-        message: `You already have a series, “${open.title}”. Please add to it with your personal link, or untick “first part of a series”.`,
+        message: `You already have “${open.title}” open. Please add to it with your personal link, or choose “One piece”.`,
       };
     }
   }
@@ -294,6 +303,7 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
       .insert({
         slug: seriesSlug(seriesTitle),
         title: seriesTitle,
+        shape,
         description: seriesDescription || null,
         name,
         email,
@@ -341,6 +351,7 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
       creator_name: null,
       seriesTitle: series?.title ?? (startSeries ? seriesTitle : null),
       seriesFirst: !series && startSeries,
+      seriesShape: series ? series.shape : shape,
     });
     return { status: "sent", direct: true };
   }
@@ -349,7 +360,7 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
   const what =
     kind === "single_piece"
       ? startSeries
-        ? `your piece “${row.title}”, the first part of your series “${seriesTitle}”`
+        ? `“${row.title}”, the first ${u.one} of your ${u.whole} “${seriesTitle}”`
         : `your piece “${row.title}”`
       : kind === "room_request"
         ? "your request for a room"
@@ -396,7 +407,7 @@ export async function resendMyLink(_prev: ContributeState, form: FormData): Prom
     db.from("courtyard_contributors").select("id, name, link_version, link_sent_at").eq("email", email).is("deleted_at", null).maybeSingle(),
     db
       .from("courtyard_series")
-      .select("id, title, name, add_link_version")
+      .select("id, title, name, shape, add_link_version")
       .eq("email", email)
       .eq("status", "active")
       .is("deleted_at", null)
@@ -407,7 +418,7 @@ export async function resendMyLink(_prev: ContributeState, form: FormData): Prom
     const site = await siteUrl();
     const lines = [`Dear ${(c?.name ?? s!.name).split(" ")[0]},`, "", "Here are your personal links for the Courtyard at jambuch.in:", ""];
     if (c) lines.push("To share another piece:", contributorUrl(site, c), "");
-    if (s) lines.push(`To add the next part of “${s.title}”:`, seriesAddUrl(site, { id: s.id, add_link_version: s.add_link_version }), "");
+    if (s) lines.push(`To add the next ${unit(s.shape).one} of “${s.title}”:`, seriesAddUrl(site, { id: s.id, add_link_version: s.add_link_version }), "");
     lines.push("Keep them to yourself: they send work under your name.", "", "Jaydeep");
     await sendEmail({
       from: "Jaydeep Buch <courtyard@jambuch.in>",
@@ -439,10 +450,12 @@ export async function confirmSubmission(token: string): Promise<{ ok: boolean; k
   // A confirmed submission with a series is always that series' first part
   // (later parts come through the personal link, already confirmed).
   let seriesTitle: string | null = null;
+  let seriesShape: string | null = null;
   if (data.series_id) {
-    const { data: s } = await db.from("courtyard_series").select("title").eq("id", data.series_id).maybeSingle();
+    const { data: s } = await db.from("courtyard_series").select("title, shape").eq("id", data.series_id).maybeSingle();
     seriesTitle = s?.title ?? null;
+    seriesShape = s?.shape ?? null;
   }
-  await notifyAdmin({ ...(data as Parameters<typeof notifyAdmin>[0]), seriesTitle, seriesFirst: !!seriesTitle });
+  await notifyAdmin({ ...(data as Parameters<typeof notifyAdmin>[0]), seriesTitle, seriesFirst: !!seriesTitle, seriesShape });
   return { ok: true, kind: data.kind as SubmissionKind };
 }

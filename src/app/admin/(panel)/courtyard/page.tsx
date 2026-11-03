@@ -32,7 +32,7 @@ export default async function CourtyardPage({ searchParams }: { searchParams: Pr
     db.from("settings").select("value").eq("key", "courtyard.gathering").maybeSingle(),
     db
       .from("courtyard_series")
-      .select("id, slug, title, description, name, email, form, status, created_at, book_title, book_credit, book_url")
+      .select("id, slug, title, shape, description, name, email, form, status, created_at, book_title, book_credit, book_url")
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),
     db.from("courtyard_series_followers").select("series_id").not("confirmed_at", "is", null),
@@ -73,13 +73,14 @@ export default async function CourtyardPage({ searchParams }: { searchParams: Pr
   const gathering = parseGathering(gatheringRes.data?.value);
 
   const invites = (invitesRes.data ?? []) as InviteRow[];
-  type Raw = Omit<SubmissionRow, "has_file" | "thread_from_title" | "series_title"> & {
+  type Raw = Omit<SubmissionRow, "has_file" | "thread_from_title" | "series_title" | "series_shape"> & {
     file_url: string | null;
     thread_from: string | null;
   };
   const raw = (subsRes.data ?? []) as unknown as Raw[];
   const seriesList = (seriesRes.data ?? []) as Omit<SeriesRow, "parts" | "waiting" | "followers" | "last_part_at">[];
   const seriesTitle = new Map(seriesList.map((s) => [s.id, s.title]));
+  const seriesShape = new Map(seriesList.map((s) => [s.id, s.shape]));
 
   // Names the piece each one picks up the thread from.
   const parentIds = [...new Set(raw.map((s) => s.thread_from).filter((x): x is string => !!x))];
@@ -93,6 +94,7 @@ export default async function CourtyardPage({ searchParams }: { searchParams: Pr
     has_file: !!file_url,
     thread_from_title: thread_from ? (parents.get(thread_from) ?? "an earlier piece") : null,
     series_title: s.series_id ? (seriesTitle.get(s.series_id) ?? null) : null,
+    series_shape: s.series_id ? (seriesShape.get(s.series_id) ?? null) : null,
   }));
 
   const followerCount = new Map<string, number>();

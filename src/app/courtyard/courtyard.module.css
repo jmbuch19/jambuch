@@ -880,6 +880,11 @@
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-sm);
 }
+.seriesBox legend {
+  padding: 0 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
 .seriesToggle {
   display: flex;
   gap: 10px;

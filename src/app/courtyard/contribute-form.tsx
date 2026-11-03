@@ -2,7 +2,19 @@
 
 import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 import { shrinkImage } from "@/app/admin/(panel)/[table]/[id]/shrink-image";
-import { BODY_MAX, DOOR_HASH, FORMS, MAX_FILE_BYTES, MAX_THEMES, REPLY_HASH, THEMES, type SubmissionKind } from "@/lib/courtyard";
+import {
+  BODY_MAX,
+  DOOR_HASH,
+  FORMS,
+  MAX_FILE_BYTES,
+  MAX_THEMES,
+  REPLY_HASH,
+  SHAPES,
+  THEMES,
+  unit,
+  type Shape,
+  type SubmissionKind,
+} from "@/lib/courtyard";
 import { SpamCheckBox, sendLabel, useSpamCheck } from "../spam-check";
 import { submitContribution, type ContributeState } from "./actions";
 import y from "./courtyard.module.css";
@@ -13,18 +25,20 @@ const DOORS: { kind: SubmissionKind; label: string; send: string; thanks: string
   { kind: "suggestion", label: "Suggest a creator", send: "Send suggestion", thanks: "Thank you for thinking of them." },
 ];
 
-// A contributor's personal link: the form adds the next part to their series.
+// A contributor's personal link: the form adds the next part to their series
+// (or the next chapter to their book).
 export type SeriesMode = {
   token: string;
   title: string;
+  shape: string; // "series" | "book"
   name: string;
   form: string | null;
   themes: string[];
   nextPart: number;
 };
 
-// One form, three doors: a single piece (optionally the first part of a
-// series), a room request, or a suggestion. With `series`, it only takes the
+// One form, three doors: a single piece (or the first part of a series, or
+// the first chapter of a book), a room request, or a suggestion. With `series`, it only takes the
 // next part of that series.
 // threads: the pieces on the public thread, so "Pick up this thread" can name them.
 export default function ContributeForm({
@@ -43,7 +57,9 @@ export default function ContributeForm({
   const [sentKind, setSentKind] = useState<SubmissionKind>("single_piece");
   const [sentTo, setSentTo] = useState("");
   const [themes, setThemes] = useState<string[]>(series?.themes ?? []);
-  const [startSeries, setStartSeries] = useState(false);
+  const [shape, setShape] = useState<Shape>("piece");
+  const startSeries = shape !== "piece";
+  const u = unit(series ? series.shape : shape);
   const [fileError, setFileError] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
   const formTop = useRef<HTMLDivElement>(null);
@@ -132,7 +148,7 @@ export default function ContributeForm({
     return (
       <div className={y.formCard}>
         <div className={y.done} role="status">
-          <p>Thank you — your next part is with me.</p>
+          <p>Thank you — your next {u.one} is with me.</p>
           <span>
             I’ll read it, and once approved it joins the thread at the next gathering as part of “{series.title}”.
           </span>
@@ -192,7 +208,7 @@ export default function ContributeForm({
             )}
             {series && (
               <p className={y.threadNote}>
-                Part {series.nextPart} of <strong>“{series.title}”</strong>, by {series.name}
+                {u.One} {series.nextPart} of <strong>“{series.title}”</strong>, by {series.name}
               </p>
             )}
             {piece && !series && threadFrom && threadLabel && (
@@ -279,8 +295,48 @@ export default function ContributeForm({
 
             {piece && (
               <>
+                {!series && (
+                  <fieldset className={y.seriesBox}>
+                    <legend>What are you sharing?</legend>
+                    {SHAPES.map((o) => (
+                      <label key={o.value} className={y.seriesToggle}>
+                        <input
+                          type="radio"
+                          name="shape"
+                          value={o.value}
+                          checked={shape === o.value}
+                          onChange={() => setShape(o.value)}
+                        />
+                        <span>
+                          <strong>{o.label}.</strong> {o.hint}
+                        </span>
+                      </label>
+                    ))}
+                    {startSeries && (
+                      <>
+                        <label className={y.field}>
+                          {shape === "book" ? "Title of the book" : "Name of the series"}
+                          <input
+                            name="series_title"
+                            maxLength={120}
+                            required
+                            placeholder={shape === "book" ? "The title on the cover" : "e.g. Notes on the Upanishads"}
+                          />
+                        </label>
+                        <label className={y.field}>
+                          A line about the {u.whole} <small>optional</small>
+                          <textarea name="series_description" rows={2} maxLength={1000} />
+                        </label>
+                        <p className={y.small}>
+                          Below goes the first {u.one}. Once I approve it, I’ll email you a personal link to add each next{" "}
+                          {u.one}, whenever it’s ready.
+                        </p>
+                      </>
+                    )}
+                  </fieldset>
+                )}
                 <label className={y.field}>
-                  Title
+                  {series || startSeries ? `Title of this ${u.one}` : "Title"}
                   <input name="title" maxLength={200} required />
                 </label>
                 <label className={y.field}>
@@ -306,37 +362,6 @@ export default function ContributeForm({
                   Link <small>optional</small>
                   <input name="links" type="url" inputMode="url" placeholder="https://" />
                 </label>
-                {!series && (
-                  <div className={y.seriesBox}>
-                    <label className={y.seriesToggle}>
-                      <input
-                        type="checkbox"
-                        name="series_start"
-                        checked={startSeries}
-                        onChange={(e) => setStartSeries(e.target.checked)}
-                      />
-                      <span>
-                        <strong>This is the first part of a series.</strong> One subject, more parts to come, e.g.
-                        notes on the Upanishads.
-                      </span>
-                    </label>
-                    {startSeries && (
-                      <>
-                        <label className={y.field}>
-                          Name of the series
-                          <input name="series_title" maxLength={120} required placeholder="e.g. Notes on the Upanishads" />
-                        </label>
-                        <label className={y.field}>
-                          A line about the series <small>optional</small>
-                          <textarea name="series_description" rows={2} maxLength={1000} />
-                        </label>
-                        <p className={y.small}>
-                          Once I approve this first part, I’ll email you a personal link to add each next part.
-                        </p>
-                      </>
-                    )}
-                  </div>
-                )}
               </>
             )}
 
@@ -423,7 +448,7 @@ export default function ContributeForm({
               </p>
             )}
             <button type="submit" disabled={pending || preparing || check.status !== "ready"} className={y.send}>
-              {preparing ? "Preparing photo…" : sendLabel(check, pending, series ? `Send part ${series.nextPart}` : door.send)}
+              {preparing ? "Preparing photo…" : sendLabel(check, pending, series ? `Send ${u.one} ${series.nextPart}` : door.send)}
             </button>
           </form>
         )}

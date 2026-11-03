@@ -14,6 +14,7 @@ import {
   formLabel,
   kindLine,
   themeNotes,
+  unit,
   type MediaKind,
   type MediaStage,
   type SubmissionKind,
@@ -84,6 +85,7 @@ export type SubmissionRow = {
   series_id: string | null;
   series_part: number | null;
   series_title: string | null;
+  series_shape: "series" | "book" | null;
   file_type: string | null;
   file_name: string | null;
   links: string[];
@@ -115,6 +117,7 @@ export type SeriesRow = {
   id: string;
   slug: string;
   title: string;
+  shape: "series" | "book"; // the contributor's choice; Jaydeep can change it
   description: string | null;
   name: string;
   email: string;
@@ -1125,7 +1128,7 @@ function SeriesTab({
   if (series.length === 0) {
     return (
       <p className={a.intro}>
-        No series yet. Contributors start one by ticking “This is the first part of a series” when they share a piece.
+        No series or books yet. Contributors start one by choosing “A series” or “A book” when they share a piece.
       </p>
     );
   }
@@ -1184,6 +1187,7 @@ function SeriesTab({
                       const f = new FormData(e.currentTarget);
                       onChange(s.id, {
                         action: "book",
+                        shape: f.get("shape") === "book" ? "book" : "series",
                         book_title: String(f.get("book_title") ?? ""),
                         book_credit: String(f.get("book_credit") ?? ""),
                         book_url: String(f.get("book_url") ?? ""),
@@ -1192,12 +1196,19 @@ function SeriesTab({
                     }}
                   >
                     <p className={c.sub}>
-                      For a series that puts a printed book online chapter by chapter. The page then credits the book, links
-                      to buy it, protects the chapters from copying, and the thread shows only each chapter’s opening.
-                      Leave the title empty to make it an ordinary series again.
+                      A book says “chapter”, protects its chapters from copying, and the thread shows only each chapter’s
+                      opening. For a printed book, add its title, credit line and buy link: the page then credits it and
+                      links to buy it.
                     </p>
                     <label>
-                      Book title
+                      It is
+                      <select name="shape" defaultValue={s.shape}>
+                        <option value="series">A series (parts)</option>
+                        <option value="book">A book (chapters)</option>
+                      </select>
+                    </label>
+                    <label>
+                      Printed book’s title <small>leave empty if it isn’t a printed book</small>
                       <input name="book_title" defaultValue={s.book_title ?? ""} maxLength={200} />
                     </label>
                     <label>
@@ -1229,7 +1240,12 @@ function SeriesTab({
                     <small>
                       by {s.name} &lt;{s.email}&gt; · {formLabel(s.form)}
                     </small>
-                    {s.book_title && <small>📖 Book: {s.book_title}{s.book_url ? " · buy link set" : ""}</small>}
+                    {s.shape === "book" && (
+                      <small>
+                        📖 Book{s.book_title ? `, printed: ${s.book_title}` : ""}
+                        {s.book_url ? " · buy link set" : ""}
+                      </small>
+                    )}
                   </>
                 )}
               </td>
@@ -1246,7 +1262,7 @@ function SeriesTab({
                     Rename
                   </button>
                   <button type="button" className={c.action} onClick={() => setBooking(s.id)}>
-                    {s.book_title ? "Book details" : "Mark as book"}
+                    Book details
                   </button>
                   {s.status === "active" && (
                     <>
@@ -1326,8 +1342,9 @@ function SubmissionCard({ s, children }: { s: SubmissionRow; children: React.Rea
         </div>
         {s.series_title && (
           <div className={c.seriesTag}>
-            {s.series_part ? `Series “${s.series_title}” · part ${s.series_part}` : `Series “${s.series_title}”`}
-            {!s.series_part && s.status === "new" && " · approving this opens the series"}
+            {s.series_shape === "book" ? "Book" : "Series"} “{s.series_title}”
+            {s.series_part ? ` · ${unit(s.series_shape).one} ${s.series_part}` : ""}
+            {!s.series_part && s.status === "new" && ` · approving this opens the ${unit(s.series_shape).whole}`}
           </div>
         )}
         {s.thread_from_title && <div className={c.meta}>↳ picks up the thread from {s.thread_from_title}</div>}

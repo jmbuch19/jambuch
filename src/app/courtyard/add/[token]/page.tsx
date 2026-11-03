@@ -1,24 +1,27 @@
 import type { Metadata } from "next";
+import { unit } from "@/lib/courtyard";
 import { seriesForLink } from "@/lib/series";
 import { adminClient } from "@/lib/supabase-admin";
 import LibraryHeader from "../../../library/header";
 import ContributeForm from "../../contribute-form";
 import y from "../../courtyard.module.css";
 
-export const metadata: Metadata = { title: "Add the next part · The Courtyard · jambuch.in", robots: { index: false } };
+export const metadata: Metadata = { title: "Add the next instalment · The Courtyard · jambuch.in", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
-// A contributor's personal link for adding the next part of their series.
+// A contributor's personal link for adding the next part of their series (or
+// the next chapter of their book).
 export default async function AddPartPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const series = await seriesForLink(token);
+  const u = unit(series?.shape);
 
   let body: React.ReactNode;
   if (!series) {
     body = (
       <>
         <h1 className={y.h1}>This link doesn’t work any more</h1>
-        <p className={y.lede}>It may have been replaced by a newer one. Ask Jaydeep for a fresh link to your series.</p>
+        <p className={y.lede}>It may have been replaced by a newer one. Ask Jaydeep for a fresh link.</p>
       </>
     );
   } else if (series.status !== "active") {
@@ -27,10 +30,10 @@ export default async function AddPartPage({ params }: { params: Promise<{ token:
         <h1 className={y.h1}>{series.title}</h1>
         <p className={y.lede}>
           {series.status === "ended"
-            ? "This series is complete, so it isn’t taking new parts. Thank you for every one of them."
+            ? `This ${u.whole} is complete, so it isn’t taking new ${u.many}. Thank you for every one of them.`
             : series.status === "paused"
-              ? "This series is resting for now. Jaydeep will let you know when it opens again."
-              : "This series opens once Jaydeep approves its first part. You’ll get an email when it does."}
+              ? `This ${u.whole} is resting for now. Jaydeep will let you know when it opens again.`
+              : `This ${u.whole} opens once Jaydeep approves its first ${u.one}. You’ll get an email when it does.`}
         </p>
       </>
     );
@@ -43,9 +46,11 @@ export default async function AddPartPage({ params }: { params: Promise<{ token:
       .is("deleted_at", null);
     body = (
       <>
-        <h1 className={y.h1}>The next part of “{series.title}”</h1>
+        <h1 className={y.h1}>
+          The next {u.one} of “{series.title}”
+        </h1>
         <p className={y.lede}>
-          Welcome back, {series.name.split(" ")[0]}. Send the next part whenever it’s ready: once I’ve read and approved
+          Welcome back, {series.name.split(" ")[0]}. Send the next {u.one} whenever it’s ready: once I’ve read and approved
           it, it joins the thread at the next gathering.
         </p>
         <div className={y.addForm}>
@@ -53,6 +58,7 @@ export default async function AddPartPage({ params }: { params: Promise<{ token:
             series={{
               token,
               title: series.title,
+              shape: series.shape,
               name: series.name,
               form: series.form,
               themes: series.themes,
@@ -61,7 +67,7 @@ export default async function AddPartPage({ params }: { params: Promise<{ token:
           />
         </div>
         <p className={y.small}>
-          This link is yours alone: please don’t share it. <a href={`/courtyard/series/${series.slug}`}>See your series →</a>
+          This link is yours alone: please don’t share it. <a href={`/courtyard/series/${series.slug}`}>See your {u.whole} →</a>
         </p>
       </>
     );

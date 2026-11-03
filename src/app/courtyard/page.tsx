@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Fragment } from "react";
 import { gatheringDay } from "@/lib/gathering";
-import { DOOR_HASH, FORMS, REPLY_HASH, THEMES, kindLine } from "@/lib/courtyard";
+import { DOOR_HASH, FORMS, REPLY_HASH, THEMES, kindLine, unit } from "@/lib/courtyard";
 import { publicClient } from "@/lib/supabase";
 import { adminClient } from "@/lib/supabase-admin";
 import LibraryHeader from "../library/header";
@@ -53,11 +53,11 @@ async function seriesOf(pieces: Piece[]) {
   if (ids.length === 0) return map;
   const { data } = await adminClient()
     .from("courtyard_series")
-    .select("id, slug, title, book_title")
+    .select("id, slug, title, shape, book_title")
     .in("id", ids)
     .neq("status", "pending")
     .is("deleted_at", null);
-  for (const s of data ?? []) map.set(s.id, { href: `/courtyard/series/${s.slug}`, title: s.title, book: !!s.book_title });
+  for (const s of data ?? []) map.set(s.id, { href: `/courtyard/series/${s.slug}`, title: s.title, book: s.shape === "book" || !!s.book_title });
   return map;
 }
 
@@ -68,7 +68,7 @@ async function seriesList(pieces: Piece[]) {
   if (parts.size === 0) return [];
   const { data } = await adminClient()
     .from("courtyard_series")
-    .select("id, slug, title, name, form, themes, status")
+    .select("id, slug, title, shape, name, form, themes, status")
     .in("id", [...parts.keys()])
     .in("status", ["active", "paused", "ended"])
     .is("deleted_at", null);
@@ -248,20 +248,25 @@ export default async function CourtyardPage({
           <section className={y.band} aria-labelledby="series">
             <div className={y.bandInner}>
               <h2 id="series" className={y.h2}>
-                Series
+                Series and books
               </h2>
-              <p className={y.sectionIntro}>One subject, part by part, from contributors who keep coming back.</p>
+              <p className={y.sectionIntro}>
+                One subject part by part, or a book chapter by chapter, from contributors who keep coming back.
+              </p>
               <div className={y.seriesShelf}>
                 {seriesShelf.map((s) => (
                   <a key={s.slug} href={`/courtyard/series/${s.slug}`} className={y.seriesCard}>
-                    <span className={y.eyebrow}>{kindLine(s.form, s.themes)}</span>
+                    <span className={y.eyebrow}>
+                      {s.shape === "book" ? "Book · " : ""}
+                      {kindLine(s.form, s.themes)}
+                    </span>
                     <span className={y.seriesCardTitle}>{s.title}</span>
                     <span className={y.seriesCardBy}>
-                      by {s.name} · {s.parts} {s.parts === 1 ? "part" : "parts"}
+                      by {s.name} · {s.parts} {s.parts === 1 ? unit(s.shape).one : unit(s.shape).many}
                       {s.status === "ended" ? " · complete" : ""}
                     </span>
                     {s.latest && <span className={y.seriesCardLatest}>Latest: {s.latest}</span>}
-                    <span className={y.doorGo}>Read the series →</span>
+                    <span className={y.doorGo}>Read the {unit(s.shape).whole} →</span>
                   </a>
                 ))}
               </div>

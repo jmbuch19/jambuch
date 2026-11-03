@@ -87,7 +87,7 @@ export default function PieceTurn({
         {series && (
           <p className={y.seriesLine}>
             <a href={series.href}>
-              {series.title} · Part {p.series_part}
+              {series.title} · {series.book ? "Chapter" : "Part"} {p.series_part}
             </a>
           </p>
         )}

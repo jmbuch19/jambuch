@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { kindLine } from "@/lib/courtyard";
+import { kindLine, unit } from "@/lib/courtyard";
 import { adminClient } from "@/lib/supabase-admin";
 import LibraryHeader from "../../../library/header";
 import PieceTurn, { PIECE_COLUMNS, type Piece } from "../../piece-turn";
@@ -22,6 +22,7 @@ type Series = {
   form: string | null;
   themes: string[];
   status: "active" | "paused" | "ended";
+  shape: "series" | "book"; // chosen by the contributor; a book's chapters are copy-protected
   // Set by Jaydeep in admin when the series serialises a printed book.
   book_title: string | null;
   book_credit: string | null;
@@ -34,7 +35,7 @@ async function load(slug: string) {
   const db = adminClient();
   const { data: series } = await db
     .from("courtyard_series")
-    .select("id, slug, title, description, name, city, form, themes, status, book_title, book_credit, book_url")
+    .select("id, slug, title, shape, description, name, city, form, themes, status, book_title, book_credit, book_url")
     .eq("slug", slug)
     .in("status", ["active", "paused", "ended"])
     .is("deleted_at", null)
@@ -57,8 +58,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!found) return {};
   const { series } = found;
   return {
-    title: `${series.title} · a series by ${series.name} · The Courtyard`,
-    description: series.description ?? `A series by ${series.name} in the Courtyard at jambuch.in.`,
+    title: `${series.title} · a ${unit(series.shape).whole} by ${series.name} · The Courtyard`,
+    description: series.description ?? `A ${unit(series.shape).whole} by ${series.name} in the Courtyard at jambuch.in.`,
   };
 }
 
@@ -67,7 +68,8 @@ export default async function SeriesPage({ params }: { params: Promise<{ slug: s
   if (!found) notFound();
   const { series, parts } = found;
   const base = `/courtyard/series/${series.slug}`;
-  const book = !!series.book_title;
+  const book = series.shape === "book" || !!series.book_title;
+  const u = unit(book ? "book" : "series");
   const buy = series.book_url && (
     <a href={series.book_url} target="_blank" rel="noopener noreferrer" className={y.bookBuy}>
       Buy the printed book →
@@ -89,15 +91,17 @@ export default async function SeriesPage({ params }: { params: Promise<{ slug: s
           <p className={`gu ${y.kicker}`}>
             <a href="/courtyard">આંગણું · The Courtyard</a>
           </p>
-          <p className={y.eyebrow}>A series · {kindLine(series.form, series.themes)}</p>
+          <p className={y.eyebrow}>
+            {book ? "A book" : "A series"} · {kindLine(series.form, series.themes)}
+          </p>
           <h1 className={y.h1}>{series.title}</h1>
           <p className={y.seriesBy}>
             by {series.name}
-            {series.city ? `, ${series.city}` : ""} · {parts.length} {parts.length === 1 ? "part" : "parts"} so far
+            {series.city ? `, ${series.city}` : ""} · {parts.length} {parts.length === 1 ? u.one : u.many} so far
             {series.status === "ended" ? " · complete" : series.status === "paused" ? " · resting for now" : ""}
           </p>
           {series.description && <p className={y.lede}>{series.description}</p>}
-          {book && (
+          {series.book_title && (
             <div className={y.bookBox}>
               <p className={y.eyebrow}>From the printed book</p>
               <p className={y.bookTitle}>{series.book_title}</p>
@@ -110,15 +114,15 @@ export default async function SeriesPage({ params }: { params: Promise<{ slug: s
           )}
         </section>
 
-        <section className={`${y.band} ${y.bandAlt}`} aria-label="Parts">
+        <section className={`${y.band} ${y.bandAlt}`} aria-label={u.One + "s"}>
           <div className={y.threadWrap}>
-            {parts.length === 0 && <p className={y.empty}>The first part joins at the next gathering.</p>}
+            {parts.length === 0 && <p className={y.empty}>The first {u.one} joins at the next gathering.</p>}
             <ol className={y.thread}>
               {parts.map((p) => (
                 <PieceTurn key={p.id} p={p} open={!book} book={book} pickUpHref={`/courtyard#reply-${p.id}`} />
               ))}
             </ol>
-            {book && parts.length > 0 && (
+            {series.book_title && parts.length > 0 && (
               <div className={y.bookBox}>
                 <p className={y.bookTitle}>Enjoying it?</p>
                 <p className={y.small}>“{series.book_title}” is also a printed book, to keep and to give.</p>
@@ -129,13 +133,13 @@ export default async function SeriesPage({ params }: { params: Promise<{ slug: s
               <div className={y.followBox}>
                 <p className={y.followTitle}>Follow along</p>
                 <p className={y.small}>
-                  Get an email when a new part of “{series.title}” joins the Courtyard. Nothing else, and one tap to stop.
+                  Get an email when a new {u.one} of “{series.title}” joins the Courtyard. Nothing else, and one tap to stop.
                 </p>
                 <FollowForm seriesId={series.id} />
               </div>
             )}
             <p className={y.small}>
-              <a href={`${base}#`}>Link to this series</a> · <a href="/courtyard#thread">Back to the thread</a>
+              <a href={`${base}#`}>Link to this {u.whole}</a> · <a href="/courtyard#thread">Back to the thread</a>
             </p>
           </div>
         </section>

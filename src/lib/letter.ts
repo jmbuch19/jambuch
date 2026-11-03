@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { entryLabel, entryPath } from "./book-sections";
-import { kindLine } from "./courtyard";
+import { kindLine, unit } from "./courtyard";
 import { sendEmailBatch } from "./email";
 import { DEFAULT_GATHERING, WEEKDAYS, gatheringDay, nextGathering, parseGathering } from "./gathering";
 import { readerStopUrl } from "./series";
@@ -104,15 +104,15 @@ export async function sendGatheringLetter(db: SupabaseClient, site: string, opts
   }
 
   const seriesIds = [...new Set(pieces.map((p) => p.series_id).filter((x): x is string => !!x))];
-  const seriesTitles = new Map<string, string>();
+  const seriesTitles = new Map<string, { title: string; shape: string }>();
   if (seriesIds.length) {
-    const { data } = await db.from("courtyard_series").select("id, title").in("id", seriesIds);
-    for (const s of data ?? []) seriesTitles.set(s.id, s.title);
+    const { data } = await db.from("courtyard_series").select("id, title, shape").in("id", seriesIds);
+    for (const s of data ?? []) seriesTitles.set(s.id, { title: s.title, shape: s.shape });
   }
   const lines = pieces.flatMap((p) => {
     const series = p.series_id ? seriesTitles.get(p.series_id) : null;
     return [
-      `• ${series ? `${series} · Part ${p.series_part}: ` : ""}${p.title}`,
+      `• ${series ? `${series.title} · ${unit(series.shape).One} ${p.series_part}: ` : ""}${p.title}`,
       `  by ${p.name}${p.city ? `, ${p.city}` : ""} · ${kindLine(p.form, p.themes)}`,
       `  ${site}/courtyard#piece-${p.id}`,
       "",

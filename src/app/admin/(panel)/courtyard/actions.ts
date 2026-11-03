@@ -9,7 +9,7 @@ import { DEFAULT_GATHERING, nextGathering, parseGathering } from "@/lib/gatherin
 import { sendGatheringLetter } from "@/lib/letter";
 import { fileRef, publishPrivate, signedPrivateUrl } from "@/lib/r2";
 import { contributorUrl, seriesAddUrl } from "@/lib/series";
-import { MEDIA_KIND_LABELS, isMediaKind, type MediaKind } from "@/lib/courtyard";
+import { MEDIA_KIND_LABELS, isMediaKind, unit, type MediaKind } from "@/lib/courtyard";
 import { makeLink } from "@/lib/signed-links";
 
 // Courtyard admin: create, resend and revoke invites, move them between
@@ -278,7 +278,7 @@ export async function publishSubmission(
         .update({ status: "active" })
         .eq("id", s.series_id)
         .eq("status", "pending")
-        .select("id, title, name, email, add_link_version, slug")
+        .select("id, title, shape, name, email, add_link_version, slug")
         .maybeSingle();
       if (opened) await emailSeriesLink(opened, await siteUrl(), true);
     }
@@ -458,25 +458,26 @@ export async function newContributorLink(email: string): Promise<{ ok: true } | 
 
 // ---------------------------------------------------------------- series
 
-type SeriesRow = { id: string; title: string; name: string; email: string; add_link_version: number; slug: string };
+type SeriesRow = { id: string; title: string; shape: string; name: string; email: string; add_link_version: number; slug: string };
 
 async function emailSeriesLink(s: SeriesRow, site: string, first: boolean) {
+  const u = unit(s.shape);
   return sendEmail({
     from: "Jaydeep Buch <courtyard@jambuch.in>",
     to: s.email,
     replyTo: process.env.ADMIN_EMAIL,
-    subject: first ? `Your series “${s.title}” is open` : `A fresh link for “${s.title}”`,
+    subject: first ? `Your ${u.whole} “${s.title}” is open` : `A fresh link for “${s.title}”`,
     text: [
       `Dear ${s.name.split(" ")[0]},`,
       "",
       first
-        ? `I’ve approved the first part of “${s.title}”. It joins the Courtyard at the next gathering, and your series now has its own page:`
+        ? `I’ve approved the first ${u.one} of “${s.title}”. It joins the Courtyard at the next gathering, and your ${u.whole} now has its own page:`
         : `Here is a fresh personal link for “${s.title}”. Your old link no longer works.`,
       ...(first ? [`${site}/courtyard/series/${s.slug}`, ""] : [""]),
-      "Whenever the next part is ready, send it with your personal link (keep it to yourself: it adds parts under your name):",
+      `Whenever the next ${u.one} is ready, send it with your personal link (keep it to yourself: it adds ${u.many} under your name):`,
       seriesAddUrl(site, s),
       "",
-      "Each part waits for my reading, then joins the thread at a weekly gathering.",
+      `Each ${u.one} waits for my reading, then joins the thread at a weekly gathering.`,
       "",
       "Warmly,",
       "Jaydeep",
@@ -491,7 +492,7 @@ export async function updateSeries(
   change:
     | { action: "pause" | "resume" | "end" }
     | { action: "rename"; title: string; description: string }
-    | { action: "book"; book_title: string; book_credit: string; book_url: string }
+    | { action: "book"; shape: "series" | "book"; book_title: string; book_credit: string; book_url: string }
     | { action: "new_link" },
 ): Promise<{ ok: true; emailed?: boolean } | Failed> {
   try {
@@ -513,6 +514,8 @@ export async function updateSeries(
       const { error } = await db
         .from("courtyard_series")
         .update({
+          // A printed book's details make it a book; otherwise Jaydeep's choice stands.
+          shape: book_title ? "book" : change.shape === "book" ? "book" : "series",
           book_title,
           book_credit: book_title ? change.book_credit.trim().slice(0, 300) || null : null,
           book_url: book_url?.slice(0, 500) ?? null,
@@ -527,7 +530,7 @@ export async function updateSeries(
         .update({ add_link_version: (cur?.add_link_version ?? 1) + 1 })
         .eq("id", id)
         .eq("status", "active")
-        .select("id, title, name, email, add_link_version, slug")
+        .select("id, title, shape, name, email, add_link_version, slug")
         .maybeSingle();
       if (error) throw new Error(error.message);
       if (!data) throw new Error("Only an open series can get a new link.");

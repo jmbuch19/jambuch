@@ -32,7 +32,7 @@ export async function seriesForLink(token: string) {
   if (!parts) return null;
   const { data } = await adminClient()
     .from("courtyard_series")
-    .select("id, slug, title, name, email, city, form, themes, status, add_link_version")
+    .select("id, slug, title, shape, name, email, city, form, themes, status, add_link_version")
     .eq("id", parts.id)
     .is("deleted_at", null)
     .maybeSingle();
@@ -41,6 +41,7 @@ export async function seriesForLink(token: string) {
     id: string;
     slug: string;
     title: string;
+    shape: "series" | "book";
     name: string;
     email: string;
     city: string | null;

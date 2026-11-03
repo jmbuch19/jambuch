@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { unit } from "./courtyard";
 import { sendEmail } from "./email";
 import { unfollowUrl } from "./series";
 
@@ -72,7 +73,7 @@ async function sendFollowerNotes(db: SupabaseClient, siteUrl: string) {
   for (const part of parts ?? []) {
     const { data: series } = await db
       .from("courtyard_series")
-      .select("slug, title, name")
+      .select("slug, title, name, shape")
       .eq("id", part.series_id)
       .is("deleted_at", null)
       .maybeSingle();
@@ -82,15 +83,16 @@ async function sendFollowerNotes(db: SupabaseClient, siteUrl: string) {
       .eq("series_id", part.series_id)
       .not("confirmed_at", "is", null);
     if (series) {
+      const u = unit(series.shape);
       for (const f of followers ?? []) {
         const ok = await sendEmail({
           from: "The Courtyard at jambuch.in <courtyard@jambuch.in>",
           to: f.email,
-          subject: `${series.title} · Part ${part.series_part}: “${part.title}”`,
+          subject: `${series.title} · ${u.One} ${part.series_part}: “${part.title}”`,
           text: [
-            `A new part of “${series.title}” by ${series.name} has joined the Courtyard:`,
+            `A new ${u.one} of “${series.title}” by ${series.name} has joined the Courtyard:`,
             "",
-            `Part ${part.series_part}: ${part.title}`,
+            `${u.One} ${part.series_part}: ${part.title}`,
             `${siteUrl}/courtyard/series/${series.slug}#piece-${part.id}`,
             "",
             `Stop these emails: ${unfollowUrl(siteUrl, f.id)}`,
