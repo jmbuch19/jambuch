@@ -125,6 +125,9 @@ export type SeriesRow = {
   followers: number; // confirmed followers
   last_part_at: string | null;
   created_at: string;
+  book_title: string | null; // set: the series serialises a printed book
+  book_credit: string | null;
+  book_url: string | null;
 };
 
 export type LetterInfo = {
@@ -1118,6 +1121,7 @@ function SeriesTab({
   onMakeRoom: (s: SeriesRow) => void;
 }) {
   const [renaming, setRenaming] = useState<string | null>(null);
+  const [booking, setBooking] = useState<string | null>(null);
   if (series.length === 0) {
     return (
       <p className={a.intro}>
@@ -1172,6 +1176,47 @@ function SeriesTab({
                       </button>
                     </div>
                   </form>
+                ) : booking === s.id ? (
+                  <form
+                    className={c.form}
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const f = new FormData(e.currentTarget);
+                      onChange(s.id, {
+                        action: "book",
+                        book_title: String(f.get("book_title") ?? ""),
+                        book_credit: String(f.get("book_credit") ?? ""),
+                        book_url: String(f.get("book_url") ?? ""),
+                      });
+                      setBooking(null);
+                    }}
+                  >
+                    <p className={c.sub}>
+                      For a series that puts a printed book online chapter by chapter. The page then credits the book, links
+                      to buy it, protects the chapters from copying, and the thread shows only each chapter’s opening.
+                      Leave the title empty to make it an ordinary series again.
+                    </p>
+                    <label>
+                      Book title
+                      <input name="book_title" defaultValue={s.book_title ?? ""} maxLength={200} />
+                    </label>
+                    <label>
+                      Credit line <small>e.g. Published by Gurjar Prakashan, 2024</small>
+                      <input name="book_credit" defaultValue={s.book_credit ?? ""} maxLength={300} />
+                    </label>
+                    <label>
+                      Buy link <small>optional, https://…</small>
+                      <input name="book_url" type="url" defaultValue={s.book_url ?? ""} maxLength={500} placeholder="https://" />
+                    </label>
+                    <div className={c.actions}>
+                      <button type="submit" className={c.action} disabled={pending}>
+                        Save
+                      </button>
+                      <button type="button" className={c.textLink} onClick={() => setBooking(null)}>
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
                 ) : (
                   <>
                     {s.status === "pending" ? (
@@ -1184,6 +1229,7 @@ function SeriesTab({
                     <small>
                       by {s.name} &lt;{s.email}&gt; · {formLabel(s.form)}
                     </small>
+                    {s.book_title && <small>📖 Book: {s.book_title}{s.book_url ? " · buy link set" : ""}</small>}
                   </>
                 )}
               </td>
@@ -1198,6 +1244,9 @@ function SeriesTab({
                 <div className={c.actions}>
                   <button type="button" className={c.action} onClick={() => setRenaming(s.id)}>
                     Rename
+                  </button>
+                  <button type="button" className={c.action} onClick={() => setBooking(s.id)}>
+                    {s.book_title ? "Book details" : "Mark as book"}
                   </button>
                   {s.status === "active" && (
                     <>

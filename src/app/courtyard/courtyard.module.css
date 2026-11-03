@@ -565,6 +565,35 @@
   font-size: 14px;
   color: var(--ink-soft);
 }
+/* A book chapter on its series page: sized for reading, like the library. */
+.bookText {
+  font-family: var(--font-gujarati);
+  font-size: 19px;
+  line-height: 1.85;
+  color: var(--ink);
+}
+.bookBox {
+  margin: 20px 0 0;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--logo);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bookBox p {
+  margin: 0;
+}
+.bookTitle {
+  font-family: var(--font-heading);
+  font-size: 20px;
+}
+.bookBuy {
+  margin-top: 6px;
+  font-weight: 500;
+}
 .more summary {
   list-style: none;
   cursor: pointer;

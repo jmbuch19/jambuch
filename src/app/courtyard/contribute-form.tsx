@@ -2,7 +2,7 @@
 
 import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 import { shrinkImage } from "@/app/admin/(panel)/[table]/[id]/shrink-image";
-import { DOOR_HASH, FORMS, MAX_FILE_BYTES, MAX_THEMES, REPLY_HASH, THEMES, type SubmissionKind } from "@/lib/courtyard";
+import { BODY_MAX, DOOR_HASH, FORMS, MAX_FILE_BYTES, MAX_THEMES, REPLY_HASH, THEMES, type SubmissionKind } from "@/lib/courtyard";
 import { SpamCheckBox, sendLabel, useSpamCheck } from "../spam-check";
 import { submitContribution, type ContributeState } from "./actions";
 import y from "./courtyard.module.css";
@@ -285,7 +285,11 @@ export default function ContributeForm({
                 </label>
                 <label className={y.field}>
                   Your piece — paste text, or describe what you’re attaching
-                  <textarea name="body" rows={series ? 10 : 5} maxLength={20000} />
+                  <textarea
+                    name="body"
+                    rows={series ? 10 : 5}
+                    maxLength={series || startSeries ? BODY_MAX.part : BODY_MAX.piece}
+                  />
                 </label>
                 <div className={y.attachRow}>
                   <label className={y.attach}>

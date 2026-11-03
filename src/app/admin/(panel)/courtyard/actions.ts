@@ -484,13 +484,14 @@ async function emailSeriesLink(s: SeriesRow, site: string, first: boolean) {
   });
 }
 
-// Pause / resume / end a series, rename it, or send a fresh personal link
-// (which kills the old one).
+// Pause / resume / end a series, rename it, set its printed-book details, or
+// send a fresh personal link (which kills the old one).
 export async function updateSeries(
   id: string,
   change:
     | { action: "pause" | "resume" | "end" }
     | { action: "rename"; title: string; description: string }
+    | { action: "book"; book_title: string; book_credit: string; book_url: string }
     | { action: "new_link" },
 ): Promise<{ ok: true; emailed?: boolean } | Failed> {
   try {
@@ -503,6 +504,22 @@ export async function updateSeries(
         .update({ title, description: change.description.trim().slice(0, 1000) || null })
         .eq("id", id);
       if (error) throw new Error(error.message);
+    } else if (change.action === "book") {
+      // Only Jaydeep sets these. An empty title turns the series back into an
+      // ordinary one (no credit, no buy link, chapters back on the thread).
+      const book_title = change.book_title.trim().slice(0, 200) || null;
+      const book_url = book_title ? change.book_url.trim() || null : null;
+      if (book_url && !/^https:\/\/\S+$/.test(book_url)) throw new Error("The buy link must start with https://");
+      const { error } = await db
+        .from("courtyard_series")
+        .update({
+          book_title,
+          book_credit: book_title ? change.book_credit.trim().slice(0, 300) || null : null,
+          book_url: book_url?.slice(0, 500) ?? null,
+        })
+        .eq("id", id);
+      if (error) throw new Error(error.message);
+      revalidatePath("/courtyard");
     } else if (change.action === "new_link") {
       const { data: cur } = await db.from("courtyard_series").select("add_link_version").eq("id", id).single();
       const { data, error } = await db

@@ -3,6 +3,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { headers } from "next/headers";
 import {
+  BODY_MAX,
   FILE_TYPES,
   FORMS,
   KIND_LABELS,
@@ -148,7 +149,12 @@ export async function submitContribution(_prev: ContributeState, form: FormData)
 
   if (kind === "single_piece") {
     row.title = str("title", 200) || null;
-    row.body = str("body", 20000) || null;
+    const max = series || startSeries ? BODY_MAX.part : BODY_MAX.piece;
+    const body = String(form.get("body") ?? "").trim();
+    if (body.length > max) {
+      return { status: "error", message: `The text is too long: please keep it under ${max.toLocaleString("en-IN")} characters.` };
+    }
+    row.body = body || null;
     if (!row.title) return { status: "error", message: "Please give your piece a title." };
     if (!row.body && !hasFile && links.length === 0) {
       return { status: "error", message: "Please add the text, a file, or a link to your piece." };

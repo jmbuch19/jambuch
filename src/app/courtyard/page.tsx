@@ -49,15 +49,15 @@ async function thread(): Promise<Piece[]> {
 // Series names and addresses for the pieces that belong to one.
 async function seriesOf(pieces: Piece[]) {
   const ids = [...new Set(pieces.map((p) => p.series_id).filter((x): x is string => !!x))];
-  const map = new Map<string, { href: string; title: string }>();
+  const map = new Map<string, { href: string; title: string; book: boolean }>();
   if (ids.length === 0) return map;
   const { data } = await adminClient()
     .from("courtyard_series")
-    .select("id, slug, title")
+    .select("id, slug, title, book_title")
     .in("id", ids)
     .neq("status", "pending")
     .is("deleted_at", null);
-  for (const s of data ?? []) map.set(s.id, { href: `/courtyard/series/${s.slug}`, title: s.title });
+  for (const s of data ?? []) map.set(s.id, { href: `/courtyard/series/${s.slug}`, title: s.title, book: !!s.book_title });
   return map;
 }
 

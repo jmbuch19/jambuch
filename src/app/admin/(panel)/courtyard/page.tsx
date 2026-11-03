@@ -32,7 +32,7 @@ export default async function CourtyardPage({ searchParams }: { searchParams: Pr
     db.from("settings").select("value").eq("key", "courtyard.gathering").maybeSingle(),
     db
       .from("courtyard_series")
-      .select("id, slug, title, description, name, email, form, status, created_at")
+      .select("id, slug, title, description, name, email, form, status, created_at, book_title, book_credit, book_url")
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),
     db.from("courtyard_series_followers").select("series_id").not("confirmed_at", "is", null),

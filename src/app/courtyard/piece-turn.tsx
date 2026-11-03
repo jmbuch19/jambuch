@@ -46,12 +46,16 @@ export default function PieceTurn({
   series,
   pickUpHref,
   open = false,
+  book = false,
 }: {
   p: Piece;
   from?: { href: string; label: string };
-  series?: { href: string; title: string } | null;
+  // book: the series serialises a printed book, so its chapters are read on
+  // the series page only (copy-protected there), never in full on the thread.
+  series?: { href: string; title: string; book?: boolean } | null;
   pickUpHref?: string | null;
   open?: boolean; // show long text in full (series pages)
+  book?: boolean; // a chapter on its book's series page: larger reading text
 }) {
   const image = p.file_url && p.file_type?.startsWith("image/");
   const audio = p.file_url && p.file_type?.startsWith("audio/");
@@ -59,6 +63,8 @@ export default function PieceTurn({
   const video = p.links.map(youtubeId).find((id): id is string => !!id);
   const otherLinks = p.links.filter((l) => !youtubeId(l));
   const long = !open && (p.body?.length ?? 0) > 420;
+  const teaser = series?.book ? `${series.href}#piece-${p.id}` : null;
+  const text = book ? `${y.full} ${y.bookText}` : y.full;
   // The audio story or video Jaydeep made of it (with the creator's yes).
   const made = p.media_stage === "made" && p.media_url ? p.media_url : null;
   const madeVideo = made ? youtubeId(made) : null;
@@ -111,16 +117,23 @@ export default function PieceTurn({
           </a>
         )}
         {p.body &&
-          (long ? (
+          (teaser ? (
+            <>
+              <p className={y.excerpt}>{inline(p.body.slice(0, 380))}…</p>
+              <a href={teaser} className={y.readMore}>
+                Read this chapter →
+              </a>
+            </>
+          ) : long ? (
             <details className={y.more}>
               <summary>
                 <span className={y.excerpt}>{inline(p.body.slice(0, 380))}…</span>
                 <span className={y.readMore}>Read in full</span>
               </summary>
-              <div className={y.full}>{inline(p.body)}</div>
+              <div className={text}>{inline(p.body)}</div>
             </details>
           ) : (
-            <div className={y.full}>{inline(p.body)}</div>
+            <div className={text}>{inline(p.body)}</div>
           ))}
         {audio && <audio controls preload="none" src={p.file_url!} className={y.audio} />}
         {pdf && (

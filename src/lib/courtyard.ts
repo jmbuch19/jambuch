@@ -31,6 +31,10 @@ export const THEMES = [
 export type Theme = (typeof THEMES)[number]["value"];
 export const MAX_THEMES = 2;
 
+// Longest text a piece may hold. Series parts can be whole book chapters (and
+// Gujarati counts every vowel sign), so they get more room than single pieces.
+export const BODY_MAX = { piece: 20000, part: 100000 } as const;
+
 export function formLabel(value: string | null | undefined) {
   return FORMS.find((f) => f.value === value)?.label ?? "Other";
 }

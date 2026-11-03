@@ -5,7 +5,9 @@ import { adminClient } from "@/lib/supabase-admin";
 import LibraryHeader from "../../../library/header";
 import PieceTurn, { PIECE_COLUMNS, type Piece } from "../../piece-turn";
 import LetterInvite from "../../../letter-invite";
+import ReadingGuard from "../../../library/reading-guard";
 import FollowForm from "./follow-form";
+import l from "../../../library/library.module.css";
 import y from "../../courtyard.module.css";
 
 export const revalidate = 60;
@@ -20,6 +22,10 @@ type Series = {
   form: string | null;
   themes: string[];
   status: "active" | "paused" | "ended";
+  // Set by Jaydeep in admin when the series serialises a printed book.
+  book_title: string | null;
+  book_credit: string | null;
+  book_url: string | null;
 };
 
 // A series is public once Jaydeep has approved its first part. Only these
@@ -28,7 +34,7 @@ async function load(slug: string) {
   const db = adminClient();
   const { data: series } = await db
     .from("courtyard_series")
-    .select("id, slug, title, description, name, city, form, themes, status")
+    .select("id, slug, title, description, name, city, form, themes, status, book_title, book_credit, book_url")
     .eq("slug", slug)
     .in("status", ["active", "paused", "ended"])
     .is("deleted_at", null)
@@ -61,11 +67,24 @@ export default async function SeriesPage({ params }: { params: Promise<{ slug: s
   if (!found) notFound();
   const { series, parts } = found;
   const base = `/courtyard/series/${series.slug}`;
+  const book = !!series.book_title;
+  const buy = series.book_url && (
+    <a href={series.book_url} target="_blank" rel="noopener noreferrer" className={y.bookBuy}>
+      Buy the printed book →
+    </a>
+  );
 
   return (
     <>
       <LibraryHeader cta={{ href: "/courtyard#contribute", label: "Contribute" }} current="courtyard" />
-      <main>
+      {/* A book's chapters get the same copy protection as the translations. */}
+      <main id="series" className={book ? l.guarded : undefined}>
+        {book && (
+          <>
+            <ReadingGuard targetId="series" work="book" />
+            <p className={l.printNote}>This book can be read online at jambuch.in{base}</p>
+          </>
+        )}
         <section className={y.hero}>
           <p className={`gu ${y.kicker}`}>
             <a href="/courtyard">આંગણું · The Courtyard</a>
@@ -78,6 +97,17 @@ export default async function SeriesPage({ params }: { params: Promise<{ slug: s
             {series.status === "ended" ? " · complete" : series.status === "paused" ? " · resting for now" : ""}
           </p>
           {series.description && <p className={y.lede}>{series.description}</p>}
+          {book && (
+            <div className={y.bookBox}>
+              <p className={y.eyebrow}>From the printed book</p>
+              <p className={y.bookTitle}>{series.book_title}</p>
+              <p className={y.small}>
+                by {series.name}
+                {series.book_credit ? ` · ${series.book_credit}` : ""}
+              </p>
+              {buy}
+            </div>
+          )}
         </section>
 
         <section className={`${y.band} ${y.bandAlt}`} aria-label="Parts">
@@ -85,9 +115,16 @@ export default async function SeriesPage({ params }: { params: Promise<{ slug: s
             {parts.length === 0 && <p className={y.empty}>The first part joins at the next gathering.</p>}
             <ol className={y.thread}>
               {parts.map((p) => (
-                <PieceTurn key={p.id} p={p} open pickUpHref={`/courtyard#reply-${p.id}`} />
+                <PieceTurn key={p.id} p={p} open={!book} book={book} pickUpHref={`/courtyard#reply-${p.id}`} />
               ))}
             </ol>
+            {book && parts.length > 0 && (
+              <div className={y.bookBox}>
+                <p className={y.bookTitle}>Enjoying it?</p>
+                <p className={y.small}>“{series.book_title}” is also a printed book, to keep and to give.</p>
+                {buy}
+              </div>
+            )}
             {series.status !== "ended" && (
               <div className={y.followBox}>
                 <p className={y.followTitle}>Follow along</p>

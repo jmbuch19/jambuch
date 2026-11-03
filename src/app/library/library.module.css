@@ -777,6 +777,11 @@
 .guarded img {
   pointer-events: none;
 }
+.guarded input,
+.guarded textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
 /* The kind message shown when a copy/save attempt is blocked. */
 .guardToastWrap {
   position: fixed;

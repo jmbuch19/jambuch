@@ -8,16 +8,25 @@ type Kind = "copy" | "select_all" | "save" | "print" | "right_click" | "drag" | 
 
 // What the reader sees when an attempt is blocked: kind, not scolding, and
 // always pointing to the link, which brings new readers to the whole chapter.
-const MESSAGES: Record<Kind, string> = {
-  copy: "This translation is here to be read, not copied. To share it, use Share: it sends the link.",
-  select_all: "This translation is here to be read, not copied. To share it, use Share: it sends the link.",
-  save: "Saving the page isn’t available. The chapter stays here for you to read any time.",
-  print: "Printing isn’t available. The chapter stays here for you to read any time.",
-  right_click: "Long-press and right-click are off on this page, to protect the translator’s work. To share it, use Share.",
-  drag: "Long-press and right-click are off on this page, to protect the translator’s work. To share it, use Share.",
-  screenshot_key: "Please share the link rather than a screenshot, so others can read the whole chapter.",
+// "translation": Jaydeep's own; "book": a contributor's book in the Courtyard.
+type Work = "translation" | "book";
+const WORDS: Record<Work, { what: string; whose: string; gu: string }> = {
+  translation: { what: "This translation", whose: "the translator’s work", gu: "આ અનુવાદ" },
+  book: { what: "This book", whose: "the author’s work", gu: "આ પુસ્તક" },
 };
-const MESSAGE_GU = "આ અનુવાદ અહીં વાંચવા માટે છે. કૃપા કરીને લિંક શેર કરો.";
+function messages(work: Work): Record<Kind, string> {
+  const { what, whose } = WORDS[work];
+  return {
+    copy: `${what} is here to be read, not copied. To share it, use Share: it sends the link.`,
+    select_all: `${what} is here to be read, not copied. To share it, use Share: it sends the link.`,
+    save: "Saving the page isn’t available. The chapter stays here for you to read any time.",
+    print: "Printing isn’t available. The chapter stays here for you to read any time.",
+    right_click: `Long-press and right-click are off on this page, to protect ${whose}. To share it, use Share.`,
+    drag: `Long-press and right-click are off on this page, to protect ${whose}. To share it, use Share.`,
+    screenshot_key: "Please share the link rather than a screenshot, so others can read the whole chapter.",
+  };
+}
+const messageGu = (work: Work) => `${WORDS[work].gu} અહીં વાંચવા માટે છે. કૃપા કરીને લિંક શેર કરો.`;
 const SHOW_MS = 4_500;
 
 const SHORTCUTS: Record<string, Kind> = { c: "copy", x: "copy", a: "select_all", s: "save", p: "print" };
@@ -27,8 +36,17 @@ const SEND_AFTER_MS = 3_000; // gather a burst of attempts into one note
 // counts each blocked attempt anonymously for /admin/readers. This is a
 // courtesy, not real protection: no web page can stop screenshots or a
 // determined person with developer tools. Members' downloads come later
-// through their own signed, watermarked links.
-export default function ReadingGuard({ targetId, chapterId }: { targetId: string; chapterId: string }) {
+// through their own signed, watermarked links. Attempts are counted only for
+// library chapters (chapterId); typing in a form field is never blocked.
+export default function ReadingGuard({
+  targetId,
+  chapterId,
+  work = "translation",
+}: {
+  targetId: string;
+  chapterId?: string;
+  work?: Work;
+}) {
   const [message, setMessage] = useState<string | null>(null);
 
   // One message at a time; a new attempt replaces it and restarts the timer.
@@ -42,7 +60,10 @@ export default function ReadingGuard({ targetId, chapterId }: { targetId: string
     const area = document.getElementById(targetId);
     if (!area) return;
     // Automated browsers (search bots, test tools) are not counted.
-    const counting = !navigator.webdriver;
+    const counting = !!chapterId && !navigator.webdriver;
+    const MESSAGES = messages(work);
+    const inField = (e: Event) =>
+      e.target instanceof HTMLElement && (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName));
     const pending = new Map<Kind, number>();
     let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -79,12 +100,13 @@ export default function ReadingGuard({ targetId, chapterId }: { targetId: string
       note("drag");
     };
     const onSelectStart = (e: Event) => {
-      if (inArea(e)) e.preventDefault();
+      if (inArea(e) && !inField(e)) e.preventDefault();
     };
     // Shortcuts are blocked anywhere on the page; a copy shortcut is counted
     // once here, so the copy event that may follow isn't counted again.
     let shortcutCopy = false;
     const onKey = (e: KeyboardEvent) => {
+      if (inField(e)) return;
       const key = e.key.toLowerCase();
       if ((e.ctrlKey || e.metaKey) && SHORTCUTS[key]) {
         e.preventDefault();
@@ -102,6 +124,7 @@ export default function ReadingGuard({ targetId, chapterId }: { targetId: string
       if (e.key === "PrintScreen") note("screenshot_key");
     };
     const onCopy = (e: ClipboardEvent) => {
+      if (inField(e)) return;
       e.preventDefault();
       if (!shortcutCopy) note("copy");
     };
@@ -132,7 +155,7 @@ export default function ReadingGuard({ targetId, chapterId }: { targetId: string
       window.removeEventListener("beforeprint", onBeforePrint);
       document.removeEventListener("visibilitychange", onHide);
     };
-  }, [targetId, chapterId]);
+  }, [targetId, chapterId, work]);
 
   return (
     <div className={l.guardToastWrap} aria-live="polite" role="status">
@@ -140,7 +163,7 @@ export default function ReadingGuard({ targetId, chapterId }: { targetId: string
         <div className={l.guardToast}>
           <p>{message}</p>
           <p className="gu" lang="gu">
-            {MESSAGE_GU}
+            {messageGu(work)}
           </p>
           <button type="button" onClick={() => setMessage(null)} aria-label="Close">
             ×
