@@ -1,30 +1,47 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Sans, Newsreader, Noto_Serif_Gujarati } from "next/font/google";
+import localFont from "next/font/local";
 import Analytics from "./analytics";
 import { EARLY_PROMPT_SCRIPT } from "./install/install-state";
 import Pwa from "./pwa";
 import "./globals.css";
 
-const newsreader = Newsreader({
+// The fonts live in ./fonts (the same WOFF2 files Google Fonts serves, all
+// variable 400–600). Fetching them from Google at build time failed Vercel
+// builds again and again, so the site keeps its own copies.
+const newsreader = localFont({
+  src: [
+    { path: "./fonts/newsreader-latin.woff2", weight: "400 600", style: "normal" },
+    { path: "./fonts/newsreader-latin-italic.woff2", weight: "400 600", style: "italic" },
+  ],
   variable: "--font-newsreader",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
   display: "swap",
+  adjustFontFallback: "Times New Roman",
 });
 
-const plex = IBM_Plex_Sans({
+const plex = localFont({
+  src: "./fonts/plex-sans-latin.woff2",
+  weight: "400 600",
   variable: "--font-plex",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
   display: "swap",
 });
 
-const gujarati = Noto_Serif_Gujarati({
+// Noto Serif Gujarati comes as two files: the Gujarati letters, and its own
+// Latin letters for numbers and punctuation inside Gujarati text.
+const gujarati = localFont({
+  src: "./fonts/noto-serif-gujarati.woff2",
+  weight: "400 600",
   variable: "--font-noto-gujarati",
-  subsets: ["gujarati", "latin"],
-  weight: ["400", "600"],
   display: "swap",
+  adjustFontFallback: "Times New Roman",
+});
+
+const gujaratiLatin = localFont({
+  src: "./fonts/noto-serif-gujarati-latin.woff2",
+  weight: "400 600",
+  variable: "--font-noto-gujarati-latin",
+  display: "swap",
+  preload: false,
+  adjustFontFallback: "Times New Roman",
 });
 
 export const metadata: Metadata = {
@@ -46,7 +63,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${newsreader.variable} ${plex.variable} ${gujarati.variable}`}>
+    <html lang="en" className={`${newsreader.variable} ${plex.variable} ${gujarati.variable} ${gujaratiLatin.variable}`}>
       <body>
         <script dangerouslySetInnerHTML={{ __html: EARLY_PROMPT_SCRIPT }} />
         {children}

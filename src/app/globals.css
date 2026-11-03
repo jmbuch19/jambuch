@@ -25,7 +25,7 @@
   /* Font variables are set by next/font in layout.tsx */
   --font-heading: var(--font-newsreader), Georgia, serif;
   --font-body: var(--font-plex), system-ui, sans-serif;
-  --font-gujarati: var(--font-noto-gujarati), serif;
+  --font-gujarati: var(--font-noto-gujarati), var(--font-noto-gujarati-latin), serif;
 
   --max-width: 1160px;
   --gutter: 24px;
