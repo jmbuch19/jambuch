@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { PIECE_BYTES, VOICES, type ProductionKey, type VoiceKey } from "@/lib/audio-voices";
 import a from "../../admin.module.css";
@@ -426,6 +427,9 @@ export default function AudioAdmin({
                                     Voice only
                                   </a>
                                 )}
+                                <Link href={`/admin/audio/fix/${c.id}`} className={s.listen}>
+                                  Fix
+                                </Link>
                               </span>
                             )}
                             {c.play.state === "current" && (
