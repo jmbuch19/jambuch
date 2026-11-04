@@ -29,6 +29,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           <Link href="/admin/audio">Listening</Link>
           <span className={a.navGap} />
           <Link href="/admin/readers">Readers</Link>
+          <Link href="/admin/listeners">Listeners</Link>
           <Link href="/admin/trash">Trash</Link>
           <Link href="/admin/log">Delete log</Link>
         </nav>

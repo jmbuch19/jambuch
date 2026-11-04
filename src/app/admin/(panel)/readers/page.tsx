@@ -1,5 +1,5 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin";
+import { allRows, median, minutes, pct } from "@/lib/admin-stats";
 import { bookOrder, entryLabel } from "@/lib/book-sections";
 import a from "../../admin.module.css";
 
@@ -47,34 +47,8 @@ const ATTEMPT_LABELS: Record<AttemptKind, string> = {
 };
 const ATTEMPT_KINDS = Object.keys(ATTEMPT_LABELS) as AttemptKind[];
 
-// Supabase returns at most 1,000 rows per request, so read in pages.
-async function allRows<T>(db: SupabaseClient, table: string, columns: string) {
-  const rows: T[] = [];
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await db.from(table).select(columns).range(from, from + 999);
-    if (error) throw new Error(error.message);
-    rows.push(...((data ?? []) as T[]));
-    if (!data || data.length < 1000) return rows;
-  }
-}
-
 const when = (iso: string) =>
   new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" });
-
-function median(values: number[]) {
-  if (values.length === 0) return null;
-  const s = [...values].sort((x, y) => x - y);
-  const mid = Math.floor(s.length / 2);
-  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
-}
-
-function minutes(seconds: number | null) {
-  if (seconds == null) return "—";
-  if (seconds < 60) return "under 1 min";
-  return `${Math.round(seconds / 60)} min`;
-}
-
-const pct = (n: number, of: number) => (of ? `${Math.round((n / of) * 100)}%` : "—");
 
 // "phone 62% · desktop 30% · tablet 8%" from each reader's latest choice.
 function split(rows: Read[], key: "device" | "theme" | "text_size" | "spacing") {
@@ -100,13 +74,15 @@ function split(rows: Read[], key: "device" | "theme" | "text_size" | "spacing") 
 
 export default async function ReadersPage() {
   const { db } = await requireAdmin();
-  const [reads, attempts, worksRes, chaptersRes] = await Promise.all([
+  const [reads, attempts, listens, worksRes, chaptersRes] = await Promise.all([
     allRows<Read>(
       db,
       "chapter_reads",
       "chapter_id, reader_id, work_id, first_seen, last_seen, visits, seconds, finished_at, device, theme, text_size, spacing",
     ),
     allRows<Attempt>(db, "protect_attempts", "chapter_id, reader_id, work_id, kind, count, last_at"),
+    // Listening is counted separately (admin → Listeners); here only to see who did both.
+    allRows<{ chapter_id: string; reader_id: string }>(db, "chapter_listens", "chapter_id, reader_id"),
     db.from("works").select("id, title, title_gu").is("deleted_at", null).order("sort_order"),
     db.from("chapters").select("id, work_id, number, section, title").is("deleted_at", null),
   ]);
@@ -119,6 +95,10 @@ export default async function ReadersPage() {
   const allReaders = new Set(reads.map((r) => r.reader_id)).size;
   const finishedCount = reads.filter((r) => r.finished_at).length;
   const hours = reads.reduce((s, r) => s + r.seconds, 0) / 3600;
+  // The same browser both read and listened (never added together into one number).
+  const listenedPairs = new Set(listens.map((l) => `${l.chapter_id}:${l.reader_id}`));
+  const listeners = new Set(listens.map((l) => l.reader_id));
+  const readAndListened = new Set(reads.map((r) => r.reader_id).filter((id) => listeners.has(id))).size;
 
   return (
     <>
@@ -149,6 +129,10 @@ export default async function ReadersPage() {
         <div className={a.tile}>
           <span className={a.tileCount}>{hours < 1 ? Math.round(hours * 60) + " min" : hours.toFixed(1) + " h"}</span>
           <span>Total reading time</span>
+        </div>
+        <div className={a.tile}>
+          <span className={a.tileCount}>{readAndListened}</span>
+          <span>People who read and listened</span>
         </div>
       </div>
 
@@ -185,6 +169,7 @@ export default async function ReadersPage() {
                     <th>Typical time</th>
                     <th>Went on to next</th>
                     <th>Came back</th>
+                    <th>Also listened</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -195,6 +180,7 @@ export default async function ReadersPage() {
                     const next = workChapters[i + 1];
                     const wentOn = next ? [...readersOf(next.id)].filter((id) => readers.has(id)).length : null;
                     const returning = rows.filter((r) => r.visits > 1).length;
+                    const alsoListened = [...readers].filter((id) => listenedPairs.has(`${c.id}:${id}`)).length;
                     return (
                       <tr key={c.id}>
                         <td>
@@ -212,6 +198,9 @@ export default async function ReadersPage() {
                         <td>{minutes(median(rows.filter((r) => r.seconds > 0).map((r) => r.seconds)))}</td>
                         <td>{wentOn == null ? "—" : <>{wentOn} <small className={a.mutedSmall}>{pct(wentOn, readers.size)}</small></>}</td>
                         <td>{returning}</td>
+                        <td>
+                          {alsoListened} <small className={a.mutedSmall}>{pct(alsoListened, readers.size)}</small>
+                        </td>
                       </tr>
                     );
                   })}

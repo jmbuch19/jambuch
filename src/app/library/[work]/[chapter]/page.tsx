@@ -163,6 +163,7 @@ export default async function ChapterPage({ params }: Props) {
             path={entryPath(work.slug, chapter)}
             title={entryTitle(chapter)}
             book={work.title_gu ?? work.title}
+            chapterId={chapter.id}
           />
         )}
         {chapter.audio_url && (

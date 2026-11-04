@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { trackLabel, type Track, type TrackKey } from "@/lib/audio-voices";
+import { useListenTracker } from "./listen-tracker";
 import l from "./library.module.css";
 
 const VOICE_KEY = "listen-voice";
@@ -35,7 +36,7 @@ function paragraphAt(track: Track, ms: number) {
   return i;
 }
 
-type Props = { tracks: Track[]; textId: string; path: string; title: string; book: string };
+type Props = { tracks: Track[]; textId: string; path: string; title: string; book: string; chapterId: string };
 
 // "સાંભળો · Listen": the chapter read aloud, in the voice the reader picks
 // (or, for an audio play, with or without its music and sound effects).
@@ -43,7 +44,7 @@ type Props = { tracks: Track[]; textId: string; path: string; title: string; boo
 // follows it; tapping a paragraph plays from there. Voice, speed and the
 // place in each chapter are remembered on this device. Lock-screen controls
 // come from the Media Session API.
-export default function ListenPlayer({ tracks, textId, path, title, book }: Props) {
+export default function ListenPlayer({ tracks, textId, path, title, book, chapterId }: Props) {
   const audio = useRef<HTMLAudioElement>(null);
   const [open, setOpen] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -57,6 +58,8 @@ export default function ListenPlayer({ tracks, textId, path, title, book }: Prop
   const pendingSeek = useRef<number | null>(null);
 
   const track = tracks.find((t) => t.voice === voice) ?? tracks[0];
+  // Anonymous listening statistics (admin → Listeners).
+  const tracker = useListenTracker(audio, { chapterId, track: track.voice, durationMs: track.durationMs });
 
   useEffect(() => {
     const v = localStorage.getItem(VOICE_KEY);
@@ -158,6 +161,7 @@ export default function ListenPlayer({ tracks, textId, path, title, book }: Prop
       target = (to0 + share * (to1 - to0)) / 1000;
     }
     pendingSeek.current = target;
+    tracker.ignoreJumps(); // the new voice starts from 0, then jumps to the same place: not a rewind
     setVoice(v);
     store(VOICE_KEY, v);
   }
