@@ -107,6 +107,37 @@ export async function uploadPublic(key: string, body: ArrayBuffer, contentType: 
   return `${base}/${key.split("/").map(encodeURIComponent).join("/")}`;
 }
 
+// Writes a public file that is replaced in place (the podcast feed): a short
+// cache instead of a year, and the CDN copy purged when that is set up.
+export async function writePublicFile(key: string, body: ArrayBuffer, contentType: string, maxAgeSeconds = 300) {
+  const { s } = r2();
+  const base = publicBase();
+  if (!base) throw new Error("Can't upload: NEXT_PUBLIC_R2_PUBLIC_URL is not set.");
+  const res = await put(objectUrl(s.publicBucket!, key), body, {
+    "Content-Type": contentType,
+    "Cache-Control": `public, max-age=${maxAgeSeconds}`,
+  });
+  if (!res.ok) throw new Error(`Couldn't upload to R2 (${res.status}).`);
+  const url = `${base}/${key.split("/").map(encodeURIComponent).join("/")}`;
+  if (cachePurgeReady()) await purgeCache(url).catch(() => {});
+  return url;
+}
+
+// Reads a public file straight from the bucket (not the CDN), or null if it isn't there.
+export async function readPublic(key: string) {
+  const { s, client } = r2();
+  const res = await client.fetch(objectUrl(s.publicBucket!, key));
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Couldn't read ${key} from R2 (${res.status}).`);
+  return res.arrayBuffer();
+}
+
+// The public address of a key in the public bucket.
+export function publicUrlFor(key: string) {
+  const base = publicBase();
+  return base ? `${base}/${key.split("/").map(encodeURIComponent).join("/")}` : null;
+}
+
 // Saves a file in the private bucket (e.g. a visitor's submission waiting for
 // review) and returns its r2-private: reference. Never publicly reachable.
 export async function uploadPrivate(key: string, body: ArrayBuffer, contentType: string) {
