@@ -167,7 +167,7 @@ export type FeedCheck = {
   xml: string | null;
   problems: string[]; // any one of these stops publishing
   notes: string[];
-  episodes: { guid: string; title: string; length: number; pubDate: string; isNew: boolean }[];
+  episodes: { chapterId: string; guid: string; title: string; length: number; pubDate: string; pubDateIso: string; isNew: boolean }[];
   feedUrl: string | null;
 };
 
@@ -185,6 +185,12 @@ export async function checkFeed(db: SupabaseClient, now = new Date()): Promise<F
   const all = await loadEpisodes(db);
   const chosen = all.filter((e) => e.included);
   if (!chosen.length) problems.push("No episodes are chosen.");
+
+  // New episodes going out together get dates one second apart, in book
+  // order and ending at `now`, so apps that sort by date keep the order.
+  const fresh = chosen.filter((e) => !e.firstPublishedAt);
+  const dateFor = (e: EpisodeRow) =>
+    e.firstPublishedAt ? new Date(e.firstPublishedAt) : new Date(now.getTime() - (fresh.length - 1 - fresh.indexOf(e)) * 1000);
 
   const items: FeedItem[] = [];
   for (const e of chosen) {
@@ -205,7 +211,7 @@ export async function checkFeed(db: SupabaseClient, now = new Date()): Promise<F
     } catch {
       problems.push(`${name}: the audio file could not be reached.`);
     }
-    items.push({ e, length, pubDate: e.firstPublishedAt ? new Date(e.firstPublishedAt) : now });
+    items.push({ e, length, pubDate: dateFor(e) });
   }
 
   // GUIDs must match the last published feed, and no published episode may drop out.
@@ -229,6 +235,14 @@ export async function checkFeed(db: SupabaseClient, now = new Date()): Promise<F
     problems,
     notes,
     feedUrl,
-    episodes: items.map((i) => ({ guid: i.e.guid, title: episodeTitle(i.e), length: i.length, pubDate: i.pubDate.toUTCString(), isNew: !i.e.firstPublishedAt })),
+    episodes: items.map((i) => ({
+      chapterId: i.e.chapterId,
+      guid: i.e.guid,
+      title: episodeTitle(i.e),
+      length: i.length,
+      pubDate: i.pubDate.toUTCString(),
+      pubDateIso: i.pubDate.toISOString(),
+      isNew: !i.e.firstPublishedAt,
+    })),
   };
 }

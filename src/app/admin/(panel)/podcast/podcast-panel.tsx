@@ -37,6 +37,12 @@ function imageSize(file: File) {
 
 export default function PodcastPanel({ show: initial, episodes }: { show: Show; episodes: Episode[] }) {
   const [show, setShow] = useState(initial);
+  // Take in what the server has saved whenever the page refreshes, so an old form never saves over newer data.
+  const [seen, setSeen] = useState(initial);
+  if (seen !== initial) {
+    setSeen(initial);
+    setShow(initial);
+  }
   const [msg, setMsg] = useState<{ ok?: string; error?: string } | null>(null);
   const [check, setCheck] = useState<(CheckResult & { published?: string; error?: string }) | null>(null);
   const [pending, start] = useTransition();
@@ -229,6 +235,11 @@ function EpisodeRow({
   run: (fn: () => Promise<{ error?: string } | undefined | void>, ok: string) => void;
 }) {
   const [description, setDescription] = useState(e.description);
+  const [seen, setSeen] = useState(e.description);
+  if (seen !== e.description) {
+    setSeen(e.description);
+    setDescription(e.description);
+  }
   const locked = !!e.firstPublishedAt; // published episodes stay
   return (
     <tr>

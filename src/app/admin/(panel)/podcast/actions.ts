@@ -78,12 +78,11 @@ export async function publishFeed(): Promise<CheckResult & { published?: string;
     const bytes = new TextEncoder().encode(xml);
     const url = await writePublicFile(FEED_KEY, bytes.buffer as ArrayBuffer, "application/rss+xml; charset=utf-8");
     // The pubDate each new episode went out with is now its date for ever.
-    const fresh = episodes.filter((e) => e.included && !e.firstPublishedAt).map((e) => e.chapterId);
-    if (fresh.length) {
+    for (const e of rest.episodes.filter((e) => e.isNew)) {
       const { error } = await db
         .from("podcast_episodes")
-        .update({ first_published_at: now.toISOString() })
-        .in("chapter_id", fresh)
+        .update({ first_published_at: e.pubDateIso })
+        .eq("chapter_id", e.chapterId)
         .is("first_published_at", null);
       if (error) return { ...rest, preview: xml, published: url, error: `Published, but the dates weren't saved: ${error.message}` };
     }
