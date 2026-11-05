@@ -21,9 +21,13 @@ export async function saveShow(show: Show) {
     email: show.email.trim().slice(0, 200),
     coverUrl: show.coverUrl.trim().slice(0, 1000),
     link: show.link.trim().slice(0, 1000),
+    // Spotify's share links carry a ?si= tracking tail; keep the plain address.
+    spotifyUrl: (show.spotifyUrl ?? "").trim().split("?")[0].slice(0, 300),
   };
   if (clean.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean.email)) return { error: "That owner email doesn't look right." };
   for (const u of [clean.coverUrl, clean.link]) if (u && !/^https:\/\//.test(u)) return { error: "Links must start with https://." };
+  if (clean.spotifyUrl && !/^https:\/\/open\.spotify\.com\/show\/\w+$/.test(clean.spotifyUrl))
+    return { error: "The Spotify link should look like https://open.spotify.com/show/…" };
   const { error } = await db.from("settings").upsert({ key: "podcast.show", value: clean });
   if (error) return { error: error.message };
   done();

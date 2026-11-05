@@ -107,6 +107,11 @@ export default function PodcastPanel({ show: initial, episodes }: { show: Show; 
           Website link
           <input value={show.link} onChange={set("link")} />
         </label>
+        <label className={a.field}>
+          Spotify show link
+          <input value={show.spotifyUrl} onChange={set("spotifyUrl")} placeholder="https://open.spotify.com/show/…" />
+          <small>Shows a “Listen on Spotify” button on the book page. Leave empty to hide it.</small>
+        </label>
         <div className={a.field}>
           Cover (square, JPG or PNG, {COVER_MIN}–{COVER_MAX} px)
           {show.coverUrl ? (

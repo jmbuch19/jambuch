@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { entryLabel, entryPath, sectionType } from "@/lib/book-sections";
 import { inline } from "@/lib/inline";
 import { guNumber, loadWork, type Chapter } from "@/lib/library";
+import { WORK_SLUG, loadShow } from "@/lib/podcast";
+import { adminClient } from "@/lib/supabase-admin";
 import LibraryHeader from "../header";
 import ContinueReading from "../continue-reading";
 import l from "../library.module.css";
@@ -37,6 +39,8 @@ export default async function WorkPage({ params }: Props) {
   const total = Math.max(work.total_chapters ?? 0, chapters.length, ...chapters.map((c) => c.number ?? 0));
   const byNumber = new Map(chapters.map((c) => [c.number, c.status]));
   const plan = Array.from({ length: total }, (_, i) => byNumber.get(i + 1) ?? "later");
+  // The book that is also a podcast gets a "Listen on Spotify" button.
+  const spotifyUrl = slug === WORK_SLUG ? (await loadShow(adminClient()).catch(() => null))?.spotifyUrl : null;
 
   const row = (c: Chapter) => (
     <li key={c.id}>
@@ -143,11 +147,18 @@ export default async function WorkPage({ params }: Props) {
                     </span>
                   </div>
                 </div>
-                {first && (
+                {(first || spotifyUrl) && (
                   <div className={l.buttons}>
-                    <Link href={entryPath(slug, first)} className={l.btnAccent}>
-                      Start reading — {entryLabel(first)}
-                    </Link>
+                    {first && (
+                      <Link href={entryPath(slug, first)} className={l.btnAccent}>
+                        Start reading — {entryLabel(first)}
+                      </Link>
+                    )}
+                    {spotifyUrl && (
+                      <a href={spotifyUrl} target="_blank" rel="noopener noreferrer" className={l.btnGhost}>
+                        <span className="gu">Spotify પર સાંભળો</span> · Listen on Spotify ↗
+                      </a>
+                    )}
                   </div>
                 )}
               </>

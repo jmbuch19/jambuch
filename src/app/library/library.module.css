@@ -215,6 +215,19 @@
   background: var(--accent-hover);
   color: #fff;
 }
+.btnGhost {
+  border: 1px solid var(--border-strong);
+  color: var(--ink);
+  text-decoration: none;
+  padding: 12px 21px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  font-size: 15px;
+}
+.btnGhost:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
 
 /* "વાંચન ચાલુ રાખો · Continue reading": top of the homepage and book pages. */
 .continueTop {
