@@ -17,7 +17,7 @@ export default async function AudioPage() {
       .eq("status", "ready")
       .eq("published", true)
       .is("deleted_at", null),
-    db.from("chapter_audio").select("chapter_id, voice, text_hash, duration_ms, characters, url, paused"),
+    db.from("chapter_audio").select("chapter_id, voice, text_hash, duration_ms, characters, url, paused, created_at"),
     db.from("settings").select("value").eq("key", "audio.lexicon").maybeSingle(),
     loadLexicon(db),
     loadVoiceChoices(db),
@@ -48,6 +48,8 @@ export default async function AudioPage() {
           id: c.id as string,
           label: c.section ? entryLabel(c) : `${guNumber(c.number ?? 0)}.`,
           title: c.title as string,
+          number: (c.number ?? null) as number | null,
+          section: (c.section ?? null) as string | null,
           characters: script.characters,
           ownRecording: !!c.audio_url,
           voiceOverride: choices.chapters[c.id] ?? null,
@@ -59,6 +61,7 @@ export default async function AudioPage() {
                 url: play.url,
                 spokenUrl: spoken?.url ?? null,
                 paused: !!play.paused,
+                uploadedAt: (play.created_at ?? null) as string | null,
               }
             : null,
         };

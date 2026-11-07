@@ -8,11 +8,20 @@ import s from "./audio.module.css";
 import { finishAudioPlay, saveLexicon, saveVoiceChoice, setAzureForReaders, setProductionPaused, uploadAudioPiece } from "./actions";
 
 type VoiceState = { state: "none" | "current" | "outdated"; durationMs: number | null; url: string | null };
-type PlayState = { state: "current" | "outdated"; durationMs: number; url: string; spokenUrl: string | null; paused: boolean };
+type PlayState = {
+  state: "current" | "outdated";
+  durationMs: number;
+  url: string;
+  spokenUrl: string | null;
+  paused: boolean;
+  uploadedAt: string | null;
+};
 type AudioChapter = {
   id: string;
   label: string;
   title: string;
+  number: number | null;
+  section: string | null; // "preface" etc.; null for numbered chapters
   characters: number;
   ownRecording: boolean;
   voiceOverride: VoiceKey | null; // null: the book's voice
@@ -29,6 +38,34 @@ const minutes = (ms: number | null) => (ms ? `${Math.max(1, Math.round(ms / 6000
 const chosen = (b: AudioBook, c: AudioChapter) => c.voiceOverride ?? b.voice;
 // Readers hear the audio play instead of Azure.
 const playLive = (c: AudioChapter) => c.play?.state === "current" && !c.play.paused;
+const clock = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.round((ms % 60000) / 1000)).padStart(2, "0")}`;
+const day = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+const uploadedOn = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+// The production files are named chNN-… or <section>-…; this says which chapter a name is for.
+const nameFor = (name: string) => {
+  const m = /^ch(\d+)[-_]/i.exec(name);
+  if (m) return { number: Number(m[1]), section: null };
+  const s = /^([a-z]+)[-_](audio[-_]play|voice[-_]only)/i.exec(name);
+  return s ? { number: null, section: s[1].toLowerCase() } : null;
+};
+const isFor = (c: AudioChapter, n: { number: number | null; section: string | null } | null) =>
+  !n || (c.section ? n.section === c.section : n.number === c.number);
+const rowName = (c: AudioChapter) => (c.section ? c.section : `chapter ${c.number}`);
+// The length the browser reads from an MP3 (null if it can't tell).
+const mp3Ms = (f: File) =>
+  new Promise<number | null>((resolve) => {
+    const url = URL.createObjectURL(f);
+    const el = new Audio();
+    const done = (ms: number | null) => {
+      URL.revokeObjectURL(url);
+      resolve(ms);
+    };
+    el.preload = "metadata";
+    el.onloadedmetadata = () => done(Number.isFinite(el.duration) ? el.duration * 1000 : null);
+    el.onerror = () => done(null);
+    el.src = url;
+  });
 
 export default function AudioAdmin({
   books: initial,
@@ -147,23 +184,76 @@ export default function AudioAdmin({
 
   // Upload: the audio play MP3, its timings file and (optional) the voice-only
   // MP3, chosen together. Each MP3 goes up in pieces, then the site joins them.
-  async function uploadPlay(chapterId: string, list: FileList | null) {
+  async function uploadPlay(c: AudioChapter, list: FileList | null) {
+    const chapterId = c.id;
     const files = Array.from(list ?? []);
-    const json = files.find((f) => /.json$/i.test(f.name));
-    const mp3s = files.filter((f) => /.mp3$/i.test(f.name));
+    // chNN-audio-play.stt.json is the error check's transcript, not for the site.
+    const checkFiles = files.filter((f) => /\.stt\.json$/i.test(f.name));
+    const json = files.find((f) => /\.json$/i.test(f.name) && !checkFiles.includes(f));
+    const mp3s = files.filter((f) => /\.mp3$/i.test(f.name));
     const spoken = mp3s.find((f) => /voice[-_ ]?only|spoken/i.test(f.name));
     const play = mp3s.find((f) => f !== spoken);
+    const ignored = files.filter((f) => f !== json && f !== play && f !== spoken);
     if (!json || !play) {
-      rowNote(chapterId, "Choose the audio play MP3 and its timings.json together (the voice-only MP3 too, if there is one).");
+      rowNote(
+        chapterId,
+        checkFiles.length && !json
+          ? "That .stt.json is a check file, not the timings. Choose timings.json, the audio play MP3 and the voice-only MP3."
+          : "Choose the audio play MP3 and its timings.json together (the voice-only MP3 too, if there is one).",
+      );
       return;
     }
-    let timings: Parameters<typeof finishAudioPlay>[1];
+    let timings: Parameters<typeof finishAudioPlay>[1] & { section?: unknown };
     try {
       timings = JSON.parse(await json.text());
     } catch {
       rowNote(chapterId, "The timings file couldn’t be read.");
       return;
     }
+
+    // Stop: files for another chapter, or files from different builds.
+    for (const f of [play, spoken]) {
+      const n = f && nameFor(f.name);
+      if (f && n && !isFor(c, n)) {
+        rowNote(chapterId, `Wrong chapter: “${f.name}” is for ${n.section ?? `chapter ${n.number}`}, but this row is ${rowName(c)}. Nothing was uploaded.`);
+        return;
+      }
+    }
+    if ("chapter" in timings || "section" in timings) {
+      const t = { number: typeof timings.chapter === "number" ? timings.chapter : null, section: typeof timings.section === "string" ? timings.section : null };
+      if (!isFor(c, t)) {
+        rowNote(chapterId, `Wrong chapter: this timings.json is for ${t.section ?? `chapter ${t.number}`}, but this row is ${rowName(c)}. Nothing was uploaded.`);
+        return;
+      }
+    }
+    for (const [f, t, what] of [
+      [play, timings.play, "audio play"],
+      [spoken, timings.spoken, "voice-only"],
+    ] as const) {
+      if (!f || !t?.durationMs) continue;
+      const ms = await mp3Ms(f);
+      if (ms !== null && Math.abs(ms - t.durationMs) > 2000) {
+        rowNote(
+          chapterId,
+          `These files don’t belong together: the ${what} MP3 is ${clock(ms)} long, but timings.json says ${clock(t.durationMs)}. Choose the three files from the same folder, made at the same time. Nothing was uploaded.`,
+        );
+        return;
+      }
+    }
+
+    // Ask first: what this replaces, and anything that looks off.
+    const notes: string[] = [];
+    const newMs = timings.play?.durationMs;
+    if (c.play && newMs) {
+      notes.push(
+        Math.abs(c.play.durationMs - newMs) < 50
+          ? `This is the same length (${clock(newMs)}) as the audio play already live${c.play.uploadedAt ? ` since ${day(c.play.uploadedAt)}` : ""}. It may be the same file — nothing new.`
+          : `This replaces the audio play live${c.play.uploadedAt ? ` since ${day(c.play.uploadedAt)}` : ""} (${clock(c.play.durationMs)}) with a new one (${clock(newMs)}).`,
+      );
+    }
+    if (!spoken) notes.push(c.play?.spokenUrl ? "No voice-only MP3 chosen: readers keep the old voice-only version, which won’t match." : "No voice-only MP3 chosen: readers won’t have “voice only”.");
+    if (ignored.length) notes.push(`Not uploaded (not needed): ${ignored.map((f) => f.name).join(", ")}.`);
+    if (notes.length && !window.confirm(`${c.label} ${c.title}\n\n${notes.join("\n\n")}\n\nUpload?`)) return;
     rowNote(chapterId, null);
     const jobs: { kind: ProductionKey; file: File }[] = [{ kind: "play", file: play }];
     if (spoken) jobs.push({ kind: "spoken", file: spoken });
@@ -196,6 +286,7 @@ export default function AudioAdmin({
         url: p.url,
         spokenUrl: sp?.url ?? (spoken ? null : (old?.spokenUrl ?? null)),
         paused: false,
+        uploadedAt: new Date().toISOString(),
       }));
       rowNote(chapterId, "Saved. Readers now hear the audio play.");
     } catch (e) {
@@ -432,6 +523,7 @@ export default function AudioAdmin({
                                 </Link>
                               </span>
                             )}
+                            {c.play.uploadedAt && <span className={a.mutedSmall}>Uploaded {uploadedOn(c.play.uploadedAt)}</span>}
                             {c.play.state === "current" && (
                               <button
                                 type="button"
@@ -453,7 +545,7 @@ export default function AudioAdmin({
                             className={s.srOnly}
                             disabled={!!uploading}
                             onChange={(e) => {
-                              void uploadPlay(c.id, e.target.files);
+                              void uploadPlay(c, e.target.files);
                               e.target.value = "";
                             }}
                           />

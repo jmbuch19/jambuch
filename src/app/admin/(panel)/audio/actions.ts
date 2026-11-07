@@ -31,7 +31,7 @@ export async function uploadAudioPiece(form: FormData): Promise<{ ok: true } | {
 }
 
 type Uploaded = { kind: ProductionKey; id: string; pieces: number };
-type TimingsFile = { chapter?: unknown } & Partial<Record<ProductionKey, ProductionTimings>>;
+type TimingsFile = { chapter?: unknown; section?: unknown } & Partial<Record<ProductionKey, ProductionTimings>>;
 
 // Joins the uploaded pieces of each file and saves them for the chapter,
 // with the paragraph timings from the timings file made alongside the audio.
@@ -45,6 +45,11 @@ export async function finishAudioPlay(
   if (!c) return { error: "Chapter not found." };
   if (typeof timings?.chapter === "number" && !c.section && timings.chapter !== c.number) {
     return { error: `These files are for chapter ${timings.chapter}, but this row is chapter ${c.number}.` };
+  }
+  // The preface and other sections: the timings file names its section.
+  const section = typeof timings?.section === "string" ? timings.section : null;
+  if ((c.section && (typeof timings?.chapter === "number" || (section && section !== c.section))) || (!c.section && section)) {
+    return { error: `These files are for ${section ?? `chapter ${timings.chapter}`}, but this row is ${c.section ?? `chapter ${c.number}`}.` };
   }
   if (!files.some((f) => f.kind === "play")) return { error: "The audio play MP3 is missing." };
 
