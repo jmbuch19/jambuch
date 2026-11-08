@@ -45,3 +45,6 @@ next-env.d.ts
 supabase/.temp
 supabase/.branches
 .gstack/
+
+# Google OAuth client secrets (YouTube upload)
+client_secret*.json

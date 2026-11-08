@@ -20,6 +20,7 @@ export type Show = {
   coverUrl: string;
   link: string;
   spotifyUrl: string; // the show on Spotify, for the book page's button (not part of the feed)
+  youtubeUrl: string; // the YouTube channel or playlist, for the book page's button (not part of the feed)
 };
 export const DEFAULT_SHOW: Show = {
   title: "રામાયણ — ચક્રવર્તી રાજગોપાલાચારી (અનુ. નલિનકાંત છાયા)",
@@ -30,6 +31,7 @@ export const DEFAULT_SHOW: Show = {
   coverUrl: "",
   link: "https://jambuch.in/library/ramayana",
   spotifyUrl: "",
+  youtubeUrl: "",
 };
 
 // A GUID is permanent: written once from the chapter number, never derived from a URL, a hash or a time.

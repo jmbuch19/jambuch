@@ -39,8 +39,9 @@ export default async function WorkPage({ params }: Props) {
   const total = Math.max(work.total_chapters ?? 0, chapters.length, ...chapters.map((c) => c.number ?? 0));
   const byNumber = new Map(chapters.map((c) => [c.number, c.status]));
   const plan = Array.from({ length: total }, (_, i) => byNumber.get(i + 1) ?? "later");
-  // The book that is also a podcast gets a "Listen on Spotify" button.
-  const spotifyUrl = slug === WORK_SLUG ? (await loadShow(adminClient()).catch(() => null))?.spotifyUrl : null;
+  // The book that is also a podcast gets "Listen on Spotify" and "Watch on YouTube" buttons.
+  const show = slug === WORK_SLUG ? await loadShow(adminClient()).catch(() => null) : null;
+  const spotifyUrl = show?.spotifyUrl || null, youtubeUrl = show?.youtubeUrl || null;
 
   const row = (c: Chapter) => (
     <li key={c.id}>
@@ -147,7 +148,7 @@ export default async function WorkPage({ params }: Props) {
                     </span>
                   </div>
                 </div>
-                {(first || spotifyUrl) && (
+                {(first || spotifyUrl || youtubeUrl) && (
                   <div className={l.buttons}>
                     {first && (
                       <Link href={entryPath(slug, first)} className={l.btnAccent}>
@@ -157,6 +158,11 @@ export default async function WorkPage({ params }: Props) {
                     {spotifyUrl && (
                       <a href={spotifyUrl} target="_blank" rel="noopener noreferrer" className={l.btnGhost}>
                         <span className="gu">Spotify પર સાંભળો</span> · Listen on Spotify ↗
+                      </a>
+                    )}
+                    {youtubeUrl && (
+                      <a href={youtubeUrl} target="_blank" rel="noopener noreferrer" className={l.btnGhost}>
+                        <span className="gu">YouTube પર જુઓ</span> · Watch on YouTube ↗
                       </a>
                     )}
                   </div>

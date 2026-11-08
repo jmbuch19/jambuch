@@ -12,8 +12,25 @@ import { readPublic, writePublicFile } from "@/lib/r2";
 const UUID = /^[0-9a-f-]{36}$/;
 const done = () => revalidatePath("/admin/podcast");
 
+// A channel (@handle or /channel/ID) or a playlist; share tails like ?si= are dropped.
+// Empty stays empty (no button); anything else gives null (refused).
+function cleanYouTube(raw: string): string | null {
+  const s = raw.trim();
+  if (!s) return "";
+  let u: URL;
+  try { u = new URL(s); } catch { return null; }
+  if (u.protocol !== "https:" || !/^(www\.|m\.)?youtube\.com$/.test(u.hostname)) return null;
+  if (/^\/(@[\w.-]+|channel\/[\w-]+)\/?$/.test(u.pathname)) return `https://www.youtube.com${u.pathname.replace(/\/$/, "")}`;
+  const list = u.searchParams.get("list");
+  if (u.pathname === "/playlist" && list && /^[\w-]+$/.test(list)) return `https://www.youtube.com/playlist?list=${list}`;
+  return null;
+}
+
 export async function saveShow(show: Show) {
   const { db } = await requireAdmin();
+  const youtubeUrl = cleanYouTube(show.youtubeUrl ?? "");
+  if (youtubeUrl === null)
+    return { error: "The YouTube link should be a channel (https://www.youtube.com/@…) or a playlist (…/playlist?list=…)." };
   const clean: Show = {
     title: show.title.trim().slice(0, 300),
     author: show.author.trim().slice(0, 200),
@@ -23,6 +40,7 @@ export async function saveShow(show: Show) {
     link: show.link.trim().slice(0, 1000),
     // Spotify's share links carry a ?si= tracking tail; keep the plain address.
     spotifyUrl: (show.spotifyUrl ?? "").trim().split("?")[0].slice(0, 300),
+    youtubeUrl,
   };
   if (clean.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean.email)) return { error: "That owner email doesn't look right." };
   for (const u of [clean.coverUrl, clean.link]) if (u && !/^https:\/\//.test(u)) return { error: "Links must start with https://." };
