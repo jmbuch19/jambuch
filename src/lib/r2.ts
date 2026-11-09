@@ -186,6 +186,19 @@ export async function signedPrivateUrl(f: FileRef, seconds = 600) {
   return signed.url;
 }
 
+// A short-lived link the admin's browser uses to PUT one file straight into
+// the private bucket, so large uploads never pass through Vercel (whose free
+// plan meters every byte a function receives). Needs the bucket's CORS rule
+// to allow PUT from jambuch.in.
+export async function signedPrivatePutUrl(key: string, seconds = 900) {
+  const { s, client } = r2();
+  if (!s.privateBucket) throw new Error("Can't store the file: R2_PRIVATE_BUCKET is not set.");
+  const url = new URL(objectUrl(s.privateBucket, key));
+  url.searchParams.set("X-Amz-Expires", String(seconds));
+  const signed = await client.sign(url.toString(), { method: "PUT", aws: { signQuery: true } });
+  return signed.url;
+}
+
 // Every media.jambuch.in link written anywhere inside a piece of text, such
 // as images placed in a chapter.
 export function fileRefsIn(text: string): FileRef[] {

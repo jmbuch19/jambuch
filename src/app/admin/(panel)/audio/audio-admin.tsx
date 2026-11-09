@@ -5,7 +5,7 @@ import { useMemo, useRef, useState } from "react";
 import { PIECE_BYTES, VOICES, type ProductionKey, type VoiceKey } from "@/lib/audio-voices";
 import a from "../../admin.module.css";
 import s from "./audio.module.css";
-import { finishAudioPlay, saveLexicon, saveVoiceChoice, setAzureForReaders, setProductionPaused, uploadAudioPiece } from "./actions";
+import { audioPieceLinks, finishAudioPlay, saveLexicon, saveVoiceChoice, setAzureForReaders, setProductionPaused, uploadAudioPiece } from "./actions";
 
 type VoiceState = { state: "none" | "current" | "outdated"; durationMs: number | null; url: string | null };
 type PlayState = {
@@ -265,13 +265,21 @@ export default function AudioAdmin({
       for (const j of jobs) {
         const id = crypto.randomUUID();
         const pieces = Math.ceil(j.file.size / PIECE_BYTES);
+        // Straight to R2 with signed links; through the site only if that fails.
+        const links = await audioPieceLinks(id, pieces).catch(() => null);
         for (let i = 0; i < pieces; i++) {
-          const form = new FormData();
-          form.set("id", id);
-          form.set("index", String(i));
-          form.set("piece", j.file.slice(i * PIECE_BYTES, (i + 1) * PIECE_BYTES));
-          const r = await uploadAudioPiece(form);
-          if ("error" in r) throw new Error(r.error);
+          const piece = j.file.slice(i * PIECE_BYTES, (i + 1) * PIECE_BYTES);
+          const direct = links && "urls" in links
+            ? await fetch(links.urls[i], { method: "PUT", body: piece }).then((res) => res.ok, () => false)
+            : false;
+          if (!direct) {
+            const form = new FormData();
+            form.set("id", id);
+            form.set("index", String(i));
+            form.set("piece", piece);
+            const r = await uploadAudioPiece(form);
+            if ("error" in r) throw new Error(r.error);
+          }
           setUploading({ chapterId, done: ++done, total });
         }
         uploaded.push({ kind: j.kind, id, pieces });

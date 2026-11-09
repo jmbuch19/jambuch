@@ -4,13 +4,30 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
 import { loadVoiceChoices, parseLexicon, saveProduction, type ProductionTimings } from "@/lib/audio";
 import { PIECE_BYTES, PRODUCTION_KEYS, isProduction, isVoice, type ProductionKey } from "@/lib/audio-voices";
-import { deleteForever, fileRef, r2Problem, readPrivate, uploadPrivate } from "@/lib/r2";
+import { deleteForever, fileRef, r2Problem, readPrivate, signedPrivatePutUrl, uploadPrivate } from "@/lib/r2";
 
 // Large audio files go up in pieces (PIECE_BYTES each). Pieces wait in the
 // private bucket until the upload is finished, then are joined and removed.
 const MAX_PIECES = 60; // about 200 MB
 const UPLOAD_ID = /^[0-9a-f-]{36}$/;
 const pieceKey = (id: string, index: number) => `uploads/audio/${id}/${index}`;
+
+// Signed links for sending each piece straight from the browser to R2. The
+// bytes never pass through Vercel. uploadAudioPiece below stays as the
+// fallback if a direct upload fails.
+export async function audioPieceLinks(id: string, pieces: number): Promise<{ ok: true; urls: string[] } | { error: string }> {
+  await requireAdmin();
+  const problem = r2Problem();
+  if (problem) return { error: `Uploads aren't set up yet (${problem}).` };
+  if (!UPLOAD_ID.test(id) || !Number.isInteger(pieces) || pieces < 1 || pieces > MAX_PIECES) return { error: "Bad upload." };
+  try {
+    const urls = await Promise.all(Array.from({ length: pieces }, (_, i) => signedPrivatePutUrl(pieceKey(id, i))));
+    return { ok: true, urls };
+  } catch (e) {
+    console.error("audio piece links failed:", e);
+    return { error: "Couldn't prepare the upload." };
+  }
+}
 
 export async function uploadAudioPiece(form: FormData): Promise<{ ok: true } | { error: string }> {
   await requireAdmin();
