@@ -5,6 +5,7 @@ import { useMemo, useRef, useState } from "react";
 import { PIECE_BYTES, VOICES, type ProductionKey, type VoiceKey } from "@/lib/audio-voices";
 import a from "../../admin.module.css";
 import s from "./audio.module.css";
+import { refreshFeedAfterUpload } from "../podcast/actions";
 import { audioPieceLinks, finishAudioPlay, saveLexicon, saveVoiceChoice, setAzureForReaders, setProductionPaused, uploadAudioPiece } from "./actions";
 
 type VoiceState = { state: "none" | "current" | "outdated"; durationMs: number | null; url: string | null };
@@ -296,7 +297,10 @@ export default function AudioAdmin({
         paused: false,
         uploadedAt: new Date().toISOString(),
       }));
-      rowNote(chapterId, "Saved. Readers now hear the audio play.");
+      rowNote(chapterId, "Saved. Readers now hear the audio play. Updating the podcast feed…");
+      // The old MP3 is gone now: point the podcast feed at the new one (its own request, so a slow feed check can't fail the upload).
+      const feedNote = await refreshFeedAfterUpload(chapterId).catch(() => "Podcast feed not refreshed. Publish it from the Podcast page.");
+      rowNote(chapterId, `Saved. Readers now hear the audio play.${feedNote ? ` ${feedNote}` : ""}`);
     } catch (e) {
       rowNote(chapterId, (e as Error).message || "The upload didn’t go through. Please try again.");
     } finally {

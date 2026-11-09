@@ -80,6 +80,32 @@ export async function dryRun(): Promise<CheckResult> {
   return { ...rest, preview: xml };
 }
 
+// After a new audio play is uploaded: the old MP3 is deleted, so a published
+// episode would point at a missing file. This rewrites the live feed with the
+// new link — only for an episode that is already out, and only when nothing
+// new is waiting (new episodes go out by hand, in book order). Never fails the
+// upload; returns a short note for the admin, or null when there is nothing to do.
+export async function refreshFeedAfterUpload(chapterId: string): Promise<string | null> {
+  const { db } = await requireAdmin();
+  try {
+    const old = await readPublic(FEED_KEY);
+    if (!old) return null; // no feed published yet
+    const { xml, problems, episodes } = await checkFeed(db);
+    const mine = episodes.find((e) => e.chapterId === chapterId);
+    if (!mine || mine.isNew) return null; // not in the podcast, or not out yet
+    if (problems.length || !xml) return `Podcast feed not refreshed (${problems[0] ?? "the feed could not be built"}). Check it on the Podcast page.`;
+    if (episodes.some((e) => e.isNew)) return "Podcast feed not refreshed: new episodes are waiting. Publish them from the Podcast page, and the new audio goes out with them.";
+    await writePublicFile(FEED_BAK_KEY, old, "application/rss+xml; charset=utf-8");
+    const bytes = new TextEncoder().encode(xml);
+    await writePublicFile(FEED_KEY, bytes.buffer as ArrayBuffer, "application/rss+xml; charset=utf-8");
+    done();
+    return "Podcast feed refreshed: Spotify gets the new audio for this episode.";
+  } catch (err) {
+    console.error("podcast refresh after upload failed:", err);
+    return "Podcast feed not refreshed (an error). Publish it from the Podcast page.";
+  }
+}
+
 export async function publishFeed(): Promise<CheckResult & { published?: string; error?: string }> {
   const { db } = await requireAdmin();
   const now = new Date();
