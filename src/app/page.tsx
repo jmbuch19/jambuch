@@ -408,7 +408,7 @@ function buildSections(c: HomeContent, t: (key: string) => string): (Section | n
       title: "Creator’s Space",
       gu: "તમારી વાર્તા — સંભળાય અને દેખાય",
       intro:
-        "Writers: turn your story into narrated audio or an illustrated video, in Gujarati, Hindi or English. Start with a ₹499 sample.",
+        "Writers: turn your story into narrated audio or an illustrated video, in Gujarati, Hindi or English. Start with a free 30–60 second sample.",
       body: (
         <div className={s.studio}>
           <a href="/creators" className={s.btnAccent}>

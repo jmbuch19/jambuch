@@ -30,17 +30,17 @@ made from your work here"). Never mix the two in copy, data or navigation.
 | Location | A page section on jambuch.in: `/creators` (+ sub-pages) |
 | Billing | In Jaydeep's own name for now (later moves to Sarjan Digital OPC; keep the seller details in settings, not hard-coded) |
 | Pricing | Writer price = **2 × estimated tool cost** (with retry buffer) **+ review time at ₹1,000/hour**, grossed up for the Razorpay fee, rounded up to the nearest ₹99 (section 5) |
-| Minimum order | **₹999** for any creation (the ₹499 sample is part of it) |
+| Minimum order | **₹999** for any creation. **No job is free** except the tiny sample below (Jaydeep, 22 Nov 2026) |
 | Finish levels | **Basic · Standard · Premium** (section 3A): presets for the configurator plus image density, assets and checks |
 | Service mode | **Self-serve** (autopilot) or **Assisted** (Jaydeep involved: consultation, curation, personal review; more time and money). Premium and AI animated film are always Assisted |
-| Sample | 60–90 seconds, fee **₹499**, deducted from the full fee if they go ahead |
+| Sample | **Free, 30–60 seconds** (changed 22 Nov 2026; was 60–90 s for ₹499). The only free work. One per writer (verified email + phone), watermarked, primary language only, a daily cap on free samples (setting), Turnstile + email verification before it is made. Everything else is paid |
 | Payment | **50% advance** after sample approval; **50% before clean download** |
 | Review | **Autopilot** (section 6A): the AI assistant guides the writer, the writer approves the script and the sample, automated checks choose drafts and replace Jaydeep's final review (no shot-list approval step for the writer). Jaydeep is alerted only for exceptions. Admin toggle per package: `autopilot` / `jaydeep_reviews` (start: `jaydeep_reviews` for the first 10 orders, then autopilot) |
 | Revisions | Replaced by **flag-based corrections** (section 6E): only flagged errors are corrected. **Our mistakes: always free.** **Content changes: free up to 20% of the work in one round; above 20%, charged** |
 | Languages | Gujarati, Hindi, English |
 | Publication choice | One required choice per order: **"Download only"** or **"Download and allow jambuch.in to publish"** (section 6B). Replaces the old showcase opt-in |
 | File retention | **Single creations: 7 days, then automatic permanent deletion** of all creative files (section 6B), with warnings. **Continuous stories (series): files are kept in paid Series Storage** while the writer pays for it (section 6D) |
-| Inactivity | A writer who doesn't approve their script within **14 days**: reminders on day 7 and 12; on day 14 the order is cancelled, the ₹499 refunded, files deleted |
+| Inactivity | A writer who doesn't approve their script within **14 days**: reminders on day 7 and 12; on day 14 the order is cancelled and files deleted (nothing to refund: the sample is free) |
 | Long stories | Accepted. Split into **episodes** of max ~20,000 characters at natural breaks; one sample for the series; each episode quoted and paid separately |
 | Refunds | None after the clean download (full policy in section 8) |
 
@@ -175,7 +175,7 @@ How suggestions are made:
   (e.g. "Sepia watercolour: your story is a memory of your grandmother's village
   in the 1960s"). The writer may also choose freely.
 - Before payment: the writer sees the library examples of each style and colour.
-- With the ₹499 sample: **one test still of the writer's own story in up to two of
+- With the free sample: **one test still of the writer's own story in up to two of
   the suggested pairings** (included in the sample fee); the sample itself uses the
   writer's pick.
 - For elders and captions: high-contrast captions on every treatment (sepia and
@@ -325,7 +325,7 @@ disappointment and correction disputes.
      work unless they chose publication option B).
    - The bouquet as cards with "from ₹…" prices (computed from a typical story).
    - "How it works" in 5 steps; the refund policy in one plain line.
-   - CTA button: **"Start with a ₹499 sample"**.
+   - CTA button: **"Start with a free sample"**.
 1a. **Choose a finish level and service mode** (section 3A).
 2. **Adjust (the configurator, section 3):** format, sound, voices, delivery
    style, language(s), visual style, add-ons; live price; audio/video previews of
@@ -340,8 +340,8 @@ disappointment and correction disputes.
    (section 7C). Required before any quote.
 4. **Rights and terms:** required ticks (section 7). Name, email, WhatsApp number;
    email verified by one-time code.
-5. **Instant quote:** fixed price for the full production, the ₹499 sample, the
-   advance and the final payment, delivery estimate. "Pay ₹499 for my sample".
+5. **Instant quote:** fixed price for the full production (the 30–60 s sample is free), the
+   advance and the final payment, delivery estimate. "Make my free sample".
 5a. **Approve the script:** the prepared script (and translation and performance
    directions, if chosen) and the pronunciation list. No narration until approved.
    14-day inactivity rule applies (section 1).
@@ -407,9 +407,9 @@ price          = 2 × tool_cost + review_hours × ₹1,000
 price          = price ÷ (1 − gateway_fee_rate)     # Razorpay fee + its GST (setting)
 price          = max(price, ₹999), rounded UP to nearest ₹99
                  # if GST_ENABLED: show and charge GST on top, invoice shows both
-sample_fee     = ₹499 (deducted from price)
-advance        = 50% of (price − 499), rounded to ₹1
-final_payment  = price − 499 − advance
+sample_fee     = ₹0 (the 30–60 s sample is free; 22 Nov 2026)
+advance        = 50% of price, rounded to ₹1
+final_payment  = price − advance
 ```
 - Show the writer **one fixed price**, not the breakdown. Admin sees the breakdown.
 - The quote is **locked** once the sample is paid. If the writer changes the
@@ -437,7 +437,7 @@ IMAGE COST RULES, audio rules, FFmpeg assembly). Order of work:
    language). This
    approved script, with the approved creative plan and shot list, is the baseline for deciding
    whose mistake an error is (section 6E).
-2. **Sample** (after the script is approved): the opening 60–90 s (or a passage
+2. **Sample** (free; after the script is approved): the opening 30–60 s (or a passage
    the writer picks), in the primary language only: narration, 3–4 stills, music,
    captions. Watermarked.
 3. **Sample gate:** in `jaydeep_reviews` mode admin approves / redoes / refuses
@@ -460,6 +460,69 @@ full payment.
 **Files:** private R2 bucket under `creators/<order-id>/`. Downloads only through
 short-lived signed links for the signed-in writer. Retention and deletion follow
 section 6B exactly.
+
+---
+
+## 6F. The cloud creator engine (Phase 2, decided 22 Nov 2026)
+
+Jaydeep's decision: **submitted work must not depend on his computer.** Claude takes
+the writer's query on the live site and the final creation runs in the cloud. The
+studio speaks only as "Creator's Space" (never as Jaydeep personally); writers work
+with an email and a job link, no full account needed.
+
+### What the Ramayana work is to this engine
+The Ramayana pipeline (D:/jambuch-audio-pilot, private repo jmbuch19/jambuch-audio-pilot)
+is the **learning ground and worked example**, not a Ramayana-only tool. What carries over
+to every writer's job, in any language:
+- **Performed narration:** the 7 approved moods, mood maps of 1–4-sentence segments,
+  "mood builds gradually", tone tags per segment, real silences (hush holds).
+- **Sound words AND sound events** (docs/sound-guide.md §7, scripts/soundwords.mjs):
+  every onomatopoeic word gets its sound; every action the text makes us hear gets one
+  too; the narration pauses for it; remembered = soft, imagined/foretold = faint.
+  The lexicon grows with every story (Gujarati first; Hindi and English lexicons to add).
+- **Travelling soundscapes** (avBeds), **themes that return** (avMusicBeds),
+  per-cue levels, painting rules (anatomy at full size, no stray architecture or
+  scenery the story doesn't have), reels and upload kits.
+- Quality bar: Ramayana ch52 is the **floor**; each job aims higher.
+What does NOT carry over: Ramayana-only rules (Ravana's heads, Sita's dress, the
+Nalinkant Chhaya tribute, the Ramayana narrator voice, the Story Tube brand).
+
+### The two halves
+1. **On the site (Vercel + Supabase): Studio Saathi** (section 6A) takes the brief,
+   gets consent (the story is sent to AI services; the writer keeps ownership;
+   nothing is published without their approval), and calls the Claude API to draft
+   the **creative direction as structured JSON** that maps one-to-one onto the
+   engine's fields (segments, moods, tags, sound words and events, beds, themes,
+   holds, painting list, shot beats). The engine's own checkers validate it; errors
+   go back to Claude before the writer sees anything. The writer approves the mood
+   map and sound plan on a phone-friendly review page with timestamped comments.
+2. **Production in the cloud:** first choice to test is **Anthropic Managed Agents**
+   (Anthropic runs the agent loop and a per-job container; keys for ElevenLabs and R2
+   in its credential vault; a hard dollar cap per job; an outcome rubric graded by a
+   separate checker: every sound word has its sound, no gaps inside a phrase, the
+   painting rules, loudness). Fallback: a small rented render server with a job queue.
+   Media go straight to R2 by signed links, never through Vercel functions.
+
+### Engine work needed (either way)
+- Portable: no Windows paths (D:/, E:/); library and style references on R2; Linux.
+- An open Gujarati/Devanagari font (e.g. Noto Sans Gujarati / Devanagari) instead of
+  the licensed Nirmala font.
+- "Projects" instead of Ramayana chapters: per-writer voice (never the Ramayana
+  narrator), style reference, lexicon.
+
+### Money and safety
+- **No job is free except the 30–60 s sample** (section 1). Payment (Razorpay)
+  before full production. Daily caps on free samples and on jobs in production.
+- Claude's per-story direction cost is small (estimated well under $1 with the
+  catalog prompt-cached); voices, images and rendering are the real costs and go into
+  the pricing engine (section 5) per job.
+
+### First steps
+1. **One-day test:** one short story end to end in a Managed Agents container
+   (ffmpeg present? speed? cost?). Needs an Anthropic API key or `ant auth login`.
+2. **Direction prototype** (`scripts/direct.mjs` in the audio repo): story in, draft
+   mood map + engine direction out; measured against Ramayana ch53's hand-made one.
+3. Studio Saathi on /creators with the free-sample flow, then cloud production + payment.
 
 ---
 
@@ -1012,15 +1075,13 @@ reviewed by a lawyer before launch; the list below is the content, not legal tex
 
 ## 8. Refund policy (shown before every payment)
 
-- **Before the sample is made:** full refund of the ₹499 on request.
-- **After the sample is delivered:** the ₹499 is not refundable (it is still
-  deducted from the full fee if the writer goes ahead).
+- **The sample is free** (22 Nov 2026), so there is nothing to refund before or after it.
 - **Advance (50%):** not refundable once production has started, except if
   Jaydeep cannot deliver; then refunded in full.
 - **After the clean files are downloaded:** **no refund.** The download is logged
   with date and time; the writer is warned in a confirm box before downloading.
 - **Inactivity before the sample** (script not approved in 14 days): order
-  cancelled, ₹499 refunded automatically.
+  cancelled, files deleted.
 - **Order refused** by screening or by Jaydeep before the sample: full refund.
 - **A package withdrawn** because a provider changed or stopped (disclaimer 9):
   unused payments refunded.
@@ -1232,7 +1293,7 @@ Writers can read only their own orders and files. Only admin sees cost data.
 A separate band, after the advising section (not inside the Courtyard):
 > **Creator's Space** · તમારી વાર્તા — સંભળાય અને દેખાય
 > Writers: turn your story into narrated audio or an illustrated video, in
-> Gujarati, Hindi or English. Start with a ₹499 sample.
+> Gujarati, Hindi or English. Start with a free 30–60 second sample.
 > [See what we make →]
 
 Label it clearly as a paid studio service.

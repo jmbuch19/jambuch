@@ -125,8 +125,8 @@ export default async function CreatorsPage() {
               <b>I reply with a plan and a fixed quote</b>: voices, music, pictures, length.
             </li>
             <li>
-              <b>A short sample first:</b> 60–90 seconds of your story for ₹499, counted towards the full fee if you go
-              ahead.
+              <b>A free sample first:</b> 30–60 seconds of your story, so you can hear and see the style before you
+              order. Everything after the sample is paid.
             </li>
             <li>
               <b>The full piece:</b> you listen or watch, and flag anything to correct. My mistakes are always fixed free.
