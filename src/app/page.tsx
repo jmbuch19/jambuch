@@ -27,6 +27,10 @@ type Section = {
   tone?: "alt" | "dark";
   split?: boolean; // heading on the left, body in a card on the right
   cta?: boolean; // shown as the highlighted button in the nav
+  // Defaults used while site_text has no row for this section (site_text wins when filled).
+  title?: string;
+  gu?: string;
+  intro?: string;
   body: ReactNode;
 };
 
@@ -154,11 +158,11 @@ export default async function Home() {
             <>
               <div className={s.sectionHead}>
                 <span className={s.num}>{String(i + 1).padStart(2, "0")}</span>
-                <h2>{t(`${sec.key}.title`)}</h2>
-                {g(`${sec.key}.title`) && <span className={`gu ${s.sectionGu}`}>{g(`${sec.key}.title`)}</span>}
+                <h2>{t(`${sec.key}.title`) || sec.title}</h2>
+                {(g(`${sec.key}.title`) || sec.gu) && <span className={`gu ${s.sectionGu}`}>{g(`${sec.key}.title`) || sec.gu}</span>}
               </div>
-              {t(`${sec.key}.intro`) ? (
-                <p className={sec.id === "advising" ? s.introWide : s.intro}>{inline(t(`${sec.key}.intro`))}</p>
+              {t(`${sec.key}.intro`) || sec.intro ? (
+                <p className={sec.id === "advising" ? s.introWide : s.intro}>{inline(t(`${sec.key}.intro`) || sec.intro || "")}</p>
               ) : null}
             </>
           );
@@ -392,6 +396,26 @@ function buildSections(c: HomeContent, t: (key: string) => string): (Section | n
             </div>
           )}
         </>
+      ),
+    },
+
+    // Creator's Space (21 Nov 2026): the paid studio service, after advising and apart from the
+    // free Courtyard (docs/CREATORS_SPACE_BRIEF.md §12).
+    {
+      id: "creators",
+      nav: "Creator’s Space",
+      key: "creators",
+      title: "Creator’s Space",
+      gu: "તમારી વાર્તા — સંભળાય અને દેખાય",
+      intro:
+        "Writers: turn your story into narrated audio or an illustrated video, in Gujarati, Hindi or English. Start with a ₹499 sample.",
+      body: (
+        <div className={s.studio}>
+          <a href="/creators" className={s.btnAccent}>
+            See what we make →
+          </a>
+          <span className={s.studioTag}>A paid studio service · separate from the free Courtyard</span>
+        </div>
       ),
     },
 

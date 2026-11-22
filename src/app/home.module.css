@@ -1112,3 +1112,15 @@
     display: none;
   }
 }
+
+/* ------------------------------------------------------------ Creator's Space band (21 Nov 2026) */
+.studio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+}
+.studioTag {
+  font-size: 14px;
+  color: var(--muted);
+}
