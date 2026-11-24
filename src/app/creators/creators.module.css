@@ -307,3 +307,16 @@
 .terms li {
   margin-bottom: 0.4rem;
 }
+
+.sample {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.sample audio {
+  width: 100%;
+  max-width: 420px;
+}

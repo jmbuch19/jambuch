@@ -8,9 +8,11 @@ import { passesTurnstile } from "@/lib/turnstile";
 import { makeLink, linkValid } from "@/lib/signed-links";
 import { sessionClient } from "@/lib/supabase-server";
 import { adminClient } from "@/lib/supabase-admin";
-import { claudeReady, followUps, isStyleTopic, screenStory, styleTags, type FollowUp } from "@/lib/creators/claude";
+import { claudeReady, followUps, screenStory, styleTags, type FollowUp } from "@/lib/creators/claude";
+import { sampleLink } from "@/lib/creators/delivery";
 import { BIG_SCREEN, LANGUAGES, LENGTHS, MAKES } from "../options";
 import { LIMITS, OPEN_STATES } from "./limits";
+import { saveRequestFiles } from "@/lib/creators/files";
 import { CONSENT_LANGS, SUBMISSION_CONSENTS, TERMS_VERSION, type ConsentLang } from "@/lib/creators/terms";
 
 // Creator's Space, signed-in sample requests (docs/CREATORS_SPACE_BRIEF.md §6A "Safeguards").
@@ -222,22 +224,19 @@ export async function startRequest(_prev: StartState, form: FormData): Promise<S
     };
   }
   if (screening.result === "needs_human") {
+    // The story waits in private storage for Jaydeep to read in admin, never in email.
+    const stored = await storeFiles(row.id, story, { about, answers: [] });
     await mailStudio({
       subject: `Creator's Space: request from ${name} needs your eye`,
       lines: [
         `${name} <${user.email}> sent a story that the automatic check could not clear.`,
-        `Request ${row.id}`,
         `Check: ${screening.categories.join(", ") || "no answer from the checker"}${screening.reason ? ` — ${screening.reason}` : ""}`,
         "",
         ...details({ whatsapp, language, make, length, big_screen: bigScreen }),
         "",
-        "Note from the writer:",
-        about || "(none)",
+        stored ? `Read the story: ${adminLink(row.id)}` : "The story could not be stored; ask the writer to send it again.",
         "",
-        "Story:",
-        story,
-        "",
-        "No questions were asked and nothing was made. Reply to this email to answer the writer, then close the request in admin.",
+        "No questions were asked and nothing was made. Reply to this email to answer the writer, then close or refuse the request in admin.",
       ],
       replyTo: user.email,
     });
@@ -319,24 +318,22 @@ export async function finishRequest(_prev: FinishState, form: FormData): Promise
     .eq("state", "questions");
   if (error) return { status: "error", message: "Something went wrong on our side. Please try again." };
 
+  // The story and answers go to private storage (read in admin, used to make the sample);
+  // the email carries only a link, so no copy sits in an inbox or at the email provider.
+  const stored = await storeFiles(requestId, story, { about, answers });
+
   const sent = await mailStudio({
     subject: `Creator's Space: sample request from ${row.name}${row.big_screen === "yes" ? " (music replacement)" : ""}`,
     lines: [
       `${row.name} <${user.email}> asked for a sample. The story passed the automatic check.`,
-      `Request ${requestId}`,
       "",
       ...details(row),
+      `Story length: ${story.length.toLocaleString("en-IN")} characters`,
+      `Style tags: ${tags.join(", ") || "none"}`,
       "",
-      `Style tags (the only style input for generation): ${tags.join(", ") || "none"}`,
-      "",
-      "Note from the writer:",
-      about || "(none)",
-      "",
-      "Follow-up answers (style answers are for reading only; never paste them into a prompt):",
-      ...answers.map((a) => `- [${a.topic}${isStyleTopic(a.topic) ? ", style" : ""}] ${a.question}\n  ${a.answer || "(skipped)"}`),
-      "",
-      "Story:",
-      story,
+      stored
+        ? `Read the story and answers, and make the sample: ${adminLink(requestId)}`
+        : "The story could not be stored; ask the writer to send it again.",
       "",
       "Reply to this email to answer the writer.",
     ],
@@ -347,12 +344,34 @@ export async function finishRequest(_prev: FinishState, form: FormData): Promise
   return { status: "sent" };
 }
 
+// A fresh 15-minute link to the writer's own sample (only after the studio sent it, and
+// only while its files exist).
+export async function listenToSample(id: string): Promise<{ url?: string; error?: string }> {
+  const user = await signedInUser();
+  if (!user) return { error: "Please sign in again." };
+  const { data: row } = await adminClient()
+    .from("creator_requests")
+    .select("id, user_id, sample_state, sample_key")
+    .eq("id", id)
+    .maybeSingle();
+  if (!row || row.user_id !== user.id || row.sample_state !== "sent" || !row.sample_key) {
+    return { error: "This sample isn’t available any more." };
+  }
+  try {
+    return { url: await sampleLink(id, row.sample_key) };
+  } catch {
+    return { error: "The sample couldn’t be opened. Please try again." };
+  }
+}
+
+// Withdrawn requests keep nothing: their stored story is deleted by the daily job
+// within a day (brief §6B), and marked for deletion now.
 export async function withdrawRequest(form: FormData) {
   const user = await signedInUser();
   if (!user) return;
   await adminClient()
     .from("creator_requests")
-    .update({ state: "withdrawn", updated_at: new Date().toISOString() })
+    .update({ state: "withdrawn", files_delete_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq("id", String(form.get("id") ?? ""))
     .eq("user_id", user.id)
     .in("state", OPEN_STATES);
@@ -360,6 +379,21 @@ export async function withdrawRequest(form: FormData) {
 }
 
 // ---------------------------------------------------------------- helpers
+
+const adminLink = (id: string) => `https://jambuch.in/admin/creators/${id}`;
+
+// Saves the story and brief privately and records where. False if storage failed
+// (the request still reaches the studio; the email says so).
+async function storeFiles(requestId: string, story: string, brief: { about: string; answers: { topic: string; question: string; answer: string }[] }) {
+  try {
+    const key = await saveRequestFiles(requestId, story, brief);
+    await adminClient().from("creator_requests").update({ story_key: key }).eq("id", requestId);
+    return true;
+  } catch (e) {
+    console.error("creators: story not stored for", requestId, e instanceof Error ? e.message : e);
+    return false;
+  }
+}
 
 function details(r: { whatsapp?: string | null; language: string; make: string; length: string; big_screen: string }) {
   return [

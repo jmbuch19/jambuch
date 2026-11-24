@@ -4,6 +4,7 @@ import { sessionClient } from "@/lib/supabase-server";
 import LibraryHeader from "../../library/header";
 import SignInForm from "./sign-in-form";
 import RequestWizard from "./request-wizard";
+import ListenButton from "./listen-button";
 import { signOutWriter, withdrawRequest } from "./actions";
 import { LIMITS, OPEN_STATES } from "./limits";
 import h from "../../home.module.css";
@@ -36,7 +37,7 @@ export default async function StartPage() {
   const { data: requests } = user
     ? await db
         .from("creator_requests")
-        .select("id, state, created_at, story_chars")
+        .select("id, state, created_at, story_chars, sample_state, sample_key, files_delete_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(10)
@@ -78,7 +79,14 @@ export default async function StartPage() {
                     <li key={r.id}>
                       <span>{new Date(r.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
                       <span>{r.story_chars.toLocaleString("en-IN")} characters</span>
-                      <b>{STATE_LABEL[r.state] ?? r.state}</b>
+                      <b>{r.sample_state === "sent" && r.sample_key ? "Your sample is ready" : (STATE_LABEL[r.state] ?? r.state)}</b>
+                      {r.sample_state === "sent" && r.sample_key && <ListenButton id={r.id} />}
+                      {r.sample_state === "sent" && r.files_delete_at && (
+                        <span className={c.small}>
+                          deleted after{" "}
+                          {new Date(r.files_delete_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" })}
+                        </span>
+                      )}
                       {OPEN_STATES.includes(r.state) && (
                         <form action={withdrawRequest} className={c.inlineForm}>
                           <input type="hidden" name="id" value={r.id} />

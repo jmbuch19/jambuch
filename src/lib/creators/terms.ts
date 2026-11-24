@@ -5,7 +5,8 @@
 
 // 2026-11-24.2: data-processing tick reworded (what jambuch.in deletes; providers' own
 // retention is explained in the privacy policy, not promised in the tick).
-export const TERMS_VERSION = "2026-11-24.2";
+// 2026-11-24.3: privacy policy — stories are kept in private storage, never emailed.
+export const TERMS_VERSION = "2026-11-24.3";
 
 export const CONSENT_LANGS = { en: "English", gu: "ગુજરાતી", hi: "हिन्दी" } as const;
 export type ConsentLang = keyof typeof CONSENT_LANGS;
