@@ -219,9 +219,24 @@
 
 .choice label {
   display: flex;
-  gap: 0.5rem;
-  align-items: baseline;
+  gap: 0.6rem;
+  align-items: flex-start;
   font-weight: 400;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+/* The radio buttons sit inside a .field, whose text-box styles (padding, border,
+   full width) would stretch them into ovals; give them back their own size. */
+.choice label input {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0.15rem 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  accent-color: var(--accent);
 }
 
 /* Consent ticks at story submission */
