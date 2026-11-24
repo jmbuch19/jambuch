@@ -14,8 +14,9 @@ Built (brief §6A "Safeguards", §7A "Screening"):
 
 Before it works live (Jaydeep):
 1. ~~Run the migration SQL in the Supabase SQL editor.~~ Done 24 Nov 2026 (verified live).
-2. Supabase → Authentication → Email templates → "Magic Link": add the code,
-   e.g. `Your code: {{ .Token }}`, so the email carries a code as well as the link.
+2. ~~Supabase → Authentication → Email templates → "Magic Link": add the code,
+   e.g. `Your code: {{ .Token }}`, so the email carries a code as well as the link.~~
+   Done 24 Nov 2026 (template shows link + code).
 3. Vercel env: `ANTHROPIC_API_KEY` (the client key for Creator's Space). Without it
    the page says requests are paused and calls nothing.
 
