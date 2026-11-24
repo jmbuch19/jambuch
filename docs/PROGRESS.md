@@ -45,8 +45,8 @@ Not built yet: Jaydeep approving a `needs_human` request so the writer can conti
   ticks with a language switch on /creators/start (send disabled until all four),
   server re-check, rows in `creator_consents` before any AI call, full terms at
   /creators/terms (#en #gu #hi #refund #licence), consent column in admin.
-- Jaydeep: run `20261124200000_creator_consents.sql` in the SQL editor before this
-  branch goes live (the form refuses to send without it). Check the Gujarati and
+- ~~Jaydeep: run `20261124200000_creator_consents.sql` in the SQL editor before this
+  branch goes live.~~ Done (verified live 24 Nov 2026). Check the Gujarati and
   Hindi wording.
 
 ## Open note (24 Nov 2026) — story copy in the studio email
