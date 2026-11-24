@@ -113,3 +113,17 @@ merge `creators-space` into main.
   for its retention period.
 - Done 24 Nov 2026: `creators.claude_prices` setting is live (Opus, Sonnet, Haiku 5.5;
   checked 2026-11-24; batch multiplier 0.5), verified in the database.
+
+## 24 Nov 2026 — વાર્તા વિશ્વ – Story Tube page (/vartavishva)
+
+- Brand page for the YouTube channel @Vartavishva-Storytube at /vartavishva: logo,
+  name, tagline, welcome text, newest videos from the channel's public feed (hourly,
+  no API key), Ramayana playlist/Spotify, "Get your story made" → jambuch.in/creators,
+  follow links. Always dark, with the logo's colours.
+- Links and texts are site_text rows `vartavishva.*` (empty = default or hidden):
+  Jaydeep runs `20261124400000_site_text_vartavishva.sql`, then fills Instagram etc.
+  in Admin → Site text.
+- Domain: vartavishva.in (and .com) are free (24 Nov 2026). next.config.ts already
+  shows /vartavishva when a visit arrives for vartavishva.in. After buying it: add the
+  domain to the Vercel project, set DNS, then add the redirect
+  jambuch.in/vartavishva → https://vartavishva.in and set the page's canonical URL.
