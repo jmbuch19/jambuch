@@ -48,3 +48,17 @@ Not built yet: Jaydeep approving a `needs_human` request so the writer can conti
 - Jaydeep: run `20261124200000_creator_consents.sql` in the SQL editor before this
   branch goes live (the form refuses to send without it). Check the Gujarati and
   Hindi wording.
+
+## Open note (24 Nov 2026) — story copy in the studio email
+
+The data-processing tick promises the story "is deleted 7 days after delivery",
+but every request emails Jaydeep the full story, and that copy stays in his inbox.
+Options: (a) store the story privately in R2 with automatic 7-day deletion and
+email only a link, or (b) Jaydeep deletes those emails himself. Jaydeep: "not
+right now" — decide before the branch goes live.
+
+Still open before going live: run `20261124200000_creator_consents.sql`; check the
+Gujarati/Hindi wording; first live test of the Claude calls (nothing has run yet);
+replace the draft style words in vocabulary.ts with the real asset-catalog ids
+(asset_usage shows ids like music-apsara, sfx-armour-on; catalog is on the home PC);
+merge `creators-space` into main.
