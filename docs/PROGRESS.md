@@ -32,5 +32,5 @@ Not built yet: Jaydeep approving a `needs_human` request so the writer can conti
 - Built: required question on /creators/start; "Yes" sets `music_replacement` on the
   request, puts "(music replacement)" in the email subject and a flag in admin;
   "Not sure" is noted in the email. Licence line on the /creators landing page.
-- Jaydeep: run `20261124100000_creator_requests_big_screen.sql` in the SQL editor
-  before this branch goes live (the form writes the new columns).
+- ~~Jaydeep: run `20261124100000_creator_requests_big_screen.sql` in the SQL editor
+  before this branch goes live.~~ Done 24 Nov 2026 (verified live).
