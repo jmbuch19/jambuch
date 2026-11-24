@@ -2,7 +2,7 @@
 
 import { startTransition, useActionState, useEffect, useState, type FormEvent } from "react";
 import { finishRequest, startRequest, type FinishState, type StartState } from "./actions";
-import { LANGUAGES, LENGTHS, MAKES } from "../options";
+import { BIG_SCREEN, LANGUAGES, LENGTHS, MAKES } from "../options";
 import { SpamCheckBox, sendLabel, useSpamCheck } from "../../spam-check";
 import h from "../../home.module.css";
 import c from "../creators.module.css";
@@ -124,6 +124,18 @@ export default function RequestWizard() {
           {options(LENGTHS)}
         </select>
       </label>
+      <fieldset className={`${h.field} ${c.choice}`}>
+        <legend>Will this be shown at a film festival, on TV or in a cinema?</legend>
+        {Object.entries(BIG_SCREEN).map(([k, v]) => (
+          <label key={k}>
+            <input type="radio" name="big_screen" value={k} required /> {v}
+          </label>
+        ))}
+        <span className={c.formNote}>
+          Choose Yes for a game or an app too. Our music and sound licences cover online and offline publishing only;
+          for film, TV, cinema or games we replace the music first (a paid add-on, quoted separately).
+        </span>
+      </fieldset>
       <label className={h.field}>
         A note about your story (optional)
         <textarea

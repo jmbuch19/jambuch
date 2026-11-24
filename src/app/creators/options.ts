@@ -11,3 +11,9 @@ export const LENGTHS = {
   medium: "Medium: 5–20 minutes",
   long: "Long or a series: more than 20 minutes",
 } as const;
+// "Will this be shown at a film festival, on TV or in a cinema?" (brief §3B question 1b).
+export const BIG_SCREEN = {
+  no: "No: online and offline publishing only (YouTube, Spotify, websites, social media, personal use)",
+  yes: "Yes: a film festival, TV, cinema, or a game or app",
+  unsure: "Not sure yet",
+} as const;

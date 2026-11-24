@@ -81,6 +81,11 @@ export default async function CreatorsPage() {
           <p className={c.small}>
             Any of these can also be made in a second language. Long stories become a series of episodes.
           </p>
+          <p className={c.small}>
+            <b>Where you may use it:</b> online and offline publishing: YouTube, Spotify, websites, social media and
+            personal use. Not for film, TV broadcast, cinema or games: for those, a music replacement add-on is needed
+            before release.
+          </p>
         </section>
 
         <section id="examples" className={c.block} aria-labelledby="work">

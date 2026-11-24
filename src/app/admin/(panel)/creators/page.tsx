@@ -15,7 +15,7 @@ export default async function CreatorRequestsPage() {
   const { db } = await requireAdmin();
   const { data: rows, error } = await db
     .from("creator_requests")
-    .select("id, created_at, name, email, language, make, story_chars, state, screening_result, screening_categories, screening_reason, style_tags")
+    .select("id, created_at, name, email, language, make, story_chars, state, screening_result, screening_categories, screening_reason, style_tags, big_screen, music_replacement")
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -58,7 +58,21 @@ export default async function CreatorRequestsPage() {
                     <br />
                     <span className={a.mutedSmall}>{r.story_chars.toLocaleString("en-IN")} characters</span>
                   </td>
-                  <td>{r.state === "needs_human" ? <b>Needs your eye</b> : r.state}</td>
+                  <td>
+                    {r.state === "needs_human" ? <b>Needs your eye</b> : r.state}
+                    {r.music_replacement && (
+                      <>
+                        <br />
+                        <b>Music replacement</b>
+                      </>
+                    )}
+                    {r.big_screen === "unsure" && (
+                      <>
+                        <br />
+                        <span className={a.mutedSmall}>big screen: not sure</span>
+                      </>
+                    )}
+                  </td>
                   <td>
                     {r.screening_result ?? "—"}
                     {!!r.screening_categories?.length && (

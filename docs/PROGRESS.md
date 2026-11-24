@@ -22,3 +22,15 @@ Before it works live (Jaydeep):
 
 Not built yet: Jaydeep approving a `needs_human` request so the writer can continue
 (for now he replies by email); the vocabulary must grow with the asset library.
+
+## 24 Nov 2026 — licence scope and music replacement
+
+- Brief: "Where the work may be used" (§3), music replacement add-on, question 1b in
+  §3B ("Will this be shown at a film festival, on TV or in a cinema?"), terms tick 11
+  and the "anywhere" line narrowed (§7), disclaimer 16 (§7B), exception in §6A, data
+  fields (§11), open item 9a (§14: price and cleared music sources).
+- Built: required question on /creators/start; "Yes" sets `music_replacement` on the
+  request, puts "(music replacement)" in the email subject and a flag in admin;
+  "Not sure" is noted in the email. Licence line on the /creators landing page.
+- Jaydeep: run `20261124100000_creator_requests_big_screen.sql` in the SQL editor
+  before this branch goes live (the form writes the new columns).

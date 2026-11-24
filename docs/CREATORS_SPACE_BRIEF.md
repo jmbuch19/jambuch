@@ -134,7 +134,9 @@ Rules the configurator enforces:
 The same creation in a second language: Claude translates, the writer approves
 the translated (and, if dramatised, directed) script before narration.
 
-**Add-ons:** Series Storage (section 6D) · extra character voices (per voice) · YouTube
+**Add-ons:** Series Storage (section 6D) · **music replacement** (required before
+any film, TV broadcast, cinema or game use; see "Where the work may be used" below;
+quote on request) · extra character voices (per voice) · YouTube
 thumbnail · YouTube title + description + tags · SRT caption file · narration by
 Jaydeep's own voice (quote on request).
 
@@ -200,6 +202,21 @@ Why colour is applied in the edit:
 - Text inside images (titles, thumbnails, signs): never drawn by the image model;
   added afterwards as real text with Noto fonts, so Gujarati/Hindi render correctly.
 
+**Where the work may be used (licence scope, Jaydeep 24 Nov 2026)**
+- Delivered work is licensed for **online and offline publishing**: YouTube,
+  Spotify and other podcast/audio platforms, websites, social media, WhatsApp,
+  and personal or family use (including showing it at a home, school or community
+  gathering).
+- It is **not** licensed for **film, TV broadcast, cinema or games** (including
+  film festival screenings and use inside a game or app). The music and effect
+  licences we use don't cover those uses.
+- For such use the writer must order the **music replacement add-on** (music and
+  effects swapped for sources cleared for that use, then re-mixed) **before
+  release**. Quote on request; the order is flagged for Jaydeep.
+- The brief asks about this up front (section 3B question 1b), and the licence
+  scope appears in the terms (section 7), the disclaimers (section 7B), every quote
+  and `credits.txt`.
+
 **Delivered files:** MP4 1920×1080 H.264 (Shorts 1080×1920), MP3 192 kbps (WAV on
 request), SRT captions, PNG thumbnail, `credits.txt`, and a one-page PDF of the
 credit block and AI-disclosure line.
@@ -263,6 +280,12 @@ or **record a voice note** (transcribed, shown back for confirmation).
 1. **What is it for?** YouTube video · Shorts/Reels · WhatsApp sharing · podcast/
    Spotify · classroom or children · family or community gathering · festival or
    event screening · personal keepsake.
+1b. **Will this be shown at a film festival, on TV or in a cinema?** (required)
+   Yes · No · Not sure. (Help text: "Also choose Yes if it will be used in a game
+   or an app.") **Yes** flags the order for **music replacement** (section 3,
+   "Where the work may be used"): the quote includes the add-on, or the order
+   becomes an enquiry to Jaydeep. **Not sure** keeps the order going, with a note on
+   the quote and in the terms that the add-on is needed before any such release.
 2. **Who will watch or listen?** Children · young people · adults · elders (larger
    captions, slower pace) · a particular community.
 3. **How should it feel?** Pick up to 3: warm, devotional, suspenseful, funny,
@@ -618,6 +641,8 @@ Hard rules for the assistant (put in its system prompt and enforce in code):
 
 ### Exceptions that DO bring Jaydeep in (alert by email + admin badge)
 - AI animated film enquiries (always manual).
+- Orders flagged for **music replacement** (film festival, TV, cinema or game
+  use; section 3B question 1b), until the add-on is quoted.
 - Content refused by the safety check, or the assistant suspects the story is a
   translation/adaptation of someone else's work without permission attached.
 - Actual tool cost passes 120% of estimate (generation pauses).
@@ -914,12 +939,18 @@ Required ticks:
     someone else's work, every original creator will be credited as shown, and I
     hold their permission where it is needed." (section 7C)
 
+11. "I will publish the finished work online or offline (YouTube, Spotify,
+    websites, social media, personal use) only. I will not use it in a film, TV
+    broadcast, cinema or game, or show it at a film festival, unless I have
+    ordered the music replacement add-on and it has been delivered before release."
+
 Required choice: **Download only** / **Download and allow jambuch.in to
 publish** (section 6B, with its terms shown beside the choice).
 
 Terms also state: Jaydeep may refuse any order; no hateful, defamatory, sexual or
 illegal content; the writer owns the finished content and may publish it
-anywhere; the writer must disclose AI use where a platform requires it; Jaydeep
+within the licence scope (online and offline publishing; not film, TV broadcast,
+cinema or games without the music replacement add-on, section 3); the writer must disclose AI use where a platform requires it; Jaydeep
 keeps the right to his tools, prompts and pipeline, not to the writer's story.
 
 ---
@@ -1057,10 +1088,10 @@ reviewed by a lawyer before launch; the list below is the content, not legal tex
 ### Shown where
 | Place | Which disclaimers |
 |---|---|
-| Landing page footer (short) | 1, 2, 3, 9 |
+| Landing page footer (short) | 1, 2, 3, 9, 16 |
 | Order form, beside the terms ticks | all, collapsed under "Read our disclaimers" |
-| Every quote | 2, 7, 10 |
-| Every delivery email and order page | 1, 4, 8 |
+| Every quote | 2, 7, 10, 16 |
+| Every delivery email and order page | 1, 4, 8, 16 |
 | Description of works we publish (option B) | 1, 11 |
 
 ### The disclaimers
@@ -1108,6 +1139,12 @@ reviewed by a lawyer before launch; the list below is the content, not legal tex
     talking.
 15. **Changes to terms.** Terms may be updated; each order is bound by the version
     accepted at the time (stored with the order).
+16. **Where the work may be used.** Delivered work is licensed for online and
+    offline publishing: YouTube, Spotify, websites, social media and personal use.
+    It is not licensed for film, TV broadcast, cinema or games (including festival
+    screenings). For those, the music replacement add-on is required before
+    release; without it, that use is outside the licence and the writer's own
+    responsibility.
 
 ---
 
@@ -1285,6 +1322,7 @@ story content, and survive the 7-day deletion only as counts and timings.
 ## 11. Data (Supabase, row-level security on everything)
 
 `creator_orders` (id, writer, title, finish level, service mode, language(s),
+big_screen yes/no/unsure, music_replacement flag,
 format, sound, voices,
 delivery_style, visual style, add-ons, characters, episodes, mode
 autopilot/reviewed, state, quote_locked, price, sample_fee, advance, final,
@@ -1312,7 +1350,8 @@ block, locked, check flags) ·
 `creator_complaints` (work, reporter, category, action, dates) ·
 `writer_blocklist` · `series_storage` (series, months paid, paid_until, status) ·
 `creator_requests` (sample requests before an order: writer, choices, story
-fingerprint and length, state, screening result, style tags; no story text) ·
+fingerprint and length, state, screening result, style tags, big-screen answer and
+music-replacement flag; no story text) ·
 `voice_consents` (order, granted_at, deleted_at) · `creator_settings` · `packages`, `addons`,
 `styles`.
 
@@ -1374,4 +1413,5 @@ mode with Jaydeep paying the test sample himself.
 | 7 | Listening test of plain-reading voices (Gujarati, Hindi, English) before enabling a cheaper provider | Jaydeep |
 | 8 | Calibrate pricing settings against 2–3 real Ramayana episodes | Jaydeep + Claude Code (Phase 1) |
 | 9 | Series Storage monthly minimum price; capacity limit; Studio Saathi chat limits | Jaydeep |
+| 9a | Music replacement add-on: price, and which music/effect sources are cleared for film, TV, cinema and games | Jaydeep + provider terms |
 | 10 | Move billing to Sarjan Digital OPC when incorporated: new seller details, new invoice series, terms party name | CA + lawyer |

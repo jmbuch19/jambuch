@@ -9,7 +9,7 @@ import { makeLink, linkValid } from "@/lib/signed-links";
 import { sessionClient } from "@/lib/supabase-server";
 import { adminClient } from "@/lib/supabase-admin";
 import { claudeReady, followUps, isStyleTopic, screenStory, styleTags, type FollowUp } from "@/lib/creators/claude";
-import { LANGUAGES, LENGTHS, MAKES } from "../options";
+import { BIG_SCREEN, LANGUAGES, LENGTHS, MAKES } from "../options";
 import { LIMITS, OPEN_STATES } from "./limits";
 
 // Creator's Space, signed-in sample requests (docs/CREATORS_SPACE_BRIEF.md §6A "Safeguards").
@@ -98,6 +98,12 @@ export async function startRequest(_prev: StartState, form: FormData): Promise<S
   const language = pick(LANGUAGES, str("language"), "gu");
   const make = pick(MAKES, str("make"), "unsure");
   const length = pick(LENGTHS, str("length"), "medium");
+  // Required: the licence covers online and offline publishing only (brief §3B question 1b).
+  const bigScreenRaw = str("big_screen");
+  if (!(bigScreenRaw in BIG_SCREEN)) {
+    return { status: "error", message: "Please say whether it will be shown at a film festival, on TV or in a cinema." };
+  }
+  const bigScreen = bigScreenRaw as keyof typeof BIG_SCREEN;
 
   if (!name) return { status: "error", message: "Please tell us your name." };
   if (about.length > 1500) return { status: "error", message: "Please keep the note under 1,500 characters." };
@@ -148,6 +154,8 @@ export async function startRequest(_prev: StartState, form: FormData): Promise<S
       length,
       story_sha256: storyHash,
       story_chars: story.length,
+      big_screen: bigScreen,
+      music_replacement: bigScreen === "yes",
     })
     .select("id")
     .single();
@@ -194,7 +202,7 @@ export async function startRequest(_prev: StartState, form: FormData): Promise<S
         `Request ${row.id}`,
         `Check: ${screening.categories.join(", ") || "no answer from the checker"}${screening.reason ? ` — ${screening.reason}` : ""}`,
         "",
-        ...details({ whatsapp, language, make, length }),
+        ...details({ whatsapp, language, make, length, big_screen: bigScreen }),
         "",
         "Note from the writer:",
         about || "(none)",
@@ -246,7 +254,7 @@ export async function finishRequest(_prev: FinishState, form: FormData): Promise
   const db = adminClient();
   const { data: row } = await db
     .from("creator_requests")
-    .select("id, user_id, state, name, whatsapp, language, make, length, story_sha256, screening_result")
+    .select("id, user_id, state, name, whatsapp, language, make, length, big_screen, story_sha256, screening_result")
     .eq("id", requestId)
     .maybeSingle();
   // The same writer, the same story, and exactly the questions we asked.
@@ -285,7 +293,7 @@ export async function finishRequest(_prev: FinishState, form: FormData): Promise
   if (error) return { status: "error", message: "Something went wrong on our side. Please try again." };
 
   const sent = await mailStudio({
-    subject: `Creator's Space: sample request from ${row.name}`,
+    subject: `Creator's Space: sample request from ${row.name}${row.big_screen === "yes" ? " (music replacement)" : ""}`,
     lines: [
       `${row.name} <${user.email}> asked for a sample. The story passed the automatic check.`,
       `Request ${requestId}`,
@@ -326,8 +334,13 @@ export async function withdrawRequest(form: FormData) {
 
 // ---------------------------------------------------------------- helpers
 
-function details(r: { whatsapp?: string | null; language: string; make: string; length: string }) {
+function details(r: { whatsapp?: string | null; language: string; make: string; length: string; big_screen: string }) {
   return [
+    r.big_screen === "yes"
+      ? "MUSIC REPLACEMENT: the writer will show this at a film festival, on TV, in a cinema or in a game. Quote the music replacement add-on before release."
+      : r.big_screen === "unsure"
+        ? "Big screen: not sure. Tell the writer the music replacement add-on is needed before any film, TV, cinema or game use."
+        : "Big screen: no (online and offline publishing only).",
     r.whatsapp ? `WhatsApp: ${r.whatsapp}` : "WhatsApp: not given",
     `Language: ${LANGUAGES[r.language as keyof typeof LANGUAGES] ?? r.language}`,
     `Would like: ${MAKES[r.make as keyof typeof MAKES] ?? r.make}`,
