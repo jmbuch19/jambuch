@@ -13,7 +13,7 @@ Built (brief §6A "Safeguards", §7A "Screening"):
 - Table `creator_requests` (migration `20261124000000_creator_requests.sql`): no story text.
 
 Before it works live (Jaydeep):
-1. Run the migration SQL in the Supabase SQL editor.
+1. ~~Run the migration SQL in the Supabase SQL editor.~~ Done 24 Nov 2026 (verified live).
 2. Supabase → Authentication → Email templates → "Magic Link": add the code,
    e.g. `Your code: {{ .Token }}`, so the email carries a code as well as the link.
 3. Vercel env: `ANTHROPIC_API_KEY` (the client key for Creator's Space). Without it
