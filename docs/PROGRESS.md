@@ -121,8 +121,8 @@ merge `creators-space` into main.
   no API key), Ramayana playlist/Spotify, "Get your story made" → jambuch.in/creators,
   follow links. Always dark, with the logo's colours.
 - Links and texts are site_text rows `vartavishva.*` (empty = default or hidden):
-  Jaydeep runs `20261124400000_site_text_vartavishva.sql`, then fills Instagram etc.
-  in Admin → Site text.
+  ~~Jaydeep runs `20261124400000_site_text_vartavishva.sql`~~ Done 24 Nov 2026 (7 rows,
+  verified live). Jaydeep: fill Instagram etc. in Admin → Site text.
 - Domain: vartavishva.in (and .com) are free (24 Nov 2026). next.config.ts already
   shows /vartavishva when a visit arrives for vartavishva.in. After buying it: add the
   domain to the Vercel project, set DNS, then add the redirect
