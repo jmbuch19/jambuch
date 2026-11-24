@@ -71,9 +71,25 @@ merge `creators-space` into main.
   worst case about 13 hours for 6 chained steps; batch deletion + logging rule;
   retention added to §2 item 7, §6B certificate, §14 item 4.
 - Checked on Anthropic's pages: batch = 50% (combines with caching), results kept
-  29 days, not zero-data-retention eligible; normal API keeps nothing by default for
-  Opus/Sonnet/Haiku 5.5 (safety-flagged up to 2 years). Open: does
+  29 days, not zero-data-retention eligible. (Corrected below: the normal API is
+  NOT "nothing by default" for our account.) Open: does
   `DELETE /v1/messages/batches/{id}` remove the stored data?
 - New `docs/licences.md` (Anthropic filled in; other providers to record).
 - Claude prices go in the settings table, not the brief or code: Jaydeep runs
   `20261124300000_settings_claude_prices.sql` (key `creators.claude_prices`).
+
+## 24 Nov 2026 — Anthropic retention, quoted (correction)
+
+- `docs/licences.md` now quotes Anthropic word for word, with links and the date.
+- **Correction:** for our account (standard self-serve API, no zero data retention
+  agreement) assume Anthropic keeps inputs and outputs **up to 30 days**: its
+  privacy article for API users says so. The docs' "not retained by default" line
+  is a general commitment, and that page sends non-ZDR customers to the privacy
+  article. Earlier notes saying "nothing by default" were wrong; the brief (§2
+  item 7, §6B, §6G) is fixed. Ask Anthropic support for a definite answer.
+- Managed Agents: hosted session transcripts are kept until we delete them; session
+  logs, container files and what remains after deletion are unknown (Test 6 list).
+- Consequence: the data-processing tick says the story "is deleted 7 days after
+  delivery". The consent text and privacy policy must say providers may keep data
+  longer under their own policies (up to 30 days for Anthropic), with a new
+  TERMS_VERSION, before launch.

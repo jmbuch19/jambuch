@@ -66,11 +66,12 @@ made from your work here"). Never mix the two in copy, data or navigation.
 7. **Provider data retention.** For each AI provider, record in `/docs/licences.md`
    how long it keeps inputs/outputs and whether its API can delete them. The
    deletion certificate and privacy policy must state this honestly. **Anthropic
-   is recorded (checked 24 Nov 2026):** the normal Messages API keeps no prompts or
-   outputs by default for the models we use (Opus/Sonnet/Haiku 5.5), except content
-   flagged by its safety systems (up to 2 years) or where the law requires; the
-   **Batch API stores requests and results for up to 29 days** after the batch is
-   created and is not eligible for zero data retention (section 6G).
+   is recorded with quotes (checked 24 Nov 2026):** for our account (standard API,
+   no zero data retention agreement) assume Anthropic keeps inputs and outputs **up
+   to 30 days** (its privacy article for API users), and flagged content up to 2
+   years. The **Batch API keeps requests and results for 29 days** and is not
+   eligible for zero data retention (section 6G). **Managed Agents sessions are kept
+   until we delete them** (section 6F).
 8. **Music and sound licences transfer to the writer.** Only music and effects the
    writer may use commercially on their own channels: original family recordings,
    CC0, music/effects generated under a plan that allows client commercial use.
@@ -613,11 +614,11 @@ time. The usual case is under an hour per step. Delivery estimates for an order
 use the worst case for every step whose `batch` flag is on.
 
 ### Retention and deletion (must be settled before switching it on)
-- The Batch API **stores the requests (story text) and results for up to 29 days**
-  from the bundle's creation and is **not eligible for zero data retention**. The
-  normal Messages API keeps nothing by default for the models we use (except
-  safety-flagged content, up to 2 years). So batching **lengthens** how long a
-  provider may hold story text.
+- The Batch API **stores the requests (story text) and results for 29 days** and is
+  **not eligible for zero data retention**. For our account the normal API is
+  assumed to keep inputs and outputs up to 30 days (`/docs/licences.md`), so the
+  period is about the same; the difference is that batch data is stored where we
+  can see it, and possibly delete it.
 - Anthropic's docs list `DELETE /v1/messages/batches/{id}` (allowed once a bundle
   has ended; cancel first if it is still running). **Rule:** delete every bundle
   immediately after its results are collected (and every cancelled bundle once it
@@ -627,9 +628,10 @@ use the worst case for every step whose `batch` flag is on.
   the bundle's listing (section 14, item 4). Until confirmed, the deletion
   certificate must say Anthropic may keep batch data for up to 29 days.
 - Consent text: the data-processing tick says the story is deleted 7 days after
-  delivery. If batch data can outlive that, the consent text and the privacy
-  policy must say so, with a new `TERMS_VERSION`, **before** any batch step is
-  switched on.
+  delivery. Anthropic may keep API data up to 30 days in any case (normal or
+  batch), so the consent text and the privacy policy must say that providers may
+  keep it longer under their own policies (new `TERMS_VERSION`) **before launch**,
+  not only before batch mode.
 
 ### Switching it on (Phase 3 checklist)
 1. 50 real orders done; real-time step timings and costs recorded.
@@ -793,10 +795,11 @@ working, and the clock starts when the next delivery happens.
   order [ID] were permanently deleted from our systems." Add one honest line about
   providers: what each AI provider keeps and for how long (from
   `/docs/licences.md`). Never claim a provider deleted something unless its API
-  confirmed it. For Anthropic, state both: normal requests are not kept by default
-  (except safety-flagged content, up to 2 years); batch requests (section 6G, if
-  switched on) are kept up to 29 days unless the bundle deletion is confirmed to
-  remove them, and which bundles were deleted when.
+  confirmed it. For Anthropic, state what `/docs/licences.md` records: requests may be kept
+  up to 30 days (safety-flagged content up to 2 years); batch requests (section 6G,
+  if switched on) up to 29 days unless the bundle deletion is confirmed to remove
+  them, and which bundles were deleted when; Managed Agents sessions (if used) until
+  we delete them, and when we did.
 - Backups: the database backup must not keep story text past 7 days (store story
   text only in R2, never in a table that is backed up long-term).
 - No admin "restore" button. Deleted means gone.
