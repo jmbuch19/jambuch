@@ -57,7 +57,7 @@ Options: (a) store the story privately in R2 with automatic 7-day deletion and
 email only a link, or (b) Jaydeep deletes those emails himself. Jaydeep: "not
 right now" — decide before the branch goes live.
 
-Still open before going live: run `20261124200000_creator_consents.sql`; check the
+Still open before going live: check the
 Gujarati/Hindi wording; first live test of the Claude calls (nothing has run yet);
 replace the draft style words in vocabulary.ts with the real asset-catalog ids
 (asset_usage shows ids like music-apsara, sfx-armour-on; catalog is on the home PC);
