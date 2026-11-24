@@ -65,7 +65,12 @@ made from your work here"). Never mix the two in copy, data or navigation.
    grievance contact. Ask the lawyer to align it with India's DPDP Act.
 7. **Provider data retention.** For each AI provider, record in `/docs/licences.md`
    how long it keeps inputs/outputs and whether its API can delete them. The
-   deletion certificate and privacy policy must state this honestly.
+   deletion certificate and privacy policy must state this honestly. **Anthropic
+   is recorded (checked 24 Nov 2026):** the normal Messages API keeps no prompts or
+   outputs by default for the models we use (Opus/Sonnet/Haiku 5.5), except content
+   flagged by its safety systems (up to 2 years) or where the law requires; the
+   **Batch API stores requests and results for up to 29 days** after the batch is
+   created and is not eligible for zero data retention (section 6G).
 8. **Music and sound licences transfer to the writer.** Only music and effects the
    writer may use commercially on their own channels: original family recordings,
    CC0, music/effects generated under a plan that allows client commercial use.
@@ -405,7 +410,13 @@ episode count, Series Storage months.
 - **Dramatisation directions:** Claude tokens per 1,000 characters (setting).
 - **Shorts** = scripts + narration only; images reused (0 new by default).
 - **Claude API** = estimated tokens for script prep, shot list, prompts,
-  translation (settings per 1,000 characters).
+  translation (settings per 1,000 characters), **step by step**: each Claude step
+  has its own settings (model, input and output tokens per 1,000 characters, and a
+  **`batch` flag**). Cost of a step = tokens x the model's price from the settings
+  row `creators.claude_prices` (US$ per million tokens, converted at the USD-to-INR
+  setting) x `batch_multiplier` (0.5) **only if that step's `batch` flag is on**.
+  All flags are **off at launch**; turning one on later (section 6G) is a setting
+  change, not a code change.
 - **Rendering** = estimated render minutes on the cloud worker × ₹ per render
   minute (settings; calibrate from real renders: Ramayana ch40 took ~3½ hours on
   the home PC, measure the same on the worker). Render minutes per narration
@@ -419,7 +430,11 @@ episode count, Series Storage months.
   ~900 characters per minute; calibrate from real jobs).
 
 All rates (credit price in ₹, image prices, Claude token prices, USD→INR rate)
-are **settings in admin**, editable without code. Never fetch prices live.
+are **settings in admin**, editable without code. Never fetch prices live. Claude
+token prices live **only** in the settings row `creators.claude_prices` (standard,
+cache and batch prices per model, with the source URL and the date they were
+checked against Anthropic's pricing page); never in this brief or in code. Re-check
+the pricing page when Anthropic announces changes, and at least every quarter.
 
 ### Formula
 ```
@@ -548,6 +563,80 @@ Nalinkant Chhaya tribute, the Ramayana narrator voice, the Story Tube brand).
 2. **Direction prototype** (`scripts/direct.mjs` in the audio repo): story in, draft
    mood map + engine direction out; measured against Ramayana ch53's hand-made one.
 3. Studio Saathi on /creators with the free-sample flow, then cloud production + payment.
+
+---
+
+## 6G. Batch mode for full-production Claude steps (LATER: Phase 3, after the first 50 orders)
+
+Jaydeep, 24 Nov 2026: **not for launch.** Switch it on only after the first 50
+real orders, when the pipeline and the timings are known. Phase 2 is built so this
+is a small change (section 6C, rule 11; section 5, per-step `batch` flag).
+
+### What it is
+Anthropic's Message Batches API takes requests and answers them later, at **50% of
+the normal token price** (prices: settings row `creators.claude_prices`; batch and
+prompt-cache discounts combine). Most bundles finish within an hour; Anthropic
+allows up to 24 hours, after which unfinished requests expire unbilled. The saving
+is on **Claude only**: voices, images and rendering are other providers and keep
+their price, so the saving per order is real but small (Claude is a small part of
+an order's cost, section 6F).
+
+### Which steps may use it (writer not waiting)
+Script preparation (cleaning, speakers, pronunciation list), translation,
+performance directions, creative direction (moods, sound words and events, beds,
+painting list), shot list and picture prompts, picture checks before the preview,
+the second screening before delivery, credits and YouTube/Spotify texts.
+
+**Never batched** (a writer is waiting): screening at submission, follow-up
+questions, style tags, Studio Saathi chat, the creative plan shown for approval,
+corrections while the writer waits.
+
+### How it runs
+- A batched step is submitted **as soon as its job is queued** (no waiting to fill
+  a bundle; one request per bundle still gets the discount). `custom_id` =
+  order + step + item + attempt (the idempotency key, section 6C rule 2).
+- The worker checks bundles every few minutes and, when a result is in, stores it
+  and queues the next step.
+- **Timeout: 2 hours.** If a bundle has not returned in 2 hours, the worker
+  cancels it and **reruns that step in real time** at the normal price. A result
+  that arrives after the rerun is ignored (logged; a cancelled bundle may still
+  bill requests already processed).
+- Expired or errored requests are rerun in real time at once.
+
+### Worst-case delay (stated honestly in quotes and delivery estimates)
+Each batched step can add up to **2 hours plus the real-time rerun** (a few
+minutes). Steps that depend on each other run one after another, so the worst
+case adds up: with 6 batched steps in a chain (script prep, directions, creative
+direction, shot list and prompts, picture checks, pre-delivery screening), the
+worst case is about **6 x 2 h 10 min = about 13 hours** on top of normal production
+time. The usual case is under an hour per step. Delivery estimates for an order
+use the worst case for every step whose `batch` flag is on.
+
+### Retention and deletion (must be settled before switching it on)
+- The Batch API **stores the requests (story text) and results for up to 29 days**
+  from the bundle's creation and is **not eligible for zero data retention**. The
+  normal Messages API keeps nothing by default for the models we use (except
+  safety-flagged content, up to 2 years). So batching **lengthens** how long a
+  provider may hold story text.
+- Anthropic's docs list `DELETE /v1/messages/batches/{id}` (allowed once a bundle
+  has ended; cancel first if it is still running). **Rule:** delete every bundle
+  immediately after its results are collected (and every cancelled bundle once it
+  ends), and log it in `ops_events` (bundle id, time, API response; no content).
+- **Open (blocking for 6G):** confirm in the API reference or with Anthropic
+  support whether that delete **removes the stored requests and results** or only
+  the bundle's listing (section 14, item 4). Until confirmed, the deletion
+  certificate must say Anthropic may keep batch data for up to 29 days.
+- Consent text: the data-processing tick says the story is deleted 7 days after
+  delivery. If batch data can outlive that, the consent text and the privacy
+  policy must say so, with a new `TERMS_VERSION`, **before** any batch step is
+  switched on.
+
+### Switching it on (Phase 3 checklist)
+1. 50 real orders done; real-time step timings and costs recorded.
+2. Deletion question answered and documented in `/docs/licences.md`.
+3. Consent text, privacy policy and certificate wording updated if needed.
+4. Turn on one step's `batch` flag; watch timings, timeouts and costs for 10
+   orders; then the next step.
 
 ---
 
@@ -704,7 +793,10 @@ working, and the clock starts when the next delivery happens.
   order [ID] were permanently deleted from our systems." Add one honest line about
   providers: what each AI provider keeps and for how long (from
   `/docs/licences.md`). Never claim a provider deleted something unless its API
-  confirmed it.
+  confirmed it. For Anthropic, state both: normal requests are not kept by default
+  (except safety-flagged content, up to 2 years); batch requests (section 6G, if
+  switched on) are kept up to 29 days unless the bundle deletion is confirmed to
+  remove them, and which bundles were deleted when.
 - Backups: the database backup must not keep story text past 7 days (store story
   text only in R2, never in a table that is backed up long-term).
 - No admin "restore" button. Deleted means gone.
@@ -808,6 +900,13 @@ durations, deletion) is plain code, so it behaves the same every time.
    data in every Claude prompt; agents never follow instructions found in them.
 10. **Everything logged:** each step's start, end, cost, attempts, result
     (`ops_events`, `creator_cost_log`), without story content.
+11. **Every production step is a queued job** (Phase 2 design, Jaydeep 24 Nov
+    2026). A step is a row in the job queue with its input reference, its mode
+    (`realtime` now; `batch` possible later) and its result reference; the worker
+    picks it up, runs it and hands over to the next step through the queue, never
+    by calling the next step directly. A step's Claude call goes through one
+    function that takes the mode, so switching a step to batch later (section 6G)
+    changes that function's path and the step's setting, nothing else.
 
 ### Control and monitoring
 - **Pipeline health page** in admin: jobs running, queued, failed; average time per
@@ -1410,7 +1509,9 @@ Label it clearly as a paid studio service.
 2. **Worker service + job queue + agents (6C) + Razorpay (test mode) + sample
    flow + review gate + watermarked delivery.**
 3. **Full production flow, preview, flags and corrections, final payment, clean
-   download, invoices, credit notes, refunds, Series Storage.**
+   download, invoices, credit notes, refunds, Series Storage.** Batch mode for
+   full-production Claude steps (section 6G) only after the first 50 real orders,
+   step by step.
 4. **Admin reports, episode series for long stories, published-works gallery
    (choice B only).** Retention, auto-delete and warnings (6B) are built in
    Phase 2, before any real file is stored, not added later.
@@ -1428,7 +1529,7 @@ mode with Jaydeep paying the test sample himself.
 | 1 | GST registration needed? GST on imported AI services? Record-keeping period for invoices | CA |
 | 2 | Final wording of terms, refund policy, disclaimers, privacy policy (DPDP Act), liability cap, indemnity | Lawyer |
 | 3 | Client commercial use allowed on: ElevenLabs plan, image model, music/effects sources | Provider terms; note in `/docs/licences.md` |
-| 4 | Each provider's data-retention period and deletion API | Provider docs; note in `/docs/licences.md` |
+| 4 | Each provider's data-retention period and deletion API, **including Anthropic's normal API (recorded) and Batch API (29 days; does `DELETE /v1/messages/batches/{id}` remove the stored data?)**; the deletion certificate must be honest about both | Provider docs / Anthropic support; note in `/docs/licences.md` |
 | 5 | Razorpay account as an individual seller; KYC | Razorpay |
 | 6 | Vercel Pro; second (client) ElevenLabs subscription; client Claude API key; worker service on Google Cloud Run (or similar) | Accounts |
 | 7 | Listening test of plain-reading voices (Gujarati, Hindi, English) before enabling a cheaper provider | Jaydeep |

@@ -62,3 +62,18 @@ Gujarati/Hindi wording; first live test of the Claude calls (nothing has run yet
 replace the draft style words in vocabulary.ts with the real asset-catalog ids
 (asset_usage shows ids like music-apsara, sfx-armour-on; catalog is on the home PC);
 merge `creators-space` into main.
+
+## 24 Nov 2026 — batch mode planned for later (brief §6G)
+
+- Brief: §6G batch mode for full-production Claude steps, LATER (Phase 3, after the
+  first 50 orders); §6C rule 11 (every production step is a queued job with a mode);
+  §5 per-step `batch` flag, all off at launch; 2-hour timeout then real-time rerun;
+  worst case about 13 hours for 6 chained steps; batch deletion + logging rule;
+  retention added to §2 item 7, §6B certificate, §14 item 4.
+- Checked on Anthropic's pages: batch = 50% (combines with caching), results kept
+  29 days, not zero-data-retention eligible; normal API keeps nothing by default for
+  Opus/Sonnet/Haiku 5.5 (safety-flagged up to 2 years). Open: does
+  `DELETE /v1/messages/batches/{id}` remove the stored data?
+- New `docs/licences.md` (Anthropic filled in; other providers to record).
+- Claude prices go in the settings table, not the brief or code: Jaydeep runs
+  `20261124300000_settings_claude_prices.sql` (key `creators.claude_prices`).
