@@ -908,41 +908,62 @@ durations, deletion) is plain code, so it behaves the same every time.
 
 ---
 
-## 7. Terms the writer must accept (tick-boxes + full text at /creators/terms)
+## 7. Consents and terms (full text at /creators/terms)
 
-Required ticks:
-1. "This story is my own work, or I hold the rights to it and to everything I
-   upload. It is not a translation or adaptation of someone else's copyrighted
-   work unless I attach their written permission."
-2. "If anyone claims rights in what I uploaded, I am responsible and will bear
-   the cost, and Jaydeep may stop the work and remove any copies." (indemnity)
-3. "I understand the voices, images and video are made with AI tools, and that
-   AI results can vary. Only errors I flag are corrected. Your mistakes are fixed
-   free; my content changes are free up to 20% of the work in one round and
-   charged above that." (section 6E)
-4. "I have read the refund policy." (section 8)
+Updated 24 Nov 2026 (Jaydeep). Built: `src/lib/creators/terms.ts` (texts, version),
+`/creators/start` (ticks), `/creators/terms` (full terms), table `creator_consents`.
 
-5. "I understand all my files are permanently deleted 7 days after delivery and
-   cannot be recovered." (section 6B)
-6. "My story and how I use the finished work follow the law and the community
-   guidelines of the platforms where I publish it (YouTube, Spotify,
-   Instagram/Facebook and others), and common sense. I am responsible for what I
-   publish and its consequences." (section 7A)
+### At story submission: four separate boxes
+Shown on `/creators/start` before the story can be sent. **Each box is separate
+and unticked; the send button stays disabled until all four are ticked.** The
+server checks them again. Each tick is stored in `creator_consents` with the
+**terms version, the language shown and the time**, before the story goes to any
+AI provider. All text is available in **Gujarati, Hindi and English** (a language
+switch; it follows the story's language by default), and the **full terms are one
+click away** (`/creators/terms`, opens in a new tab).
 
-7. "I am 18 or older (or ordering with a parent/guardian who accepts these terms)."
-8. "I agree that my story is processed by the AI and service providers named in
-   the privacy policy to make my creation."
-9. (Only if uploading their own voice) "This is my own voice and I consent to it
-   being used to narrate this order only; the voice model is deleted with the
-   order."
-10. "The origin and credits I declared are true and complete. If I declared
-    someone else's work, every original creator will be credited as shown, and I
-    hold their permission where it is needed." (section 7C)
+Above the boxes, a **5-line plain summary**:
+1. Paid studio service; the 30–60 s sample is free, everything after it is paid
+   (minimum ₹999). (Jaydeep confirmed on 24 Nov 2026 that the sample stays free.)
+2. 50% advance after sample approval, 50% before the clean download; no refund
+   after the download.
+3. All files are permanently deleted 7 days after delivery.
+4. Licensed for online and offline publishing (YouTube, Spotify, websites, social
+   media, personal use), not film, TV broadcast, cinema or games without the music
+   replacement add-on.
+5. Voices and pictures are made with AI; only flagged errors are corrected, ours
+   free.
 
-11. "I will publish the finished work online or offline (YouTube, Spotify,
-    websites, social media, personal use) only. I will not use it in a film, TV
-    broadcast, cinema or game, or show it at a film festival, unless I have
-    ordered the music replacement add-on and it has been delivered before release."
+The boxes:
+1. **Terms + refund policy:** "I have read and accept the Terms and the Refund
+   policy." (The terms include the indemnity, the AI and corrections rules, the
+   7-day deletion, the platform-guidelines responsibility and the licence scope.)
+2. **Rights and origin:** "This story is my own work, or I hold the rights to it.
+   What I declare about its origin and credits is true and complete." (section 7C)
+3. **Data processing:** "I agree that my story is processed by AI providers
+   (Anthropic, ElevenLabs) only to make this order, and is deleted 7 days after
+   delivery."
+4. **Age:** "I am 18 or older."
+
+### Later, only when relevant (same record, same table)
+- **Own voice** (only if the writer uploads their voice): "This is my own voice. I
+  consent to it being used to narrate this order only; the voice model is deleted
+  with the order."
+- **Publication choice** at plan approval: Download only / Download and allow
+  jambuch.in to publish (section 6B), stored with the choice.
+- **Plan as baseline** at plan approval: "I approve this creative plan and script.
+  They are the baseline for deciding whether a later error is your mistake (fixed
+  free) or my content change." (section 6E)
+- **Deletion acknowledgement** before the clean download: "I understand there is
+  no refund after this download, and that all files are permanently deleted 7 days
+  after delivery and cannot be recovered."
+
+### Rules
+- Raise `TERMS_VERSION` whenever the meaning of any consent text or of the terms
+  page changes; a stale form is refused and the writer re-ticks.
+- Consent rows are never edited or deleted by the app; a withdrawal is a new row.
+- The Gujarati and Hindi texts are translations for understanding; English is
+  binding. Jaydeep checks the translations; the lawyer reviews the English.
 
 Required choice: **Download only** / **Download and allow jambuch.in to
 publish** (section 6B, with its terms shown beside the choice).
@@ -1004,8 +1025,8 @@ Every order declares where the story comes from. No quote without it.
   credited, and need permission unless public domain.
 
 ### Accountability
-- **Writer:** the declaration is a legal promise (section 7, tick 10, backed by
-  the indemnity, tick 2). A false declaration found at any time: work stops,
+- **Writer:** the declaration is a legal promise (section 7, box 2, backed by
+  the indemnity in the terms, box 1). A false declaration found at any time: work stops,
   published copies come down, no refund for work already done, writer blocked
   from new orders, and the writer bears any claim.
 - **Jaydeep:** credits exactly what was declared; never removes or shortens an
@@ -1330,7 +1351,7 @@ created/updated) · `creator_order_episodes` · `creator_files` (order, kind:
 source/sample/preview/final, R2 key, watermarked, size) · `creator_payments`
 (order, type, Razorpay ids, amount, status, invoice no.) · `creator_cost_log`
 (order, tool, units, credits, ₹, estimate vs actual) · `creator_messages` ·
-`creator_downloads` (order, file, time, IP hash) · `creator_terms_acceptance`
+`creator_downloads` (order, file, time, IP hash) · `creator_consents`
 (order, terms version, ticks, time) · `creator_retention` (order, clock start,
 delete_at, reminders sent, deleted_at, deletion record) ·
 `creator_publication` (order, choice A/B, granted_at, withdrawn_at, published

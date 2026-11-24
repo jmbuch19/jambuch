@@ -223,3 +223,72 @@
   align-items: baseline;
   font-weight: 400;
 }
+
+/* Consent ticks at story submission */
+.consent {
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 10px;
+  padding: 1rem 1.1rem 0.8rem;
+  margin: 0.5rem 0;
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.consent legend {
+  font-weight: 600;
+  padding: 0 0.3rem;
+}
+
+.langSwitch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.langSwitch button {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.langSwitch button[aria-pressed="true"] {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-weight: 600;
+}
+
+.summary {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.tick {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  line-height: 1.45;
+}
+
+.tick input {
+  margin-top: 0.25rem;
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.terms h2 {
+  margin-top: 2rem;
+}
+
+.terms li {
+  margin-bottom: 0.4rem;
+}

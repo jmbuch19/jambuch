@@ -4,6 +4,8 @@ import { startTransition, useActionState, useEffect, useState, type FormEvent } 
 import { finishRequest, startRequest, type FinishState, type StartState } from "./actions";
 import { BIG_SCREEN, LANGUAGES, LENGTHS, MAKES } from "../options";
 import { SpamCheckBox, sendLabel, useSpamCheck } from "../../spam-check";
+import ConsentTicks, { NO_TICKS, allTicked } from "./consent-ticks";
+import type { ConsentLang } from "@/lib/creators/terms";
 import h from "../../home.module.css";
 import c from "../creators.module.css";
 
@@ -13,6 +15,8 @@ import c from "../creators.module.css";
 export default function RequestWizard() {
   const [story, setStory] = useState("");
   const [about, setAbout] = useState("");
+  const [lang, setLang] = useState<ConsentLang>("gu");
+  const [ticks, setTicks] = useState(NO_TICKS);
   const [started, start, starting] = useActionState<StartState, FormData>(startRequest, { status: "idle" });
   const [finished, finish, finishing] = useActionState<FinishState, FormData>(finishRequest, { status: "idle" });
   const check = useSpamCheck("creator");
@@ -107,7 +111,11 @@ export default function RequestWizard() {
       <div className={h.fieldRow}>
         <label className={h.field}>
           Language of the story
-          <select name="language" defaultValue="gu">
+          <select
+            name="language"
+            defaultValue="gu"
+            onChange={(e) => setLang(e.target.value === "gu" || e.target.value === "hi" ? e.target.value : "en")}
+          >
             {options(LANGUAGES)}
           </select>
         </label>
@@ -165,13 +173,14 @@ export default function RequestWizard() {
         nothing hateful or sexual, no real people shown in a harmful way. Your story is sent to an AI service for this
         check and for the questions that follow; it stays yours.
       </p>
+      <ConsentTicks lang={lang} setLang={setLang} ticks={ticks} setTicks={setTicks} />
       <SpamCheckBox check={check} noteClass={h.ideaError} />
       {started.status === "error" && (
         <p className={h.ideaError} role="alert">
           {started.message}
         </p>
       )}
-      <button type="submit" disabled={starting || check.status !== "ready"} className={h.ideaSend}>
+      <button type="submit" disabled={starting || check.status !== "ready" || !allTicked(ticks)} className={h.ideaSend}>
         {starting ? "Reading your story…" : sendLabel(check, starting, "Continue")}
       </button>
     </form>

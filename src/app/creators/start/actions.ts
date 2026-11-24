@@ -11,6 +11,7 @@ import { adminClient } from "@/lib/supabase-admin";
 import { claudeReady, followUps, isStyleTopic, screenStory, styleTags, type FollowUp } from "@/lib/creators/claude";
 import { BIG_SCREEN, LANGUAGES, LENGTHS, MAKES } from "../options";
 import { LIMITS, OPEN_STATES } from "./limits";
+import { CONSENT_LANGS, SUBMISSION_CONSENTS, TERMS_VERSION, type ConsentLang } from "@/lib/creators/terms";
 
 // Creator's Space, signed-in sample requests (docs/CREATORS_SPACE_BRIEF.md §6A "Safeguards").
 // Order of work, and why:
@@ -105,6 +106,15 @@ export async function startRequest(_prev: StartState, form: FormData): Promise<S
   }
   const bigScreen = bigScreenRaw as keyof typeof BIG_SCREEN;
 
+  // The four ticks (brief §7): all required, each recorded with the terms version shown.
+  if (str("terms_version") !== TERMS_VERSION) {
+    return { status: "error", message: "Our terms have just been updated. Please reload the page and tick the boxes again." };
+  }
+  if (!SUBMISSION_CONSENTS.every((k) => str(`consent_${k}`) === "yes")) {
+    return { status: "error", message: "Please tick all four boxes before sending." };
+  }
+  const consentLang: ConsentLang = str("consent_lang") in CONSENT_LANGS ? (str("consent_lang") as ConsentLang) : "en";
+
   if (!name) return { status: "error", message: "Please tell us your name." };
   if (about.length > 1500) return { status: "error", message: "Please keep the note under 1,500 characters." };
   if (story.length < STORY_MIN) return { status: "error", message: "Please paste at least a few paragraphs of the story." };
@@ -165,6 +175,23 @@ export async function startRequest(_prev: StartState, form: FormData): Promise<S
     await db.from("creator_requests").update({ state: "withdrawn", updated_at: new Date().toISOString() }).eq("id", row.id);
     return { status: "error", message };
   };
+
+  // No story goes to any AI provider until the consents are on record.
+  const acceptedAt = new Date().toISOString();
+  const consents = await db.from("creator_consents").insert(
+    SUBMISSION_CONSENTS.map((kind) => ({
+      user_id: user.id,
+      request_id: row.id,
+      kind,
+      terms_version: TERMS_VERSION,
+      language: consentLang,
+      accepted_at: acceptedAt,
+    })),
+  );
+  if (consents.error) {
+    console.error("creators: consents not saved for", row.id, consents.error.message);
+    return fail("Something went wrong on our side. Please try again.");
+  }
 
   let screening;
   try {
