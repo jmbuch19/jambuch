@@ -458,7 +458,9 @@ corner; audio gets a soft spoken "preview" tag every 60 s. Clean files only afte
 full payment.
 
 **Files:** private R2 bucket under `creators/<order-id>/`. Downloads only through
-short-lived signed links for the signed-in writer. Retention and deletion follow
+short-lived signed links for the signed-in writer, and only the finished, mixed
+files in `final/`: never stems, music-only or instrumental versions (section 6A,
+Safeguards 4). Retention and deletion follow
 section 6B exactly.
 
 ---
@@ -547,6 +549,37 @@ Hard rules for the assistant (put in its system prompt and enforce in code):
 - Hands over to Jaydeep (creates an exception, tells the writer "Jaydeep will
   reply personally within 2 working days") whenever a rule below triggers or the
   writer asks for a human.
+
+### Safeguards (Jaydeep, 24 Nov 2026; built in `/creators/start`)
+1. **Sign-in comes first.** A writer signs in with a one-time code by email
+   (Supabase email OTP) **before** any Claude call: before the screening, before
+   Studio Saathi's follow-up questions, not only before the sample. Limits per
+   account: **at most 3 open requests** and **at most 5 new requests a day**
+   (rolling 24 h; refused and abandoned attempts count toward the daily limit).
+   Cloudflare **Turnstile on every submit** (and on asking for a sign-in code).
+   Half-finished requests older than 2 days stop counting as open; the writer can
+   withdraw a request, and admin closes it after replying.
+2. **Story screening at submission** with a cheap Claude model (Haiku) before any
+   other Claude call (section 7A). It looks for **quoted song lyrics**, content
+   our guidelines prohibit, and **real people named in a harmful way**. A clear
+   case is **refused** with the reason shown to the writer; a borderline case
+   becomes **`needs_human`** (emailed to Jaydeep with the story; no questions are
+   asked and nothing is made until he decides). No answer from the checker counts
+   as `needs_human`, never as clear.
+3. **The writer's words never reach a generation prompt.** Free-text answers
+   about style (look, colour, music, sound, voice, mood, pace, things to avoid)
+   are converted by Claude into **tags from the asset library vocabulary**
+   (`src/lib/creators/vocabulary.ts`), and code drops any tag not in the list.
+   Music, sound-effect, image and voice prompts are built only from those tags
+   and from studio-written prompt blocks, **never from raw writer text**. Story
+   facts (characters, setting, pronunciation) go into the script and the creative
+   plan, which the studio writes and the writer approves; they are not pasted
+   into a generation prompt either.
+4. **Delivery is finished, mixed files only**, as **expiring signed links** (15
+   minutes) from the private bucket (`creators/<order-id>/final/`). **No stems, no
+   music-only, instrumental or no-voice versions**, no raw narration or effect
+   layers, no project files: the music and effect licences cover the finished
+   work, not its parts. Enforced in `src/lib/creators/delivery.ts`.
 
 ### Protecting the assistant from abuse and runaway cost
 - Rate limits: max messages per session and per day per email/IP; a token cap per
@@ -975,6 +1008,11 @@ someone else's copyrighted work without written permission. Plus a general
 having his own name attached to.
 
 ### Screening (automatic, before the quote; again before delivery)
+- **When:** at submission, right after sign-in, Turnstile and the limits, and
+  before any other Claude call (section 6A, Safeguards 2). A cheap model (Haiku)
+  does it. It also looks specifically for **quoted song lyrics** and **real people
+  named in a harmful way**. Clear-cut case = `refused` with the reason; borderline
+  = `needs_human`.
 - Claude screens the uploaded story against the list above and against the
   common community-guideline categories of YouTube, Spotify and Meta (hate,
   harassment, sexual content, violence, harmful acts, misinformation, child
@@ -1273,6 +1311,8 @@ year/ISBN/link/author death year, permission files in R2 `records/`, credit
 block, locked, check flags) ·
 `creator_complaints` (work, reporter, category, action, dates) ·
 `writer_blocklist` · `series_storage` (series, months paid, paid_until, status) ·
+`creator_requests` (sample requests before an order: writer, choices, story
+fingerprint and length, state, screening result, style tags; no story text) ·
 `voice_consents` (order, granted_at, deleted_at) · `creator_settings` · `packages`, `addons`,
 `styles`.
 

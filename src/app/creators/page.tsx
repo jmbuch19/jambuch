@@ -5,7 +5,6 @@ import { adminClient } from "@/lib/supabase-admin";
 import { youtubeId } from "@/lib/youtube";
 import LibraryHeader from "../library/header";
 import YouTubePlayer from "../youtube-player";
-import RequestForm from "./request-form";
 import h from "../home.module.css";
 import c from "./creators.module.css";
 
@@ -32,7 +31,7 @@ export default async function CreatorsPage() {
 
   return (
     <>
-      <LibraryHeader cta={{ href: "#request", label: "Request a sample" }} />
+      <LibraryHeader cta={{ href: "/creators/start", label: "Start with a free sample" }} />
       <main className={c.page}>
         <section className={c.hero}>
           <p className={h.eyebrow}>Creator’s Space · a paid studio service</p>
@@ -46,9 +45,9 @@ export default async function CreatorsPage() {
             videos on this site.
           </p>
           <div className={h.buttons}>
-            <a href="#request" className={h.btnAccent}>
-              Request a sample
-            </a>
+            <Link href="/creators/start" className={h.btnAccent}>
+              Start with a free sample
+            </Link>
             <a href="#examples" className={h.btnOutline}>
               Hear and see our work
             </a>
@@ -119,7 +118,7 @@ export default async function CreatorsPage() {
           </h2>
           <ol className={c.steps}>
             <li>
-              <b>Tell me about your story</b> with the form below. Nothing is paid now.
+              <b>Sign in with your email and send your story.</b> It is checked against our content guidelines, then you answer a few questions about it. Nothing is paid now.
             </li>
             <li>
               <b>I reply with a plan and a fixed quote</b>: voices, music, pictures, length.
@@ -138,12 +137,36 @@ export default async function CreatorsPage() {
           <p className={c.small}>Prices and terms are confirmed in your quote before you pay anything.</p>
         </section>
 
+        <section id="guidelines" className={c.block} aria-labelledby="dont">
+          <h2 id="dont" className={c.h2}>
+            What we don’t make
+          </h2>
+          <ul className={`${c.text} ${c.guidelines}`}>
+            <li>Song lyrics or long passages from someone else’s published work, without written permission.</li>
+            <li>Hate or contempt against any religion, caste, community or group, or mockery of anyone’s faith.</li>
+            <li>Real people shown in a harmful way: defamed, mocked, or saying what they never said.</li>
+            <li>Sexual content, anything that harms children, or violence beyond what the story needs.</li>
+            <li>Political propaganda, or medical, legal or money claims presented as fact.</li>
+          </ul>
+          <p className={c.small}>
+            Every story is checked against this list when it is sent. If we can’t make it, we say why, and nothing is
+            charged.
+          </p>
+        </section>
+
         <section id="request" className={`${c.block} ${c.requestBlock}`} aria-labelledby="ask">
           <h2 id="ask" className={c.h2}>
-            Request a sample
+            Start with a free sample
           </h2>
-          <p className={c.text}>A few lines are enough. I read every request myself.</p>
-          <RequestForm />
+          <p className={c.text}>
+            Sign in with your email (we send a short code, no password), paste your story, and answer a few questions
+            about it. A free 30–60 second sample comes first; everything after it is paid.
+          </p>
+          <div className={h.buttons}>
+            <Link href="/creators/start" className={h.btnAccent}>
+              Start with a free sample
+            </Link>
+          </div>
         </section>
 
         <p className={c.apart}>

@@ -24,4 +24,5 @@ export async function middleware(request: NextRequest) {
 }
 
 // The public site never touches the session, so it stays fully cached.
-export const config = { matcher: ["/admin/:path*", "/auth/:path*"] };
+// (Creator's Space sign-in, /creators/start, is signed in too.)
+export const config = { matcher: ["/admin/:path*", "/auth/:path*", "/creators/start"] };
