@@ -51,7 +51,10 @@ export function AcceptForm({ token, name }: { token: string; name: string }) {
     return (
       <div className={y.done} role="status">
         <p>Welcome to the Courtyard, {name}.</p>
-        <span>Jaydeep will be in touch to gather your work and shape your room. Nothing goes public until you say yes.</span>
+        <span>
+          Your room is ready for you to fill. Write a few lines about yourself and add your first pieces in{" "}
+          <a href="/courtyard/my-room">My room</a>. Nothing goes public until Jaydeep opens it with you.
+        </span>
       </div>
     );
   }

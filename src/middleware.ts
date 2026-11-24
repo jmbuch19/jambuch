@@ -23,5 +23,6 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-// The public site never touches the session, so it stays fully cached.
-export const config = { matcher: ["/admin/:path*", "/auth/:path*"] };
+// The public site never touches the session, so it stays fully cached. (My
+// room is signed in too, so room owners stay signed in on their phones.)
+export const config = { matcher: ["/admin/:path*", "/auth/:path*", "/courtyard/my-room"] };

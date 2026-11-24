@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
+import { roomSlugProblem } from "@/lib/rooms";
 import { sendEmail } from "@/lib/email";
 import { INVITE_DAYS, newInviteLink, ROOM_TERMS, type InviteStage } from "@/lib/invites";
 import { DEFAULT_GATHERING, nextGathering, parseGathering } from "@/lib/gathering";
@@ -25,7 +26,6 @@ export type InviteSent = {
 export type Failed = { ok: false; error: string };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 async function siteUrl() {
   const origin = (await headers()).get("origin");
@@ -87,7 +87,7 @@ export async function createInvite(input: {
     const slug = input.roomSlug.trim().toLowerCase();
     if (!name) throw new Error("Please give their name.");
     if (!EMAIL_RE.test(email)) throw new Error("Please give a valid email address: they sign in with it.");
-    if (slug && !SLUG_RE.test(slug)) throw new Error("Room address: small letters, numbers and single dashes only.");
+    if (slug && roomSlugProblem(slug)) throw new Error(roomSlugProblem(slug)!);
 
     const linkParts = newInviteLink();
     const { data, error } = await db
@@ -167,11 +167,39 @@ const MOVES: Record<string, { to: InviteStage; from: InviteStage[] }> = {
   remove: { to: "left", from: ["room_draft", "needs_review", "live", "paused"] },
 };
 
+async function emailRoomOpen(r: { name: string; email: string; room_slug: string | null }, site: string) {
+  return sendEmail({
+    from: "Jaydeep Buch <courtyard@jambuch.in>",
+    to: r.email,
+    replyTo: process.env.ADMIN_EMAIL,
+    subject: "Your room in the Courtyard is open",
+    text: [
+      `Dear ${r.name.split(" ")[0]},`,
+      "",
+      "Your room is open. Anyone can visit it now:",
+      `${site}/courtyard/${r.room_slug}`,
+      "",
+      "Whenever you have something new, add it from My room (sign in with this email address):",
+      `${site}/courtyard/my-room`,
+      "",
+      "I’ll read each piece, and once approved it appears in your room and on the Courtyard thread.",
+      "",
+      "Warmly,",
+      "Jaydeep",
+    ].join("\n"),
+  });
+}
+
 export async function moveInvite(id: string, move: keyof typeof MOVES): Promise<{ ok: true } | Failed> {
   try {
     const rule = MOVES[move];
     if (!rule) throw new Error("Unknown step.");
     const { db } = await requireAdmin();
+    // A room opens only with an address; opening it tells the owner.
+    if (move === "approve" || move === "resume") {
+      const { data: inv } = await db.from("courtyard_invites").select("room_slug").eq("id", id).maybeSingle();
+      if (!inv?.room_slug) throw new Error("Give this room an address first (Edit), then open it.");
+    }
     // Revoking also kills the link immediately.
     const patch = move === "revoke" ? { stage: rule.to, token_hash: null } : { stage: rule.to };
     const { data, error } = await db
@@ -180,10 +208,13 @@ export async function moveInvite(id: string, move: keyof typeof MOVES): Promise<
       .eq("id", id)
       .in("stage", rule.from)
       .is("deleted_at", null)
-      .select("id")
+      .select("id, name, email, room_slug")
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!data) throw new Error("This invite has moved on since the page loaded. Refresh and try again.");
+    if (move === "approve") await emailRoomOpen(data, await siteUrl());
+    if (data.room_slug) revalidatePath(`/courtyard/${data.room_slug}`);
+    revalidatePath("/courtyard");
     revalidatePath("/admin/courtyard");
     return { ok: true };
   } catch (err) {
