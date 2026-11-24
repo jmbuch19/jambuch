@@ -41,6 +41,10 @@ export default function ConsentTicks({
         <Link href={`/creators/terms#${lang}`} target="_blank">
           {ui.fullTerms} ↗
         </Link>
+        {" · "}
+        <Link href="/creators/privacy" target="_blank">
+          {ui.privacy} ↗
+        </Link>
       </p>
       {SUBMISSION_CONSENTS.map((k) => (
         <label key={k} className={c.tick}>

@@ -93,3 +93,21 @@ merge `creators-space` into main.
   delivery". The consent text and privacy policy must say providers may keep data
   longer under their own policies (up to 30 days for Anthropic), with a new
   TERMS_VERSION, before launch.
+
+## 24 Nov 2026 — data tick reworded, privacy policy, provider deletion
+
+- Data-processing tick reworded (EN/GU/HI), TERMS_VERSION `2026-11-24.2`. The
+  proposed sentence about providers' 30-day limit and no training was LEFT OUT:
+  ElevenLabs has no fixed period (history kept until deleted) and trains by
+  default unless "Improve the models for everyone" is off. Anthropic supports both.
+- New privacy policy at /creators/privacy (linked beside the ticks and from the
+  terms); grievance contact = site_text `footer.email`.
+- Brief §6B: ElevenLabs history and order voices deleted through the API at order
+  close; Managed Agents session and files deleted at order close (within 7 days);
+  every provider deletion logged; new deletion-certificate text.
+- docs/licences.md: ElevenLabs, Resend (30 days), Supabase (we're on Free: no
+  backups, 1-day logs), R2 (delete is irreversible), Razorpay (no period published).
+- Jaydeep, before the first real order: (1) switch OFF "Improve the models for
+  everyone" in the client ElevenLabs account; (2) delete studio request emails
+  when a request closes (the privacy policy promises it); (3) ask Razorpay's DPO
+  for its retention period.

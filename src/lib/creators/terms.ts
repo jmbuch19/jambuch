@@ -3,7 +3,9 @@
 // in creator_consents with TERMS_VERSION and the time, so change TERMS_VERSION whenever the
 // meaning of any text here or on /creators/terms changes. English is the binding version.
 
-export const TERMS_VERSION = "2026-11-24";
+// 2026-11-24.2: data-processing tick reworded (what jambuch.in deletes; providers' own
+// retention is explained in the privacy policy, not promised in the tick).
+export const TERMS_VERSION = "2026-11-24.2";
 
 export const CONSENT_LANGS = { en: "English", gu: "ગુજરાતી", hi: "हिन्दी" } as const;
 export type ConsentLang = keyof typeof CONSENT_LANGS;
@@ -54,9 +56,9 @@ export const CONSENT_TEXT: Record<ConsentKind, Record<ConsentLang, string>> = {
     hi: "यह कहानी मेरी अपनी रचना है, या इसके अधिकार मेरे पास हैं। इसके स्रोत और श्रेय के बारे में मेरी दी गई जानकारी सही और पूरी है।",
   },
   data_processing: {
-    en: "I agree that my story is processed by AI providers (Anthropic, ElevenLabs) only to make this order, and is deleted 7 days after delivery.",
-    gu: "મારી વાર્તા ફક્ત આ ઓર્ડર બનાવવા માટે AI સેવા પ્રદાતાઓ (Anthropic, ElevenLabs) દ્વારા પ્રોસેસ થાય અને ડિલિવરીના 7 દિવસ પછી ડિલીટ થાય, તે માટે હું સંમતિ આપું છું.",
-    hi: "मैं सहमति देता/देती हूँ कि मेरी कहानी केवल इस ऑर्डर को बनाने के लिए AI सेवा प्रदाताओं (Anthropic, ElevenLabs) द्वारा प्रोसेस की जाए और डिलीवरी के 7 दिन बाद मिटा दी जाए।",
+    en: "I agree to my story being processed by AI service providers (Anthropic, ElevenLabs) to make my order. jambuch.in deletes my story and files from its storage 7 days after delivery.",
+    gu: "મારો ઓર્ડર બનાવવા માટે મારી વાર્તા AI સેવા પ્રદાતાઓ (Anthropic, ElevenLabs) દ્વારા પ્રોસેસ થાય, તે માટે હું સંમતિ આપું છું. jambuch.in ડિલિવરીના 7 દિવસ પછી મારી વાર્તા અને ફાઇલો પોતાના સ્ટોરેજમાંથી ડિલીટ કરે છે.",
+    hi: "मैं सहमति देता/देती हूँ कि मेरा ऑर्डर बनाने के लिए मेरी कहानी AI सेवा प्रदाताओं (Anthropic, ElevenLabs) द्वारा प्रोसेस की जाए। jambuch.in डिलीवरी के 7 दिन बाद मेरी कहानी और फ़ाइलें अपने स्टोरेज से मिटा देता है।",
   },
   age_18: {
     en: "I am 18 or older.",
@@ -86,8 +88,8 @@ export const CONSENT_TEXT: Record<ConsentKind, Record<ConsentLang, string>> = {
 };
 
 // Interface words around the ticks.
-export const CONSENT_UI: Record<ConsentLang, { heading: string; fullTerms: string; allRequired: string }> = {
-  en: { heading: "Before you send", fullTerms: "Read the full terms and refund policy", allRequired: "Please tick all four boxes to continue." },
-  gu: { heading: "મોકલતાં પહેલાં", fullTerms: "પૂરી શરતો અને રિફંડ નીતિ વાંચો", allRequired: "આગળ વધવા માટે ચારેય ખાનાં પર ટીક કરો." },
-  hi: { heading: "भेजने से पहले", fullTerms: "पूरी शर्तें और रिफ़ंड नीति पढ़ें", allRequired: "आगे बढ़ने के लिए चारों बॉक्स पर टिक करें।" },
+export const CONSENT_UI: Record<ConsentLang, { heading: string; fullTerms: string; privacy: string; allRequired: string }> = {
+  en: { heading: "Before you send", fullTerms: "Read the full terms and refund policy", privacy: "Privacy policy: who handles your story and for how long", allRequired: "Please tick all four boxes to continue." },
+  gu: { heading: "મોકલતાં પહેલાં", fullTerms: "પૂરી શરતો અને રિફંડ નીતિ વાંચો", privacy: "ગોપનીયતા નીતિ: તમારી વાર્તા કોણ સંભાળે છે અને કેટલો સમય", allRequired: "આગળ વધવા માટે ચારેય ખાનાં પર ટીક કરો." },
+  hi: { heading: "भेजने से पहले", fullTerms: "पूरी शर्तें और रिफ़ंड नीति पढ़ें", privacy: "गोपनीयता नीति: आपकी कहानी कौन संभालता है और कितने समय तक", allRequired: "आगे बढ़ने के लिए चारों बॉक्स पर टिक करें।" },
 };

@@ -137,8 +137,10 @@ export default function TermsPage() {
               above that.
             </li>
             <li>
-              Your story is processed by AI providers (Anthropic, ElevenLabs) only to make your order. We never use it
-              for anything else and never sell it.
+              Your story is processed by AI service providers (Anthropic, ElevenLabs) to make your order. We never use
+              it for anything else and never sell it. jambuch.in deletes your story and files from its storage 7 days
+              after delivery. The providers keep some records under their own policies; what each keeps, for how long,
+              and what we delete there is in the <Link href="/creators/privacy">privacy policy</Link>.
             </li>
             <li>Platforms may require you to label AI-made content when you upload it; doing so is your responsibility.</li>
           </ul>

@@ -62,7 +62,17 @@ made from your work here"). Never mix the two in copy, data or navigation.
 6. **Privacy policy** at `/creators/privacy`: what personal data is collected
    (name, email, phone, payments), why, how long, who processes it (Anthropic,
    ElevenLabs, image model, Razorpay, Resend, Supabase, Cloudflare, Vercel), and a
-   grievance contact. Ask the lawyer to align it with India's DPDP Act.
+   grievance contact. Ask the lawyer to align it with India's DPDP Act. **Draft
+   built 24 Nov 2026**; every provider line must match `/docs/licences.md`; the
+   grievance contact is the site's `footer.email` text. Add the image model when
+   chosen. Its promises Jaydeep must keep:
+   - **ElevenLabs "Improve the models for everyone" switched OFF** in the client
+     account (Terms and Privacy, then Data use) **before the first real order**. Its
+     terms still give ElevenLabs a wide licence over content; the policy says so.
+   - **The studio's request emails** (which carry the story) are deleted from
+     Jaydeep's inbox when the request closes or the order's files are deleted. This
+     stays manual until the story moves out of email (open note in
+     `docs/PROGRESS.md`). Resend itself keeps sent emails for 30 days.
 7. **Provider data retention.** For each AI provider, record in `/docs/licences.md`
    how long it keeps inputs/outputs and whether its API can delete them. The
    deletion certificate and privacy policy must state this honestly. **Anthropic
@@ -790,10 +800,32 @@ working, and the clock starts when the next delivery happens.
 - Also purge: the image-generation cache entries for that order, temporary
   render folders, and any copies sent to third-party tools where their API
   offers deletion (e.g. ElevenLabs history items, uploaded voice samples).
+- **ElevenLabs history (required):** at order close, delete every history item
+  of the order through the API (`DELETE /v1/history/{history_item_id}`; store
+  each item's id when it is made), and any voice made for the order
+  (`DELETE /v1/voices/{voice_id}`). Each "ok" response is logged. ElevenLabs keeps
+  history until it is deleted, and its zero-retention mode is for Enterprise
+  customers only, so this deletion is the only way to clear it.
+- **Managed Agents session (required, if the order used one; section 6F):** at
+  order close, and **within 7 days of delivery**, delete the order's session and
+  any files uploaded for it, through the API. Anthropic keeps session transcripts
+  "until you delete them". Logged like the rest.
+- **Log every provider deletion** in the deletion record: provider, item ids,
+  time, API response. Never log content.
 - Write a deletion record: order ID, what was deleted, time. No content.
-- Send the writer a **deletion certificate** email: "On [date, time] all files of
-  order [ID] were permanently deleted from our systems." Add one honest line about
-  providers: what each AI provider keeps and for how long (from
+- Send the writer a **deletion certificate** email (text updated 24 Nov 2026):
+  > "On [date, time] all files of your order [ID] were permanently deleted from
+  > jambuch.in's storage: your story, scripts, audio, pictures, video and previews.
+  > They cannot be recovered.
+  > At our service providers: ElevenLabs: [n] history items of your order were
+  > deleted through its API on [date, time]. [If used:] Anthropic Managed Agents:
+  > the production session of your order was deleted on [date, time]. Anthropic
+  > (Claude): under its own policy it deletes API requests within 30 days, and may
+  > keep content flagged by its safety systems for up to 2 years. [If batch was
+  > used: batch requests were deleted on [dates] / are kept up to 29 days.] Resend
+  > (email) keeps sent emails for 30 days. Razorpay keeps payment records as Indian
+  > payment rules require. Details: jambuch.in/creators/privacy."
+  Add one honest line about each provider: what it keeps and for how long (from
   `/docs/licences.md`). Never claim a provider deleted something unless its API
   confirmed it. For Anthropic, state what `/docs/licences.md` records: requests may be kept
   up to 30 days (safety-flagged content up to 2 years); batch requests (section 6G,
@@ -1042,9 +1074,17 @@ The boxes:
    7-day deletion, the platform-guidelines responsibility and the licence scope.)
 2. **Rights and origin:** "This story is my own work, or I hold the rights to it.
    What I declare about its origin and credits is true and complete." (section 7C)
-3. **Data processing:** "I agree that my story is processed by AI providers
-   (Anthropic, ElevenLabs) only to make this order, and is deleted 7 days after
-   delivery."
+3. **Data processing** (reworded 24 Nov 2026, terms version `2026-11-24.2`): "I
+   agree to my story being processed by AI service providers (Anthropic,
+   ElevenLabs) to make my order. jambuch.in deletes my story and files from its
+   storage 7 days after delivery." Jaydeep's proposed last sentence ("The AI
+   providers may keep processing records for a limited period (up to 30 days) under
+   their own privacy policies, and do not use them to train their models") was
+   **left out** because it could not be verified for ElevenLabs. ElevenLabs gives
+   no 30-day limit (history is kept until deleted) and uses content to improve its
+   models unless the account's data-use setting is off. Anthropic supports both
+   halves (`/docs/licences.md`). What each provider keeps is told honestly in the
+   privacy policy, which is linked beside the boxes.
 4. **Age:** "I am 18 or older."
 
 ### Later, only when relevant (same record, same table)

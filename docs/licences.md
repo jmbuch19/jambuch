@@ -117,6 +117,24 @@ Overview page, "Beta access":
 | Session logs beyond the transcript, sandbox/container files, and what remains after a session is deleted | **Unknown.** Not stated on the pages read (24 Nov 2026). This is the Test 6 open item: ask Anthropic, or check the session-operations and events-and-streaming pages, and record the answer here. |
 | Flagged content | Up to 2 years (the "regardless of arrangement" rule above). |
 
+**Our rule (brief §6B):** delete each order's Managed Agents session, and any files
+uploaded for it, through the API at order close, within 7 days of delivery. Log it
+(session id, time, API response).
+
+### Training (checked 24 Nov 2026)
+Source: https://www.anthropic.com/legal/commercial-terms (effective Jun 17, 2025),
+"B. Customer Content":
+
+> "Anthropic may not train models on Customer Content from Services."
+
+Source: https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training
+(dated August 18, 2026):
+
+> "By default, we will not use your inputs or outputs from our commercial products
+> (e.g. Claude for Work, Anthropic API, Claude Gov, etc.) to train our models."
+
+Exception: feedback or bug reports we send them, or if we opt in. We do neither.
+
 ### Other Anthropic items
 
 | Question | Answer | Source |
@@ -129,8 +147,77 @@ Prices are not kept here: settings row `creators.claude_prices`.
 
 ## ElevenLabs
 
-To record: client commercial use on our plan; history and voice-sample retention;
-deletion API (history items, uploaded voices).
+Read on **24 Nov 2026**. Our account: a paid self-serve plan, not Enterprise. Quotes
+are from the pages named; the fetch tool converts page text, so check a sentence
+against the live page before using it in client-facing text.
+
+### Conclusion
+- **Retention: no fixed period.** History (the text we send and the audio made) is
+  kept until we delete it. "Up to 30 days" is **not** supported.
+- **Training: yes, by default.** ElevenLabs uses content to improve its models
+  unless the account's "Improve the models for everyone" setting is off. Even with
+  it off, its terms keep a wide licence over content.
+- **What we do:** keep that setting **off** in the client account; delete every
+  history item (and any order voice) through the API at order close, and log it
+  (brief §6B).
+
+### Quotes
+Help article "Is my data used to improve ElevenLabs’ AI models?"
+(https://elevenlabs.io/docs/help-center/legal/is-my-data-used-to-improve-eleven-labs-ai-models, no date):
+
+> "ElevenLabs uses certain data you provide to us to improve the quality of our
+> audio models for everyone."
+
+> "By default, we don’t train on any data from our Enterprise customers, other than
+> as may be necessary to provide services to such Enterprise customers."
+
+> "Once the toggle is disabled, new data you submit to us won’t be used to train
+> our models."
+
+Terms of use, outside the EEA (https://elevenlabs.io/terms-of-use, last updated
+09 October 2026), "4(d) License to Your Content":
+
+> "You hereby grant to ElevenLabs a license to use, reproduce, modify, adapt,
+> publish, translate, create derivative works from, distribute, publicly or
+> otherwise perform and display, and use your Content to provide the Services
+> (including the trust and safety features therein), to improve the Services, and
+> to develop new services and products."
+
+"4(i) Data Deletion and Opt Out":
+
+> "you may opt out of our use of your Content for training at any time by
+> navigating to the 'Data use' menu in the 'Terms and Privacy' section of your
+> ElevenLabs account. Your Content will no longer be used to improve our Services
+> (including the Models) once the request has been processed by our team, except as
+> may be necessary to provide the Services to you, but does not affect any uses of
+> (or materials resulting from uses of) your Content prior to that date."
+
+Privacy policy (https://elevenlabs.io/privacy-policy, updated 9 October 2026),
+"6. Data Retention":
+
+> "We generally keep your personal information for as long as necessary to provide
+> you with our Services or as otherwise required or permitted by law or to protect
+> our rights."
+
+Help article "What happens to my content after my subscription ends?" (no date):
+
+> "The content you generated will also remain accessible to you for an unspecified
+> amount of time."
+
+API, "Create speech" (https://elevenlabs.io/docs/api-reference/text-to-speech/convert.md),
+query parameter `enable_logging`:
+
+> "When enable_logging is set to false zero retention mode will be used for the
+> request. This will mean history features are unavailable for this request,
+> including request stitching. Zero retention mode may only be used by enterprise
+> customers."
+
+Deletion endpoints: `DELETE https://api.elevenlabs.io/v1/history/{history_item_id}`
+("Delete a history item by its ID") and `DELETE https://api.elevenlabs.io/v1/voices/{voice_id}`
+("Deletes a voice by its ID"); both answer `"status": "ok"`.
+
+Still to record: client commercial use on our plan (brief §2 item 2). The terms say
+a paid user "may use the Services for commercial purposes".
 
 ## Image model
 
@@ -142,6 +229,71 @@ To record per source: licence, whether it covers clients' online and offline
 publishing, and whether it covers film, TV, cinema and games (it usually doesn't:
 that is the music replacement add-on, brief §3 and §14 item 9a).
 
-## Razorpay, Resend, Supabase, Cloudflare R2, Vercel
+## Resend (email)
 
-To record: what each keeps, where, and for how long (privacy policy, §2 item 6).
+Read on **24 Nov 2026**. Pricing page (https://resend.com/pricing), "Data retention"
+row ("Search your emails and logs to debug or troubleshoot deliverability issues"):
+Free **30 days**, Pro **30 days**, Scale **30 days**, Enterprise "Flexible".
+
+DPA (https://resend.com/legal/dpa, updated 2025-12-31), Exhibit A:
+
+> "When the Customer terminates their use of the Services, we delete their
+> user/customer data within 90 days of the account termination."
+
+The data covered: "At a minimum, this includes metadata, email address and message
+content." **No API to delete a sent email** was found; deletion is by request to
+support@resend.com. Resend can turn off message-content storage (a $50/month add-on
+for Pro or Scale teams that meet its conditions).
+
+**For us:** every studio email (which carries the story) stays at Resend for 30 days.
+Moving the story out of the email (open note in `docs/PROGRESS.md`) would fix this.
+
+## Supabase (database and sign-in)
+
+Read on **24 Nov 2026**. **Our plan: Free** (organisation "jambuch.in", checked
+through the Supabase connector).
+
+| Item | Free (ours) | Pro | Source |
+|---|---|---|---|
+| Automatic daily backups | none | last 7 days | https://supabase.com/docs/guides/platform/backups |
+| API and database logs | 1 day | 7 days | https://supabase.com/docs/guides/telemetry/logs |
+| Auth audit logs | 24 hours | 7 days | https://supabase.com/pricing |
+
+> "Pro Plan projects can access the last 7 days of daily backups."
+
+A deleted row can survive in a backup until that backup ages out; no page says so in
+words. On Free there are no backups, so this doesn't apply now. Story text is never
+stored in the database (brief §2 item 10).
+
+## Cloudflare R2 (file storage) and Turnstile
+
+Read on **24 Nov 2026**. Delete objects
+(https://developers.cloudflare.com/r2/objects/delete-objects/):
+
+> "Deleting objects from a bucket is irreversible."
+
+Object lifecycles (https://developers.cloudflare.com/r2/buckets/object-lifecycles/):
+
+> "Objects will typically be removed from a bucket within 24 hours of the
+> `x-amz-expiration` value."
+
+No versioning or default backup of objects was found. No timeline for a manual
+delete is published. We delete through the API ourselves, and the deletion record
+logs it.
+
+## Razorpay (payments; not live yet)
+
+Read on **24 Nov 2026**. Privacy policy (https://razorpay.com/privacy/, effective
+February 23, 2026), section 3:
+
+> "We may collect and store your Sensitive Personal Data or Information—such as
+> financial information, including credit card details, debit card details, bank
+> account information, and Know Your Customer ("KYC") documents as required by RBI
+> regulations"
+
+**No retention period is published.** Ask dpo@razorpay.com before live payments
+(brief §14 item 5) and record the answer here.
+
+## Vercel (hosting)
+
+To record: what runtime logs it keeps and for how long, on our plan.
