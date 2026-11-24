@@ -111,3 +111,5 @@ merge `creators-space` into main.
   everyone" in the client ElevenLabs account; (2) delete studio request emails
   when a request closes (the privacy policy promises it); (3) ask Razorpay's DPO
   for its retention period.
+- Done 24 Nov 2026: `creators.claude_prices` setting is live (Opus, Sonnet, Haiku 5.5;
+  checked 2026-11-24; batch multiplier 0.5), verified in the database.
