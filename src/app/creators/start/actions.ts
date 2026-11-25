@@ -76,6 +76,8 @@ export async function listenToSample(id: string): Promise<{ url?: string; error?
   if (!row || row.user_id !== user.id || row.sample_state !== "sent" || !row.sample_key) {
     return { error: "This sample isn’t available any more." };
   }
+  // The first time the writer opens their sample (evidence if a payment is ever disputed).
+  await adminClient().from("creator_requests").update({ sample_listened_at: new Date().toISOString() }).eq("id", id).is("sample_listened_at", null);
   try {
     return { url: await sampleLink(id, row.sample_key) };
   } catch {

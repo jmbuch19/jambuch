@@ -12,6 +12,7 @@ import { sampleLink } from "@/lib/creators/delivery";
 import { listVoices, sampleSettings, type Voice } from "@/lib/creators/sample";
 import { advanceReceived, letContinue, sampleFeeReceivedAction, saveSampleSettings, sendSampleAction, setRequestState } from "../actions";
 import MakeSampleButton from "./make-sample";
+import { FreeRemakeButton, RefundForm } from "./refund-form";
 import a from "../../../admin.module.css";
 
 // One Creator's Space request: the story and answers (from private storage), the
@@ -44,7 +45,18 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const answers = (r.answers ?? {}) as Record<string, string | string[]>;
   const quote = r.quote as Quote | null;
   const claudeCost = r.claude_cost as CostLog | null;
-  const { data: payments } = await db.from("creator_payments").select("kind, amount_paise, status, razorpay_order_id, razorpay_payment_id, created_at, paid_at, failure_reason").eq("request_id", id).order("created_at");
+  const { data: payments } = await db
+    .from("creator_payments")
+    .select("id, kind, amount_paise, status, razorpay_order_id, razorpay_payment_id, created_at, paid_at, failure_reason")
+    .eq("request_id", id)
+    .order("created_at");
+  const { data: refunds } = await db
+    .from("creator_refunds")
+    .select("id, payment_id, razorpay_payment_id, razorpay_refund_id, amount_paise, reason, note, by, status, failure_reason, created_at")
+    .eq("request_id", id)
+    .order("created_at");
+  const refundedOn = (rzpPaymentId: string | null) =>
+    (refunds ?? []).filter((x) => x.razorpay_payment_id === rzpPaymentId && x.status !== "failed").reduce((sum, x) => sum + x.amount_paise, 0);
   const pictures = draft
     ? await Promise.all(draft.pictures.map(async (key) => ({ key, url: await signedPrivateUrl({ url: `r2-private:${key}`, bucket: "private", key }, 900) })))
     : [];
@@ -225,10 +237,32 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
               {p.kind} ₹{(p.amount_paise / 100).toLocaleString("en-IN")} · <b>{p.status}</b> · order {p.razorpay_order_id}
               {p.razorpay_payment_id ? ` · payment ${p.razorpay_payment_id}` : ""} · {when(p.paid_at ?? p.created_at)}
               {p.failure_reason ? ` · ${p.failure_reason}` : ""}
+              {p.status === "paid" && p.razorpay_payment_id && (
+                <RefundForm paymentId={p.id} requestId={id} left={p.amount_paise - refundedOn(p.razorpay_payment_id)} />
+              )}
             </li>
           ))}
         </ul>
       )}
+
+      {!!refunds?.length && (
+        <>
+          <h3>Refunds</h3>
+          <ul className={a.mutedSmall}>
+            {refunds.map((x) => (
+              <li key={x.id}>
+                ₹{(x.amount_paise / 100).toLocaleString("en-IN")} · <b>{x.status}</b> · {x.reason.replace(/_/g, " ")} · by {x.by} · {when(x.created_at)}
+                {x.razorpay_refund_id ? ` · ${x.razorpay_refund_id}` : ""}
+                {x.note ? ` · “${x.note}”` : ""}
+                {x.failure_reason ? ` · ${x.failure_reason}` : ""}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      <p className={a.mutedSmall}>
+        <Link href={`/admin/creators/${id}/evidence`}>Evidence for a dispute (consents, plan, payments, delivery) →</Link>
+      </p>
 
       <h2 className={a.gapTop}>Screening</h2>
       <p>
@@ -295,6 +329,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           )}
           <div className={a.actions}>
             {r.sample_state !== "sent" && <MakeSampleButton id={id} again={!!r.sample_key} />}
+            {r.sample_state === "sent" && <FreeRemakeButton id={id} used={(r.sample_remakes ?? 0) >= 1} />}
             {r.sample_state === "review" && (
               <form action={sendSampleAction}>
                 <input type="hidden" name="id" value={id} />

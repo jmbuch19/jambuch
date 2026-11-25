@@ -71,7 +71,15 @@ export async function paymentPaid(razorpayOrderId: string, paymentId: string, so
     .eq("razorpay_order_id", razorpayOrderId)
     .maybeSingle();
   if (!p) return { ok: false, reason: "unknown order" };
-  if (p.status === "paid") return { ok: true, already: true };
+  if (p.status === "paid") {
+    // A second successful payment on an order already paid: refund it automatically.
+    const { data: rec } = await db.from("creator_payments").select("razorpay_payment_id").eq("id", p.id).single();
+    if (rec?.razorpay_payment_id && rec.razorpay_payment_id !== paymentId) {
+      const { refund } = await import("./refunds");
+      await refund({ paymentRowId: p.id, razorpayPaymentId: paymentId, amountPaise: p.amount_paise, reason: "duplicate_payment", by: "auto:duplicate-same-order" });
+    }
+    return { ok: true, already: true };
+  }
 
   // Ask Razorpay itself that the full amount was paid, before anything changes.
   const order = await fetchOrder(razorpayOrderId);
@@ -84,6 +92,21 @@ export async function paymentPaid(razorpayOrderId: string, paymentId: string, so
     .neq("status", "paid")
     .select("id");
   if (!claimed?.length) return { ok: true, already: true };
+
+  // The same thing already paid through another order (two tabs, two clicks): refund this one.
+  const { data: other } = await db
+    .from("creator_payments")
+    .select("id")
+    .eq("request_id", p.request_id)
+    .eq("kind", p.kind)
+    .eq("status", "paid")
+    .neq("id", p.id)
+    .limit(1);
+  if (other?.length) {
+    const { refund } = await import("./refunds");
+    await refund({ paymentRowId: p.id, amountPaise: p.amount_paise, reason: "duplicate_payment", by: "auto:duplicate-second-order" });
+    return { ok: true, already: true };
+  }
 
   if (p.kind === "sample") await sampleFeeReceived(p.request_id);
   if (p.kind === "advance") await buildOrder(p.request_id);

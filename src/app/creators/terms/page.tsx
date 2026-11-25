@@ -84,7 +84,14 @@ export default function TermsPage() {
               The ₹499 sample fee is not refunded if you decide to stop after hearing or seeing the sample: it paid for the
               sample.
             </li>
-            <li>If we cannot make or deliver your sample, the ₹499 is refunded in full.</li>
+            <li>
+              If your sample is not delivered within 3 days of paying for it, the ₹499 is refunded in full automatically.
+            </li>
+            <li>
+              If your sample does not follow your approved plan, we make it again once, free. A new wish that is not in the
+              plan is a change, not a mistake.
+            </li>
+            <li>If you are charged twice for the same thing, the extra payment is refunded automatically.</li>
             <li>The advance is not refundable once production has started, unless we cannot deliver; then it is refunded in full.</li>
             <li>There is no refund after the clean files are downloaded. You are asked to confirm before downloading.</li>
             <li>Nothing is charged for a story our checks or we refuse before the plan: payment starts only after you approve the plan.</li>

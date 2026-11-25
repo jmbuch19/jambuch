@@ -10,7 +10,9 @@
 // the writer stops after it) — Jaydeep, 25 Nov 2026.
 // 2026-11-25.2: general (non-story) sounds and music made by the studio may be reused;
 // story-derived and exclusive material is never reused and is deleted as promised.
-export const TERMS_VERSION = "2026-11-25.2";
+// 2026-11-25.3: sample refunded automatically if not delivered within 3 days; one free remake
+// if the sample misses the approved plan; duplicate payments refunded automatically.
+export const TERMS_VERSION = "2026-11-25.3";
 
 export const CONSENT_LANGS = { en: "English", gu: "ગુજરાતી", hi: "हिन्दी" } as const;
 export type ConsentLang = keyof typeof CONSENT_LANGS;

@@ -301,3 +301,31 @@ Coverage check against the cards on engine-split (4ade09a): today 0 client-safe 
 Freesound CC0 cards are still `trial`); once the ElevenLabs cards are `yes-online`, 129 sounds
 cover every music word and mood and every effect word except **door, market, train** → step 2
 is 2 CC0 Freesound sounds each for those three (6 for Jaydeep's approval), after the export.
+
+## 25 Nov 2026 — refunds, disputes, payment checks, timeouts that cost nothing (branch)
+
+Jaydeep's decisions: undelivered ₹499 sample → automatic full refund after 3 days; late full
+orders → case by case; sample missing the approved plan → one free remake; build all four.
+- **One-click refund** (admin request page, beside each paid payment): amount (full by
+  default, never more than is left), reason, confirm tick; Razorpay Refunds API; one refund in
+  flight per payment (unique index); writer emailed; table `creator_refunds`.
+- **Payment checks** (daily job, `payment-checks.ts`): orders Razorpay says are paid but we
+  never recorded are completed; extra captured payments on one order, or the same thing paid
+  through a second order, are refunded automatically (`auto:duplicate-*`); a ₹499 paid >3 days
+  ago with no delivered sample is refunded and the request closed (`auto:sample-not-delivered-3d`).
+- **Disputes:** `payment.dispute.*` webhook events → `creator_disputes`, studio emailed with a
+  link to `/admin/creators/<id>/evidence` (consents with exact text, terms version and time;
+  origin; approved plan and time; quote; payments and refunds; sample made / sent / first
+  opened). Print to PDF for Razorpay.
+- **Free remake** button (once; `sample_remakes`): a fresh sound plan and a fresh voice.
+- **Timeouts cost nothing twice:** the sound plan, the narration and the speech-to-text result
+  are stored under `creators/<id>/work/` the moment they arrive (deleted with the request);
+  retries reuse them. A voice our side timed out on is fetched from ElevenLabs' history instead
+  of being paid again. Free steps (music, effects) run before the paid voice. A retry after a
+  failed check happens only for a words-heard failure (with a new recording); at most 3 paid
+  voices per request, then Jaydeep decides.
+- Terms 2026-11-25.3: automatic sample refund after 3 days, one free remake, duplicates refunded.
+
+Before merge (Jaydeep): run `20261125300000_creator_refunds_disputes.sql`; in Razorpay →
+Webhooks add the events `refund.processed`, `refund.failed` and the `payment.dispute.*` events
+(created, won, lost, closed, under_review, action_required).

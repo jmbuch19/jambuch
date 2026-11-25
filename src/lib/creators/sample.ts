@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -305,35 +306,109 @@ async function optional<T>(id: string, name: string, fn: () => Promise<T>): Prom
   }
 }
 
-export async function makeSample(req: { id: string; language: string; style_tags: string[] }, n: number): Promise<SampleResult> {
+// ---------------------------------------------------------------- paid results are kept (no double cost)
+
+// Jaydeep, 25 Nov 2026: a timeout must not cost us twice. Every paid result is stored the
+// moment it arrives, under the request's own folder (deleted with the request), and a retry
+// reuses it:  creators/<id>/work/plan.json · voice-<hash>.mp3 · stt-<hash>.json
+const workKey = (id: string, name: string) => `creators/${id}/work/${name}`;
+const hashOf = (s: string) => createHash("sha256").update(s, "utf8").digest("hex").slice(0, 20);
+const asBuffer = (b: Buffer) => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer;
+
+async function readSaved(key: string): Promise<Buffer | null> {
+  try {
+    return Buffer.from(await readPrivate(key));
+  } catch {
+    return null;
+  }
+}
+
+// ElevenLabs may finish (and charge) a request we stopped waiting for. Its history keeps the
+// audio, so a timed-out voice is fetched from there instead of being made and paid for again.
+async function fromHistory(text: string, s: SampleSettings, since: number): Promise<Buffer | null> {
+  const key = process.env.ELEVENLABS_API_KEY;
+  if (!key) return null;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (attempt) await new Promise((r) => setTimeout(r, 15_000));
+    try {
+      const res = await fetch(`https://api.elevenlabs.io/v1/history?page_size=20&voice_id=${encodeURIComponent(s.voice_id)}`, {
+        headers: { "xi-api-key": key },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!res.ok) continue;
+      const items = ((await res.json()) as { history?: { history_item_id: string; text: string; date_unix: number }[] }).history ?? [];
+      const hit = items.find((h) => h.text === text && h.date_unix * 1000 >= since - 60_000);
+      if (!hit) continue;
+      const audio = await fetch(`https://api.elevenlabs.io/v1/history/${encodeURIComponent(hit.history_item_id)}/audio`, {
+        headers: { "xi-api-key": key },
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (audio.ok) return Buffer.from(await audio.arrayBuffer());
+    } catch {
+      /* try again */
+    }
+  }
+  return null;
+}
+
+// The narration: from storage if already made for this exact text, voice and model; else made
+// once, recovered from ElevenLabs' history if our wait timed out, and stored at once.
+async function savedVoice(id: string, text: string, s: SampleSettings, force: boolean): Promise<{ audio: Buffer; paid: boolean }> {
+  const key = workKey(id, `voice-${hashOf(`${s.voice_id}|${s.model_id}|${text}`)}.mp3`);
+  if (!force) {
+    const saved = await readSaved(key);
+    if (saved) return { audio: saved, paid: false };
+  }
+  const since = Date.now();
+  let audio: Buffer;
+  try {
+    audio = await speak(text, s);
+  } catch (e) {
+    // A refusal (4xx) costs nothing; a timeout, network error or 5xx may have been charged.
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/answered 4\d\d/.test(msg)) throw e;
+    const recovered = await fromHistory(text, s, since);
+    if (!recovered) throw e;
+    console.log(`sample ${id}: voice recovered from ElevenLabs history after: ${msg}`);
+    audio = recovered;
+  }
+  await uploadPrivate(key, asBuffer(audio), "audio/mpeg");
+  return { audio, paid: true };
+}
+
+export async function makeSample(
+  req: { id: string; language: string; style_tags: string[] },
+  n: number,
+  opts: { forceVoice?: boolean; fresh?: boolean } = {},
+): Promise<SampleResult> {
   const s = await sampleSettings();
   const story = await readStory(req.id);
   const sentences = openingSentences(story, s.max_chars);
   if (!sentences.length) throw new Error("The story has no text to read.");
   const passage = sentences.join(" ");
+  const lang = req.language in TAG_TEXT ? req.language : "en";
 
-  const planned = await optional(req.id, "sound plan (Claude)", () => soundPlan(sentences, req.style_tags));
-  const plan: SoundPlan = planned?.plan ?? { mood: "calm", music: [], cues: [] };
+  // 1. Sound plan (Claude): kept, so a retry doesn't pay for it again.
+  const planKey = workKey(req.id, "plan.json");
+  const savedPlan = opts.fresh ? null : await readSaved(planKey);
+  let plan: SoundPlan = savedPlan ? (JSON.parse(savedPlan.toString("utf8")) as SoundPlan) : { mood: "calm", music: [], cues: [] };
+  let planUsage = { input: 0, output: 0 };
+  if (!savedPlan) {
+    const planned = await optional(req.id, "sound plan (Claude)", () => soundPlan(sentences, req.style_tags));
+    if (planned) {
+      plan = planned.plan;
+      planUsage = planned.usage;
+      await uploadPrivate(planKey, asBuffer(Buffer.from(JSON.stringify(plan))), "application/json").catch(() => {});
+    }
+  }
 
   const dir = await mkdtemp(join(tmpdir(), "sample-"));
   try {
-    // Voice: the passage and the spoken tag.
-    const lang = req.language in TAG_TEXT ? req.language : "en";
-    const [voiceAudio, tagAudio] = await step(req.id, "voice (ElevenLabs)", () => Promise.all([speak(passage, s), spokenTag(lang, s)]));
-    const voicePath = join(dir, "voice.mp3");
-    const tagPath = join(dir, "tag.mp3");
-    await writeFile(voicePath, voiceAudio);
-    await writeFile(tagPath, tagAudio);
-    const [voiceSec, tagSec] = await Promise.all([duration(voicePath), duration(tagPath)]);
-
-    const voiceStart = tagSec + 0.6;
-    const tagEndAt = voiceStart + voiceSec + 1.2;
-    const total = tagEndAt + tagSec + 1.5;
-
     const credits: Credit[] = [];
     const used: { order_id: string; asset_id: string; asset_kind: "music" | "sfx"; role: string }[] = [];
     const usedIds = new Set<string>();
-    // Music: the first music word, else the mood. None if the plan says "none".
+
+    // 2. Free steps first: music and effects (library, then Freesound). Placed after the voice.
     let musicPath: string | null = null;
     if (!plan.music.includes("none")) {
       const q = MUSIC_QUERY[plan.music[0] ?? ""] ?? MOOD_QUERY[plan.mood] ?? "calm ambient pad";
@@ -359,15 +434,7 @@ export async function makeSample(req: { id: string; language: string; style_tags
         }
       }
     }
-
-    // Effects: placed after their sentence, in proportion to the characters read so far.
-    const effects: { path: string; at: number }[] = [];
-    const ends: number[] = [];
-    let acc = 0;
-    for (const t of sentences) {
-      acc += t.length + 1;
-      ends.push(acc / (passage.length + 1));
-    }
+    const cueFiles: { path: string; after: number }[] = [];
     for (const [i, cue] of plan.cues.entries()) {
       const q = SOUND_QUERY[cue.sound];
       if (!q) continue;
@@ -375,7 +442,7 @@ export async function makeSample(req: { id: string; language: string; style_tags
       const card = await optional(req.id, `effect ${cue.sound} from library`, () => pickEffect(cue.sound, `${req.id}-${i}`, usedIds));
       if (card && (await optional(req.id, `effect ${card.id} (library)`, async () => writeFile(path, await readPrivate(card.file)))) !== null) {
         usedIds.add(card.id);
-        effects.push({ path, at: voiceStart + ends[cue.after - 1] * voiceSec + 0.1 });
+        cueFiles.push({ path, after: cue.after });
         credits.push({ kind: "effect", source: "library", id: card.id, name: card.id, author: card.source, licence: card.licence, url: "", attribution: card.attribution });
         used.push({ order_id: req.id, asset_id: card.id, asset_kind: "sfx", role: "sample-cue" });
         continue;
@@ -384,17 +451,42 @@ export async function makeSample(req: { id: string; language: string; style_tags
       const url = hit?.previews["preview-hq-mp3"];
       if (!hit || !url) continue;
       if ((await optional(req.id, `effect download ${cue.sound} (Freesound)`, () => download(url, path))) === null) continue;
-      effects.push({ path, at: voiceStart + ends[cue.after - 1] * voiceSec + 0.1 });
+      cueFiles.push({ path, after: cue.after });
       credits.push(freesoundCredit("effect", hit));
       used.push({ order_id: req.id, asset_id: `freesound-${hit.id}`, asset_kind: "sfx", role: "sample-cue" });
     }
 
+    // 3. The paid voice, once: stored as soon as it arrives (or recovered after a timeout).
+    const [voice, tagAudio] = await step(req.id, "voice (ElevenLabs)", () =>
+      Promise.all([savedVoice(req.id, passage, s, !!(opts.forceVoice || opts.fresh)), spokenTag(lang, s)]),
+    );
+    const voicePath = join(dir, "voice.mp3");
+    const tagPath = join(dir, "tag.mp3");
+    await writeFile(voicePath, voice.audio);
+    await writeFile(tagPath, tagAudio);
+    const [voiceSec, tagSec] = await Promise.all([duration(voicePath), duration(tagPath)]);
+    const voiceStart = tagSec + 0.6;
+    const tagEndAt = voiceStart + voiceSec + 1.2;
+    const total = tagEndAt + tagSec + 1.5;
+
+    // Effects placed after their sentence, in proportion to the characters read so far.
+    const ends: number[] = [];
+    let acc = 0;
+    for (const t of sentences) {
+      acc += t.length + 1;
+      ends.push(acc / (passage.length + 1));
+    }
+    const effects = cueFiles.map((c) => ({ path: c.path, at: voiceStart + ends[c.after - 1] * voiceSec + 0.1 }));
+
+    // 4. Mix (free), then the check (its speech-to-text result is kept per voice too).
     const out = await step(req.id, "mix (FFmpeg)", () => mix({ dir, tag: tagPath, voice: voicePath, music: musicPath, effects, voiceStart, total, tagEndAt }));
-    const qc = await step(req.id, "quality check", () => qualityCheck(out, voicePath, passage, lang));
+    const qc = await step(req.id, "quality check", () =>
+      qualityCheck(out, voicePath, passage, lang, workKey(req.id, `stt-${hashOf(`${s.voice_id}|${s.model_id}|${passage}`)}.json`), !!(opts.forceVoice || opts.fresh)),
+    );
     const bytes = await readFile(out);
 
     const key = sampleKey(req.id, n);
-    await uploadPrivate(key, bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer, "audio/mpeg");
+    await uploadPrivate(key, asBuffer(bytes), "audio/mpeg");
     await logUsage(used);
     const creditsJson = new TextEncoder().encode(JSON.stringify({ credits, plan }, null, 2));
     await uploadPrivate(creditsKey(req.id, n), creditsJson.buffer as ArrayBuffer, "application/json");
@@ -405,9 +497,11 @@ export async function makeSample(req: { id: string; language: string; style_tags
       plan,
       qc,
       cost: {
-        elevenlabs_chars: passage.length + TAG_TEXT[lang].length,
-        claude_input_tokens: planned?.usage.input ?? 0,
-        claude_output_tokens: planned?.usage.output ?? 0,
+        // Only what this attempt actually paid for.
+        elevenlabs_chars: voice.paid ? passage.length : 0,
+        voice_paid: voice.paid ? 1 : 0,
+        claude_input_tokens: planUsage.input,
+        claude_output_tokens: planUsage.output,
         seconds: Math.round(total),
         voice_id: s.voice_id,
         model_id: s.model_id,
@@ -483,7 +577,7 @@ async function wordsMatched(voicePath: string, passage: string, lang: string): P
 // Limits for an automatic pass. Below them the sample is made again once, then a person looks.
 export const QC_LIMITS = { minSeconds: 20, maxSeconds: 90, minLufs: -19, maxLufs: -13, minWords: 0.6 };
 
-export async function qualityCheck(mixPath: string, voicePath: string, passage: string, lang: string): Promise<QualityCheck> {
+export async function qualityCheck(mixPath: string, voicePath: string, passage: string, lang: string, sttKey?: string, fresh = false): Promise<QualityCheck> {
   const problems: string[] = [];
   const seconds = await duration(mixPath);
   if (seconds < QC_LIMITS.minSeconds || seconds > QC_LIMITS.maxSeconds) problems.push(`length ${Math.round(seconds)} s`);
@@ -492,7 +586,12 @@ export async function qualityCheck(mixPath: string, voicePath: string, passage: 
   else if (lufs < QC_LIMITS.minLufs || lufs > QC_LIMITS.maxLufs) problems.push(`loudness ${lufs} LUFS`);
   let matched: number | null = null;
   try {
-    matched = await wordsMatched(voicePath, passage, lang);
+    const saved = sttKey && !fresh ? await readSaved(sttKey) : null;
+    if (saved) matched = (JSON.parse(saved.toString("utf8")) as { matched: number | null }).matched;
+    else {
+      matched = await wordsMatched(voicePath, passage, lang);
+      if (sttKey && matched !== null) await uploadPrivate(sttKey, asBuffer(Buffer.from(JSON.stringify({ matched }))), "application/json").catch(() => {});
+    }
   } catch (e) {
     problems.push(e instanceof Error ? e.message : "speech-to-text check failed");
   }

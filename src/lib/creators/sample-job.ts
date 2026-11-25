@@ -12,12 +12,15 @@ import { flowSettings } from "./flow";
 const now = () => new Date().toISOString();
 const DAY = 86400_000;
 const MAX_ATTEMPTS = 2;
+// Paid voice generations allowed per request (first make, one retry after a real voice fault,
+// one free remake). Saved results make most retries free; past this, a person decides.
+const MAX_PAID_VOICES = 3;
 
 export type JobResult = { status: "sent" | "review" | "waiting" | "skipped" | "failed"; message: string };
 
 // mode "auto": after payment, sends on a pass. mode "manual": Jaydeep's button, leaves it
 // for him to listen and send.
-export async function runSampleJob(id: string, mode: "auto" | "manual"): Promise<JobResult> {
+export async function runSampleJob(id: string, mode: "auto" | "manual", opts: { fresh?: boolean } = {}): Promise<JobResult> {
   const db = adminClient();
   const s = await sampleSettings();
   const { data: row } = await db
@@ -49,14 +52,20 @@ export async function runSampleJob(id: string, mode: "auto" | "manual"): Promise
     return { status: "waiting", message: `The daily cap of ${s.daily_cap} samples is reached; it will be made tomorrow.` };
   }
 
+  const prevCost = (row.sample_cost as Record<string, unknown> | null) ?? {};
+  let paidVoices = Number(prevCost.voice_paid_total ?? 0);
+  if (paidVoices >= MAX_PAID_VOICES) return wait("cost_cap", `This sample has already paid for ${paidVoices} voice recordings; check it before spending more.`);
+
   await db.from("creator_requests").update({ sample_state: "making", sample_error: null, updated_at: now() }).eq("id", id);
-  let attempt = Number((row.sample_cost as Record<string, unknown> | null)?.attempt ?? 0);
+  let attempt = Number(prevCost.attempt ?? 0);
   let lastKey = row.sample_key as string | null;
+  let forceNext = false; // a new voice only after a words-heard failure; a crash retry reuses the saved one
 
   for (let tries = 0; tries < (mode === "auto" ? MAX_ATTEMPTS : 1); tries++) {
     attempt++;
     try {
-      const made = await makeSample({ id, language: row.language, style_tags: row.style_tags ?? [] }, attempt);
+      const made = await makeSample({ id, language: row.language, style_tags: row.style_tags ?? [] }, attempt, { fresh: !!opts.fresh && tries === 0, forceVoice: forceNext });
+      paidVoices += Number(made.cost.voice_paid ?? 0);
       if (lastKey && lastKey !== made.key) await deleteSample(lastKey).catch(() => {});
       lastKey = made.key;
       await db
@@ -65,7 +74,7 @@ export async function runSampleJob(id: string, mode: "auto" | "manual"): Promise
           sample_state: "review",
           sample_key: made.key,
           sample_credits: made.credits,
-          sample_cost: { ...made.cost, attempt, mood: made.plan.mood },
+          sample_cost: { ...made.cost, attempt, mood: made.plan.mood, voice_paid_total: paidVoices },
           sample_qc: made.qc,
           sample_made_at: now(),
           sample_error: made.qc.pass ? null : `Quality check: ${made.qc.problems.join("; ")}`,
@@ -77,12 +86,16 @@ export async function runSampleJob(id: string, mode: "auto" | "manual"): Promise
         const sent = await sendSample(id);
         return sent ? { status: "sent", message: "Made, checked and sent." } : { status: "review", message: "Made and checked, but the email to the writer failed." };
       }
+      // Only a voice fault (words not heard) is worth a second try, with a new recording;
+      // length or loudness would come out the same, so a person looks instead.
+      if (!made.qc.problems.some((p) => /of the words heard/.test(p))) break;
+      forceNext = true;
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       console.error("creators: sample attempt failed for", id, message);
       await db
         .from("creator_requests")
-        .update({ sample_state: "failed", sample_error: message.slice(0, 500), sample_made_at: now(), sample_cost: { attempt }, updated_at: now() })
+        .update({ sample_state: "failed", sample_error: message.slice(0, 500), sample_made_at: now(), sample_cost: { attempt, voice_paid_total: paidVoices }, updated_at: now() })
         .eq("id", id);
       if (mode === "manual") return { status: "failed", message };
     }

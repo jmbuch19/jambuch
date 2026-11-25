@@ -6,6 +6,7 @@ import { deleteSample } from "@/lib/creators/sample";
 import { sendEmail } from "@/lib/email";
 import { refreshFx } from "@/lib/fx";
 import { triggerSampleJob } from "@/lib/creators/sample-job";
+import { reconcilePayments, refundUndeliveredSamples } from "@/lib/creators/payment-checks";
 
 // Creator's Space: request files whose time is up (brief §6B): 7 days after the sample was
 // sent, at once for withdrawn, refused or closed requests without a sent sample, and for
@@ -164,6 +165,16 @@ export async function GET(request: Request) {
         .eq("series_id", s.id);
       if (!count) await db.from("courtyard_series").delete().eq("id", s.id);
     }
+  }
+
+  // Payment safety: missed confirmations, duplicate payments, undelivered samples (3 days).
+  try {
+    const rec = await reconcilePayments();
+    purged.payments_completed = rec.completed;
+    purged.payments_duplicates_refunded = rec.duplicates;
+    purged.samples_refunded = await refundUndeliveredSamples();
+  } catch (err) {
+    failed.payments = err instanceof Error ? err.message : String(err);
   }
 
   // Paid samples not made yet (the daily cap was reached, or a start was missed): try again.

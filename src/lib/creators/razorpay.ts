@@ -65,3 +65,29 @@ export function webhookSignatureValid(rawBody: string, signature: string) {
   const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
   return safeEqual(expected, signature);
 }
+
+// Every payment attempt on an order (https://razorpay.com/docs/api/orders/fetch-payments/).
+export type RazorpayPayment = { id: string; order_id: string; amount: number; status: string; captured: boolean; created_at: number };
+export async function orderPayments(orderId: string): Promise<RazorpayPayment[]> {
+  const res = await fetch(`https://api.razorpay.com/v1/orders/${encodeURIComponent(orderId)}/payments`, {
+    headers: { Authorization: auth() },
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!res.ok) throw new Error(`Razorpay payments lookup failed (${res.status})`);
+  return ((await res.json()) as { items?: RazorpayPayment[] }).items ?? [];
+}
+
+// A refund, full or partial (https://razorpay.com/docs/api/refunds/create-normal/). Money goes
+// back to the original payment method. Never call this twice for one decision: callers hold a
+// pending row first (see refunds.ts).
+export async function createRefund(paymentId: string, amountPaise: number, receipt: string, notes: Record<string, string>) {
+  const res = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}/refund`, {
+    method: "POST",
+    headers: { Authorization: auth(), "Content-Type": "application/json" },
+    body: JSON.stringify({ amount: amountPaise, speed: "normal", receipt: receipt.slice(0, 40), notes }),
+    signal: AbortSignal.timeout(20_000),
+  });
+  const body = (await res.json().catch(() => ({}))) as { id?: string; status?: string; error?: { description?: string } };
+  if (!res.ok || !body.id) throw new Error(body.error?.description ?? `Razorpay refund failed (${res.status})`);
+  return { id: body.id, status: body.status ?? "pending" };
+}

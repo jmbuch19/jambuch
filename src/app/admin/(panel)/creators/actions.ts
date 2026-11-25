@@ -162,3 +162,36 @@ export async function saveSampleSettings(form: FormData) {
   await adminClient().from("settings").upsert({ key: "creators.sample", value, updated_at: now() });
   revalidatePath("/admin/creators", "layout");
 }
+
+// One-click refund (Jaydeep, 25 Nov 2026). The amount is checked against what is left on the
+// payment; one refund at a time per payment; the writer is emailed.
+export type RefundState = { status: "idle" | "error" | "done"; message?: string };
+export async function refundAction(_prev: RefundState, form: FormData): Promise<RefundState> {
+  await requireAdmin();
+  const paymentRowId = Number(form.get("payment_id"));
+  const requestId = String(form.get("request_id") ?? "");
+  const rupees = Number(String(form.get("amount") ?? "").replace(/[^\d.]/g, ""));
+  const reason = String(form.get("reason") ?? "") as import("@/lib/creators/refunds").RefundReason;
+  const REASONS = ["sample_not_delivered", "duplicate_payment", "our_mistake", "goodwill", "dispute_settled", "other"];
+  if (form.get("confirm") !== "yes") return { status: "error", message: "Tick the box to confirm the amount." };
+  if (!REASONS.includes(reason)) return { status: "error", message: "Choose a reason." };
+  const { refund } = await import("@/lib/creators/refunds");
+  const out = await refund({ paymentRowId, amountPaise: Math.round(rupees * 100), reason, note: String(form.get("note") ?? ""), by: "admin" });
+  revalidatePath(`/admin/creators/${requestId}`);
+  return { status: out.ok ? "done" : "error", message: out.message };
+}
+
+// One free remake when the sample missed the approved plan (max one per request).
+export async function freeRemakeAction(_prev: MakeState, form: FormData): Promise<MakeState> {
+  await requireAdmin();
+  const id = String(form.get("id") ?? "");
+  const db = adminClient();
+  const { data: r } = await db.from("creator_requests").select("sample_remakes").eq("id", id).maybeSingle();
+  if (!r) return { status: "error", message: "Request not found." };
+  if (r.sample_remakes >= 1) return { status: "error", message: "The free remake has already been given." };
+  await db.from("creator_requests").update({ sample_remakes: r.sample_remakes + 1, sample_state: "review", updated_at: now() }).eq("id", id);
+  const { runSampleJob } = await import("@/lib/creators/sample-job");
+  const out = await runSampleJob(id, "manual", { fresh: true });
+  revalidatePath(`/admin/creators/${id}`);
+  return out.status === "review" ? { status: "done", message: `Remade from scratch (free remake used). ${out.message} Listen, then send it.` } : { status: "error", message: out.message };
+}
