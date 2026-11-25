@@ -194,7 +194,11 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
               {quote.episodes.length > 1 ? `Episode ${i + 1}: ` : ""}₹{e.price} · {e.breakdown.minutes} min · {e.breakdown.stills} pictures · tools ₹
               {e.breakdown.inr.tool_cost} (narration {e.breakdown.inr.narration}, images {e.breakdown.inr.images}, Claude {e.breakdown.inr.claude}, render{" "}
               {e.breakdown.inr.render}, buffered {e.breakdown.inr.buffered}) · review {e.breakdown.review_hours} h = ₹{e.breakdown.inr.review} · add-ons ₹
-              {e.breakdown.inr.addons}
+              {e.breakdown.inr.addons} · fixed-cost share ₹{e.breakdown.inr.overhead ?? 0}
+              <br />
+              Left for you after tools, Razorpay fee and fixed-cost share: ₹
+              {Math.round(e.breakdown.inr.left_for_you ?? e.price - e.breakdown.inr.tool_cost).toLocaleString("en-IN")} (your{" "}
+              {e.breakdown.review_hours} h of review + margin), before GST and income tax
             </p>
           ))}
         </>

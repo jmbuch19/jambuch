@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/admin";
 import { saveJsonSetting, setRequestState } from "./actions";
 import { flowSettings, pricingSettings, storedPricingSettings } from "@/lib/creators/flow";
+import { fixedPerMonth, overheadPerOrder } from "@/lib/creators/pricing";
 import a from "../../admin.module.css";
 
 // Creator's Space sample requests (docs/CREATORS_SPACE_BRIEF.md §6A "Safeguards").
@@ -172,6 +173,13 @@ export default async function CreatorRequestsPage() {
         </b>{" "}
         ({fx.source}, {fx.date}; fetched daily) + your card’s forex markup {(fx.markup * 100).toFixed(2)}% = ₹
         {fx.effective.toFixed(2)} per dollar in quotes. Each quote keeps the rate it was made with.
+      </p>
+      <p className={a.intro}>
+        <b>Fixed running costs: ₹{Math.round(fixedPerMonth(live)).toLocaleString("en-IN")} a month</b> ÷{" "}
+        {live.expected_orders_per_month} expected orders = <b>₹{Math.round(overheadPerOrder(live)).toLocaleString("en-IN")} added to each price</b>.
+        Edit <b>fixed_costs</b> (name, amount, USD or INR, per month or year, share 0–1) and{" "}
+        <b>expected_orders_per_month</b> below. ElevenLabs credits and Claude API tokens are already priced per order: don’t
+        list them here.
       </p>
       <p className={a.intro}>
         Every number of the pricing engine. Dollar costs stay in dollars (<b>credit_usd_per_1000</b>: ElevenLabs plan price ÷

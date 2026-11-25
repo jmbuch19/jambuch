@@ -230,3 +230,16 @@ Jaydeep: a fixed rupee rate is wrong practice. Now:
 - Each quote stores the rate it used (shown in admin). Example 12-min story: Standard
   ₹2,799 → ₹2,999 at today's rate.
 - Jaydeep to set: `fx_markup` to his card's real forex charge.
+
+## 25 Nov 2026 — fixed running costs in every price
+
+- Settings `fixed_costs` (name, amount, USD/INR, month/year, share) and
+  `expected_orders_per_month`; their monthly total (dollars at the day's rate + card markup)
+  ÷ expected orders is added to each price as a cost (not doubled).
+- Jaydeep's figures: Vercel Pro $20/month (share 1), Claude Pro $20/month (share 0.5,
+  shared with his other projects), 5 orders a month → ₹2,903/month, ₹581 per order.
+  ElevenLabs is prepaid for 12 months and already priced per credit; Claude API tokens are
+  priced per order: neither is listed (would count twice).
+- Each quote records the gateway fee and "left for you" (review time + margin, before GST
+  and income tax). 12-min story: Basic ₹1,699 (left ₹814), Standard ₹3,599 (left ₹2,264),
+  Premium ₹6,899 (left ₹5,131).

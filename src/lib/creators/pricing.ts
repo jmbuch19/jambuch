@@ -8,7 +8,8 @@
 //
 //   tool_cost = narration + paintings (own retake factors) + (Claude + render + music
 //               + effects + other) × retry buffer
-//   price     = 2 × tool_cost + review hours × ₹/hour + add-ons
+//   overhead  = fixed monthly costs (Vercel, the Claude plan's share…) ÷ expected orders a month
+//   price     = 2 × tool_cost + review hours × ₹/hour + add-ons + overhead
 //             ÷ (1 − gateway fee), at least the minimum, rounded UP to ₹99
 //   advance   = 50%, final = the rest. The 30–60 s sample is free (Jaydeep, 25 Nov 2026).
 
@@ -16,6 +17,8 @@ import type { Answers } from "./questions";
 import { LEVEL_PRESETS } from "./questions";
 
 type StepRate = { model: string; input_per_1k?: number; output_per_1k?: number; input_per_still?: number; output_per_still?: number; batch: boolean };
+
+export type FixedCost = { name: string; amount: number; currency: "USD" | "INR"; per: "month" | "year"; share: number };
 
 // The day's rate, filled in at run time (not a setting).
 export type FxUsed = { rate: number; markup: number; effective: number; date: string; source: string };
@@ -48,6 +51,10 @@ export type PricingSettings = {
   round_to: number;
   addons_inr: { exclusive_voice: number; own_voice: number };
   assisted_weekly_cap: number;
+  // Fixed running costs carried by Creator's Space, spread over the orders expected a month.
+  // Costs already priced per order (ElevenLabs credits, Claude API tokens) do not belong here.
+  fixed_costs: FixedCost[];
+  expected_orders_per_month: number;
   fx: FxUsed; // run time only
 };
 
@@ -90,6 +97,14 @@ export const PRICING_DEFAULTS: Omit<PricingSettings, "fx"> = {
   round_to: 99,
   addons_inr: { exclusive_voice: 1500, own_voice: 500 },
   assisted_weekly_cap: 3,
+  // Jaydeep, 25 Nov 2026: Vercel Pro (needed for paid service), half of his Claude Pro plan
+  // (shared with his other projects); 5 orders a month to start. ElevenLabs is prepaid for a
+  // year and already priced per credit, so it is not listed.
+  fixed_costs: [
+    { name: "Vercel Pro", amount: 20, currency: "USD", per: "month", share: 1 },
+    { name: "Claude Pro (chat + Code), Creator's Space share", amount: 20, currency: "USD", per: "month", share: 0.5 },
+  ],
+  expected_orders_per_month: 5,
 };
 
 // US$ per million tokens, from `creators.claude_prices` (models → input/output).
@@ -135,7 +150,7 @@ export type Breakdown = {
   minutes: number;
   stills: number;
   credits: { narration: number; paintings: number; motion: number; music: number; effects: number; shorts: number };
-  inr: { narration: number; images: number; claude: number; render: number; music_effects: number; other: number; buffered: number; tool_cost: number; review: number; addons: number };
+  inr: { narration: number; images: number; claude: number; render: number; music_effects: number; other: number; buffered: number; tool_cost: number; review: number; addons: number; overhead: number; gateway_fee: number; left_for_you: number };
   claude_usd: number;
   review_hours: number;
   fx: FxUsed;
@@ -143,6 +158,17 @@ export type Breakdown = {
 export type Price = { price: number; advance: number; final: number; breakdown: Breakdown };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
+
+// Fixed running costs per month, in rupees at the day's rate (dollar costs include the card markup).
+export function fixedPerMonth(s: PricingSettings) {
+  return (s.fixed_costs ?? []).reduce((sum, c) => {
+    const amount = Number(c.amount) || 0;
+    const share = Math.min(Math.max(Number(c.share) || 0, 0), 1);
+    const inr = c.currency === "USD" ? amount * s.fx.effective : amount;
+    return sum + (inr * share) / (c.per === "year" ? 12 : 1);
+  }, 0);
+}
+export const overheadPerOrder = (s: PricingSettings) => fixedPerMonth(s) / Math.max(1, Number(s.expected_orders_per_month) || 1);
 
 export function priceOne(i: PriceInput, s: PricingSettings, cp: ClaudePrices | null): Price {
   const langs = i.secondLanguage ? 2 : 1;
@@ -203,9 +229,10 @@ export function priceOne(i: PriceInput, s: PricingSettings, cp: ClaudePrices | n
   const toolCost = narrationInr + imagesInr + buffered;
 
   const hours = (s.review_hours[i.level]?.[i.service] ?? 1.5) * Math.max(1, minutes / s.review_minutes_base);
+  const overhead = overheadPerOrder(s);
   const addons = i.addons.reduce((sum, a) => sum + (s.addons_inr[a as keyof PricingSettings["addons_inr"]] ?? 0), 0);
 
-  let price = 2 * toolCost + hours * s.hourly_inr + addons;
+  let price = 2 * toolCost + hours * s.hourly_inr + addons + overhead;
   price = price / (1 - s.gateway_fee_rate);
   price = Math.max(price, s.minimum_inr);
   // "Rounded up to ₹99": up to the next price ending in 99 (₹999, ₹1,099, ₹2,799), so the
@@ -233,6 +260,11 @@ export function priceOne(i: PriceInput, s: PricingSettings, cp: ClaudePrices | n
         tool_cost: r2(toolCost),
         review: r2(hours * s.hourly_inr),
         addons,
+        overhead: r2(overhead),
+        gateway_fee: r2(price * s.gateway_fee_rate),
+        // What remains after tools, the gateway fee and the fixed-cost share: Jaydeep's review
+        // time plus margin, before GST and income tax.
+        left_for_you: r2(price * (1 - s.gateway_fee_rate) - toolCost - overhead),
       },
       claude_usd: r2(claudeUsd),
       review_hours: r2(hours),
