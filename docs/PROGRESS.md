@@ -147,14 +147,13 @@ merge `creators-space` into main.
 
 ## For tomorrow (office PC), 25 Nov 2026
 
-1. Run `20261124500000_creator_samples.sql` in Supabase (adds the sample columns and
-   the `creators.sample` setting). Tell Claude; it verifies, then merges
-   `creators-space` into main (Phase 2a goes live only after this, since the live
-   pages read the new columns).
-2. Run `20261124400000_site_text_vartavishva.sql` if not done (Vartavishva links).
-3. Cloudflare: add the 3 DNS records for vartavishva.in (A @ 216.198.79.1,
-   A @ 64.29.17.1, CNAME www → 3151a032b51d0fea.vercel-dns-017.com, all DNS only).
-   Then Claude checks, adds the jambuch.in/vartavishva → vartavishva.in redirect.
+1. DONE 25 Nov: `20261124500000_creator_samples.sql` run by user, verified live (9
+   columns, index, `creators.sample` setting); `creators-space` merged into main
+   (9d3d9ee), deployed Ready.
+2. DONE: site_text vartavishva rows live (7).
+3. DONE 25 Nov: Cloudflare records added (first as Proxied → 525 error; switched to
+   DNS only). Vercel certificate issued; jambuch.in/vartavishva → vartavishva.in
+   redirect (308) turned on in next.config.ts. Records must stay DNS only (grey cloud).
 4. First automatic sample: open a submitted request in /admin/creators, pick the
    narrator voice in "Sample settings", press "Make sample", listen. Jyot's request
    has no stored story (sent earlier): ask him to send again, or test with your own.

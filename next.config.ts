@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
 // vartavishva.in (the YouTube channel's own domain) is served by this same site:
-// its home page shows /vartavishva. Until the domain points at Vercel nothing
-// arrives with that host, so this is inert. Once it does, also turn on the
-// jambuch.in/vartavishva → vartavishva.in redirect (docs/PROGRESS.md).
+// its home page shows /vartavishva. The old address jambuch.in/vartavishva
+// forwards there (only on jambuch.in itself, so Vercel preview links still show
+// the page; /vartavishva/logo.png etc. are not affected).
 const VARTAVISHVA_HOSTS = ["vartavishva.in", "www.vartavishva.in"];
 
 const nextConfig: NextConfig = {
@@ -18,6 +18,16 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["ffmpeg-static"],
   outputFileTracingIncludes: {
     "/admin/creators/[id]": ["./node_modules/ffmpeg-static/ffmpeg"],
+  },
+  async redirects() {
+    return [
+      {
+        source: "/vartavishva",
+        has: [{ type: "host" as const, value: "(www\\.)?jambuch\\.in" }],
+        destination: "https://vartavishva.in/",
+        permanent: true,
+      },
+    ];
   },
   async rewrites() {
     return {
