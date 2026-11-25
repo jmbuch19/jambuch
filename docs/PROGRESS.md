@@ -214,3 +214,19 @@ pictures with the sample (the sample is audio only, Phase 2a).
    has no stored story (sent earlier): ask him to send again, or test with your own.
 5. New spec filed: `docs/CREATORS_QUESTION_FLOW.md`. Its section 14 lists six
    open points to decide before building it (first: ₹499 vs free sample).
+
+## 25 Nov 2026 — pricing uses the day's USD→INR rate (no fixed ₹85)
+
+Jaydeep: a fixed rupee rate is wrong practice. Now:
+- `src/lib/fx.ts`: the daily job fetches USD→INR (Frankfurter / ECB reference rate, then
+  open.er-api.com) into settings `fx.usd_inr` {rate, date, source}. A missing, absurd (outside
+  ₹50–200) or >8% jump is refused: yesterday's rate stays and the admin gets an email.
+  First use fetches it if none is stored. 25 Nov rate: ₹92.92 (was assumed ₹85).
+- Pricing keeps dollar costs in dollars: `credit_usd_per_1000` (ElevenLabs Pro $99/600k =
+  0.165), `render_usd_per_minute`, `other_flat_usd`, Claude prices; converted with the day's
+  rate × (1 + `fx_markup`, default 0.0413 = card 3.5% + 18% GST on it). Only Jaydeep's own
+  prices (hourly, minimum, add-ons) are in rupees. Retired keys (`inr_per_usd`,
+  `credit_inr_per_1000`, `render_inr_per_minute`, `other_flat_inr`) are ignored and dropped on save.
+- Each quote stores the rate it used (shown in admin). Example 12-min story: Standard
+  ₹2,799 → ₹2,999 at today's rate.
+- Jaydeep to set: `fx_markup` to his card's real forex charge.

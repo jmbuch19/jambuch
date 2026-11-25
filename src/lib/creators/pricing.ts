@@ -1,7 +1,10 @@
 // Creator's Space pricing engine (docs/CREATORS_SPACE_BRIEF.md §5). Pure arithmetic: the
 // rates come from the settings rows `creators.pricing` and `creators.claude_prices`
-// (editable in admin, never fetched live). The writer sees one fixed price; admin sees the
-// breakdown.
+// (editable in admin). Everything we pay for in dollars (ElevenLabs credits, Claude, cloud
+// render time, storage) is kept in dollars and converted with the day's USD→INR rate plus
+// the card's forex markup (src/lib/fx.ts); never a fixed rupee rate (Jaydeep, 25 Nov 2026).
+// Only Jaydeep's own prices (hourly rate, minimum, add-ons) are in rupees. The writer sees
+// one fixed price; admin sees the breakdown and the rate it was made with.
 //
 //   tool_cost = narration + paintings (own retake factors) + (Claude + render + music
 //               + effects + other) × retry buffer
@@ -14,9 +17,12 @@ import { LEVEL_PRESETS } from "./questions";
 
 type StepRate = { model: string; input_per_1k?: number; output_per_1k?: number; input_per_still?: number; output_per_still?: number; batch: boolean };
 
+// The day's rate, filled in at run time (not a setting).
+export type FxUsed = { rate: number; markup: number; effective: number; date: string; source: string };
+
 export type PricingSettings = {
-  inr_per_usd: number;
-  credit_inr_per_1000: number;
+  credit_usd_per_1000: number; // ElevenLabs: plan price ÷ credits (Pro: $99 / 600,000 = $0.165)
+  fx_markup: number; // the card's forex charge on dollar payments, e.g. 3.5% + 18% GST on it = 0.0413
   chars_per_minute: Record<string, number>;
   credits_per_char: { plain: number; dramatised: number };
   retake: { plain: number; dramatised: number };
@@ -31,8 +37,8 @@ export type PricingSettings = {
   music_credits_per_minute: number;
   claude_steps: Record<string, StepRate>;
   batch_multiplier: number;
-  render_inr_per_minute: number;
-  other_flat_inr: number;
+  render_usd_per_minute: number; // cloud running time per narration minute
+  other_flat_usd: number; // storage and bandwidth for the 7-day window
   retry_buffer: number;
   review_hours: Record<string, { self_serve: number; assisted: number }>;
   review_minutes_base: number;
@@ -42,12 +48,13 @@ export type PricingSettings = {
   round_to: number;
   addons_inr: { exclusive_voice: number; own_voice: number };
   assisted_weekly_cap: number;
+  fx: FxUsed; // run time only
 };
 
 // Same numbers as the migration 20261125000000_creator_flow.sql (used if a key is missing).
-export const PRICING_DEFAULTS: PricingSettings = {
-  inr_per_usd: 85,
-  credit_inr_per_1000: 14,
+export const PRICING_DEFAULTS: Omit<PricingSettings, "fx"> = {
+  credit_usd_per_1000: 0.165,
+  fx_markup: 0.0413,
   chars_per_minute: { gu: 700, hi: 800, en: 850 },
   credits_per_char: { plain: 0.48, dramatised: 0.48 },
   retake: { plain: 1.2, dramatised: 1.25 },
@@ -68,8 +75,8 @@ export const PRICING_DEFAULTS: PricingSettings = {
     vision_check: { model: "claude-haiku-5-5", input_per_still: 3000, output_per_still: 300, batch: false },
   },
   batch_multiplier: 0.5,
-  render_inr_per_minute: 5,
-  other_flat_inr: 20,
+  render_usd_per_minute: 0.06,
+  other_flat_usd: 0.25,
   retry_buffer: 1.4,
   review_hours: {
     basic: { self_serve: 0.5, assisted: 1.5 },
@@ -88,14 +95,25 @@ export const PRICING_DEFAULTS: PricingSettings = {
 // US$ per million tokens, from `creators.claude_prices` (models → input/output).
 export type ClaudePrices = { models: Record<string, { input: number; output: number }> };
 
-export function mergePricing(v: unknown): PricingSettings {
-  const x = (v ?? {}) as Partial<PricingSettings>;
+// Old keys that held fixed rupee conversions; dropped so they can never come back into use.
+const RETIRED = ["inr_per_usd", "credit_inr_per_1000", "render_inr_per_minute", "other_flat_inr", "fx", "usd_inr"];
+
+// The stored settings without the run-time rate (what admin edits).
+export function storedPricing(v: unknown): Omit<PricingSettings, "fx"> {
+  const x = { ...((v ?? {}) as Record<string, unknown>) };
+  for (const k of RETIRED) delete x[k];
+  const y = x as Partial<PricingSettings>;
   return {
     ...PRICING_DEFAULTS,
-    ...x,
-    claude_steps: { ...PRICING_DEFAULTS.claude_steps, ...(x.claude_steps ?? {}) },
-    review_hours: { ...PRICING_DEFAULTS.review_hours, ...(x.review_hours ?? {}) },
+    ...y,
+    claude_steps: { ...PRICING_DEFAULTS.claude_steps, ...(y.claude_steps ?? {}) },
+    review_hours: { ...PRICING_DEFAULTS.review_hours, ...(y.review_hours ?? {}) },
   };
+}
+
+export function mergePricing(v: unknown, fx: { rate: number; date: string; source: string }): PricingSettings {
+  const s = storedPricing(v);
+  return { ...s, fx: { rate: fx.rate, markup: s.fx_markup, effective: fx.rate * (1 + s.fx_markup), date: fx.date, source: fx.source } };
 }
 
 export type PriceInput = {
@@ -120,6 +138,7 @@ export type Breakdown = {
   inr: { narration: number; images: number; claude: number; render: number; music_effects: number; other: number; buffered: number; tool_cost: number; review: number; addons: number };
   claude_usd: number;
   review_hours: number;
+  fx: FxUsed;
 };
 export type Price = { price: number; advance: number; final: number; breakdown: Breakdown };
 
@@ -153,7 +172,8 @@ export function priceOne(i: PriceInput, s: PricingSettings, cp: ClaudePrices | n
   // Shorts: script + narration of ~50 s each, pictures reused.
   const shorts = video ? i.shorts * ((s.chars_per_minute[i.lang] ?? 700) * (50 / 60)) * s.credits_per_char[i.delivery] * s.retake[i.delivery] : 0;
 
-  const creditInr = (c: number) => (c / 1000) * s.credit_inr_per_1000;
+  const usdInr = s.fx.effective;
+  const creditInr = (c: number) => (c / 1000) * s.credit_usd_per_1000 * usdInr;
 
   // Claude, step by step (brief §5): tokens × the model's price × batch multiplier if on.
   const usdFor = (step: string, inTok: number, outTok: number) => {
@@ -171,11 +191,12 @@ export function priceOne(i: PriceInput, s: PricingSettings, cp: ClaudePrices | n
   if (i.secondLanguage) claudeUsd += usdFor("translation", (s.claude_steps.translation?.input_per_1k ?? 0) * (i.chars / 1000), (s.claude_steps.translation?.output_per_1k ?? 0) * (i.chars / 1000));
   const vision = s.claude_steps.vision_check;
   if (vision) claudeUsd += usdFor("vision_check", (vision.input_per_still ?? 0) * stills, (vision.output_per_still ?? 0) * stills);
-  const claudeInr = claudeUsd * s.inr_per_usd;
+  const claudeInr = claudeUsd * usdInr;
 
-  const render = s.render_inr_per_minute * minutes * langs * (video ? 1 : 0.2);
+  const render = s.render_usd_per_minute * usdInr * minutes * langs * (video ? 1 : 0.2);
+  const other = s.other_flat_usd * usdInr;
   const musicEffects = creditInr(music + effects);
-  const buffered = (claudeInr + render + musicEffects + s.other_flat_inr) * s.retry_buffer;
+  const buffered = (claudeInr + render + musicEffects + other) * s.retry_buffer;
 
   const narrationInr = creditInr(narration + shorts);
   const imagesInr = creditInr(paintings + motion);
@@ -207,7 +228,7 @@ export function priceOne(i: PriceInput, s: PricingSettings, cp: ClaudePrices | n
         claude: r2(claudeInr),
         render: r2(render),
         music_effects: r2(musicEffects),
-        other: s.other_flat_inr,
+        other: r2(other),
         buffered: r2(buffered),
         tool_cost: r2(toolCost),
         review: r2(hours * s.hourly_inr),
@@ -215,6 +236,7 @@ export function priceOne(i: PriceInput, s: PricingSettings, cp: ClaudePrices | n
       },
       claude_usd: r2(claudeUsd),
       review_hours: r2(hours),
+      fx: s.fx,
     },
   };
 }

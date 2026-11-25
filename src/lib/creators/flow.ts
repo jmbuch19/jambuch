@@ -3,7 +3,8 @@ import { adminClient } from "@/lib/supabase-admin";
 import type { Usage } from "./claude";
 import type { Character, Draft, Episode } from "./files";
 import { BY_ID, LEVEL_LIMITS, LEVEL_PRESETS, STYLE_LABELS, COLOUR_LABELS, narrationMinutes, type Answers, type Ctx, type Lang, t } from "./questions";
-import { inputFrom, mergePricing, quote, type ClaudePrices, type PricingSettings, type Quote } from "./pricing";
+import { inputFrom, mergePricing, quote, storedPricing, type ClaudePrices, type PricingSettings, type Quote } from "./pricing";
+import { usdInr } from "@/lib/fx";
 import { onlyVocabulary } from "./vocabulary";
 import { TERMS_VERSION } from "./terms";
 
@@ -33,8 +34,14 @@ async function setting(key: string) {
 export async function flowSettings(): Promise<FlowSettings> {
   return { ...FLOW_DEFAULTS, ...((await setting("creators.flow")) as Partial<FlowSettings> | null) };
 }
+// The pricing settings with today's USD→INR rate (src/lib/fx.ts) filled in.
 export async function pricingSettings(): Promise<PricingSettings> {
-  return mergePricing(await setting("creators.pricing"));
+  const [stored, fx] = await Promise.all([setting("creators.pricing"), usdInr()]);
+  return mergePricing(stored, fx);
+}
+// What admin edits: the stored settings only, without the day's rate.
+export async function storedPricingSettings() {
+  return storedPricing(await setting("creators.pricing"));
 }
 export async function claudePrices(): Promise<ClaudePrices | null> {
   return (await setting("creators.claude_prices")) as ClaudePrices | null;
@@ -168,7 +175,7 @@ export async function makeQuote(a: Answers, d: Draft, chars: number, storyLang: 
 
 // Is Assisted full this week? (brief §3A capacity cap.) Returns the next Monday if full.
 export async function assistedFull(): Promise<string | null> {
-  const s = await pricingSettings();
+  const s = await storedPricingSettings();
   const now = new Date();
   const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ((now.getUTCDay() + 6) % 7)));
   const { count } = await adminClient()

@@ -103,6 +103,11 @@ export async function saveJsonSetting(form: FormData) {
     return;
   }
   if (!value || typeof value !== "object" || Array.isArray(value)) return;
+  // Pricing: retired fixed-rupee keys (inr_per_usd etc.) are dropped on save.
+  if (key === "creators.pricing") {
+    const { storedPricing } = await import("@/lib/creators/pricing");
+    value = storedPricing(value);
+  }
   await adminClient().from("settings").upsert({ key, value, updated_at: now() });
   revalidatePath("/admin/creators", "layout");
 }

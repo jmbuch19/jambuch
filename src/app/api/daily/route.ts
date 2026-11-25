@@ -4,6 +4,7 @@ import { expired, purge, trash } from "@/lib/trash";
 import { deleteRequestFiles } from "@/lib/creators/files";
 import { deleteSample } from "@/lib/creators/sample";
 import { sendEmail } from "@/lib/email";
+import { refreshFx } from "@/lib/fx";
 
 // Creator's Space: request files whose time is up (brief §6B): 7 days after the sample was
 // sent, at once for withdrawn, refused or closed requests without a sent sample, and for
@@ -162,6 +163,20 @@ export async function GET(request: Request) {
         .eq("series_id", s.id);
       if (!count) await db.from("courtyard_series").delete().eq("id", s.id);
     }
+  }
+
+  // The day's USD → INR rate for pricing (src/lib/fx.ts). A refused rate (no answer, or a
+  // jump of more than 8%) keeps yesterday's and emails the admin.
+  try {
+    const fx = await refreshFx();
+    purged.fx_usd_inr = fx.fx?.rate ?? 0;
+    if (!fx.ok) {
+      failed.fx = fx.note ?? "rate not updated";
+      const admin = process.env.ADMIN_EMAIL;
+      if (admin) await sendEmail({ to: admin, subject: "jambuch.in: USD→INR rate not updated today", text: `${fx.note}\n\nPrices keep using ₹${fx.fx?.rate ?? "?"} (${fx.fx?.date ?? "no date"}). Check /admin/creators.` });
+    }
+  } catch (err) {
+    failed.fx = err instanceof Error ? err.message : String(err);
   }
 
   try {

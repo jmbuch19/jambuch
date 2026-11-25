@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin";
 import { saveJsonSetting, setRequestState } from "./actions";
-import { flowSettings, pricingSettings } from "@/lib/creators/flow";
+import { flowSettings, pricingSettings, storedPricingSettings } from "@/lib/creators/flow";
 import a from "../../admin.module.css";
 
 // Creator's Space sample requests (docs/CREATORS_SPACE_BRIEF.md §6A "Safeguards").
@@ -26,7 +26,8 @@ export default async function CreatorRequestsPage() {
     .select("id, created_at, name, email, language, make, story_chars, state, screening_result, screening_categories, screening_reason, style_tags, big_screen, music_replacement, sample_state, needs_human_why, quote, claude_cost")
     .order("created_at", { ascending: false })
     .limit(200);
-  const [pricing, flow] = await Promise.all([pricingSettings(), flowSettings()]);
+  const [pricing, flow, live] = await Promise.all([storedPricingSettings(), flowSettings(), pricingSettings()]);
+  const fx = live.fx;
   // Which ticks each request was sent with (brief §7), and under which terms version.
   const { data: consents } = rows?.length
     ? await db.from("creator_consents").select("request_id, kind, terms_version, language").in("request_id", rows.map((r) => r.id))
@@ -166,10 +167,19 @@ export default async function CreatorRequestsPage() {
 
       <h2 className={a.gapTop}>Pricing settings (brief §5)</h2>
       <p className={a.intro}>
-        Every number of the pricing engine. Defaults are the measured Ramayana rates (docs/pricing-calibration.md). Still
-        assumptions until you set them: <b>inr_per_usd</b> (85), <b>review_hours</b> per level and service,{" "}
-        <b>render_inr_per_minute</b> (5), <b>credits_per_motion_clip</b> (3000), <b>addons_inr</b>, the Hindi and English{" "}
-        <b>chars_per_minute</b>. Claude token prices are in the separate setting creators.claude_prices.
+        <b>
+          Today’s rate: $1 = ₹{fx.rate.toFixed(2)}
+        </b>{" "}
+        ({fx.source}, {fx.date}; fetched daily) + your card’s forex markup {(fx.markup * 100).toFixed(2)}% = ₹
+        {fx.effective.toFixed(2)} per dollar in quotes. Each quote keeps the rate it was made with.
+      </p>
+      <p className={a.intro}>
+        Every number of the pricing engine. Dollar costs stay in dollars (<b>credit_usd_per_1000</b>: ElevenLabs plan price ÷
+        credits; <b>render_usd_per_minute</b>; <b>other_flat_usd</b>); only your own prices are in rupees. <b>fx_markup</b>: your
+        card’s charge on dollar payments (default 3.5% + 18% GST on it). Still assumptions until you set them:{" "}
+        <b>review_hours</b> per level and service, <b>render_usd_per_minute</b>, <b>credits_per_motion_clip</b>,{" "}
+        <b>addons_inr</b>, the Hindi and English <b>chars_per_minute</b>. Claude token prices are in the separate setting
+        creators.claude_prices.
       </p>
       <form action={saveJsonSetting} className={a.form}>
         <input type="hidden" name="key" value="creators.pricing" />

@@ -183,6 +183,12 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           <h2 className={a.gapTop}>
             Quote ₹{quote.total.toLocaleString("en-IN")} · advance ₹{quote.advance.toLocaleString("en-IN")}
           </h2>
+          {quote.episodes[0]?.breakdown.fx && (
+            <p className={a.mutedSmall}>
+              Priced at $1 = ₹{quote.episodes[0].breakdown.fx.rate} ({quote.episodes[0].breakdown.fx.date}) + {(quote.episodes[0].breakdown.fx.markup * 100).toFixed(2)}% card
+              markup, {new Date(quote.made_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
+            </p>
+          )}
           {quote.episodes.map((e, i) => (
             <p key={i} className={a.mutedSmall}>
               {quote.episodes.length > 1 ? `Episode ${i + 1}: ` : ""}₹{e.price} · {e.breakdown.minutes} min · {e.breakdown.stills} pictures · tools ₹
