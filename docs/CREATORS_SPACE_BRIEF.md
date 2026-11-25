@@ -528,6 +528,24 @@ order's tool cap, the per-day spending guard). **Log which source each asset cam
 follows this for music and effects: library first, Freesound (CC0, or CC BY with a credit
 line) only when the library has nothing, every sound and its source recorded with the sample.
 
+### The Ramayana sound library is a client asset (rule; Jaydeep, 25 Nov 2026)
+
+The sounds and music made for the Ramayana project (on the home PC, catalogued as the
+engine's asset cards) **may be used for clients**, through the shared library and the usual
+selection (client-ready, scored, rotated). Exceptions, from licences and earlier rules:
+- **Voices are not sounds:** the Ramayana cast voices and the narrator (Digital Digdarshak)
+  stay Ramayana-only, and so does any sound made from them (a character's laugh, cry or
+  war-cry recorded in a cast voice).
+- **Licences that don't pass to a client:** anything from Jaydeep's personal subscriptions
+  (e.g. the 2 AudioJungle tracks), anything NonCommercial: never. CC BY only with its credit line.
+- **ElevenLabs sounds and music:** usable as "yes-online" per the Sales reply; only inside
+  the mixed production, never handed over as raw files or as a library.
+- **Never the Ramayana's identity:** no character themes or signature cues that make a
+  client's work sound like the Ramayana series (e.g. a named character's theme), in the same
+  spirit as the rule against reusing its characters, faces and paintings.
+
+The home PC applies these when it exports the client-safe cards (catalog.json, docs/PROGRESS.md).
+
 ### Labels on generated assets (rule; Jaydeep, 25 Nov 2026)
 
 Every asset generated for an order gets a label **when it is created**:
