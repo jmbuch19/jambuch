@@ -24,8 +24,32 @@ import { creditsKey, readStory, sampleKey } from "./files";
 
 const run = promisify(execFile);
 
-export type SampleSettings = { enabled: boolean; daily_cap: number; voice_id: string; model_id: string; max_chars: number };
+// Native voice for native stories (Jaydeep, 25 Nov 2026): one narrator voice and model per
+// story language. A story is only ever read by its own language's voice; with none chosen,
+// the sample waits for Jaydeep rather than borrow another language's voice.
+// (voice_id / model_id are the old single-voice setting, kept only as the English voice.)
+export type SampleLang = "gu" | "hi" | "en";
+export type LangVoice = { voice_id: string; model_id: string };
+export type SampleSettings = {
+  enabled: boolean;
+  daily_cap: number;
+  voice_id: string;
+  model_id: string;
+  max_chars: number;
+  voices?: Partial<Record<SampleLang, LangVoice>>;
+};
 export const SAMPLE_DEFAULTS: SampleSettings = { enabled: true, daily_cap: 5, voice_id: "", model_id: "eleven_v3", max_chars: 900 };
+// The engine narrates Gujarati and Hindi with ElevenLabs v4 (the Ramayana chapters).
+export const DEFAULT_MODEL: Record<SampleLang, string> = { gu: "eleven_v4", hi: "eleven_v4", en: "eleven_v3" };
+export const SAMPLE_LANGS: Record<SampleLang, string> = { gu: "Gujarati", hi: "Hindi", en: "English" };
+
+export function voiceFor(s: SampleSettings, lang: string): LangVoice | null {
+  const l = (["gu", "hi", "en"].includes(lang) ? lang : "en") as SampleLang;
+  const v = s.voices?.[l];
+  if (v?.voice_id) return { voice_id: v.voice_id, model_id: v.model_id || DEFAULT_MODEL[l] };
+  if (l === "en" && s.voice_id) return { voice_id: s.voice_id, model_id: s.model_id || DEFAULT_MODEL.en };
+  return null;
+}
 
 export async function sampleSettings(): Promise<SampleSettings> {
   const { data } = await adminClient().from("settings").select("value").eq("key", "creators.sample").maybeSingle();
@@ -105,7 +129,15 @@ export type Credit = {
   url: string;
   attribution?: string | null; // CC BY: shown wherever the sound is credited
 };
-export type QualityCheck = { pass: boolean; seconds: number; lufs: number | null; words_matched: number | null; problems: string[] };
+export type QualityCheck = {
+  pass: boolean;
+  seconds: number;
+  lufs: number | null;
+  words_matched: number | null;
+  heard_language?: string | null;
+  language_probability?: number | null;
+  problems: string[];
+};
 export type SampleResult = { key: string; credits: Credit[]; cost: Record<string, number | string>; plan: SoundPlan; qc: QualityCheck };
 
 // ---------------------------------------------------------------- 1. passage
@@ -148,7 +180,22 @@ async function speak(text: string, s: SampleSettings): Promise<Buffer> {
   return Buffer.from(await res.arrayBuffer());
 }
 
-export type Voice = { voice_id: string; name: string; category?: string; labels?: Record<string, string> };
+export type Voice = {
+  voice_id: string;
+  name: string;
+  category?: string;
+  labels?: Record<string, string>;
+  verified_languages?: { language: string; accent?: string; locale?: string }[];
+};
+
+// Does ElevenLabs list this voice for the language? (Designed voices may not list any.)
+export function speaksLanguage(v: Voice, lang: string) {
+  const codes = lang === "gu" ? ["gu", "guj"] : lang === "hi" ? ["hi", "hin"] : ["en", "eng"];
+  return (
+    (v.verified_languages ?? []).some((x) => codes.includes(String(x.language).toLowerCase())) ||
+    codes.includes(String(v.labels?.language ?? "").toLowerCase())
+  );
+}
 
 // The account's voices, for the admin's voice picker.
 export async function listVoices(): Promise<Voice[]> {
@@ -157,7 +204,7 @@ export async function listVoices(): Promise<Voice[]> {
   const res = await fetch("https://api.elevenlabs.io/v1/voices", { headers: { "xi-api-key": key }, signal: AbortSignal.timeout(20_000) });
   if (!res.ok) throw new Error(`ElevenLabs answered ${res.status}`);
   const data = (await res.json()) as { voices?: Voice[] };
-  return (data.voices ?? []).map((v) => ({ voice_id: v.voice_id, name: v.name, category: v.category, labels: v.labels }));
+  return (data.voices ?? []).map((v) => ({ voice_id: v.voice_id, name: v.name, category: v.category, labels: v.labels, verified_languages: v.verified_languages }));
 }
 
 // ---------------------------------------------------------------- 4. sounds (Freesound, CC0 only)
@@ -381,12 +428,15 @@ export async function makeSample(
   n: number,
   opts: { forceVoice?: boolean; fresh?: boolean } = {},
 ): Promise<SampleResult> {
-  const s = await sampleSettings();
+  const base = await sampleSettings();
   const story = await readStory(req.id);
-  const sentences = openingSentences(story, s.max_chars);
+  const sentences = openingSentences(story, base.max_chars);
   if (!sentences.length) throw new Error("The story has no text to read.");
   const passage = sentences.join(" ");
   const lang = req.language in TAG_TEXT ? req.language : "en";
+  const native = voiceFor(base, lang);
+  if (!native) throw new Error(`No ${SAMPLE_LANGS[lang as SampleLang] ?? lang} narrator voice is chosen in the sample settings.`);
+  const s: SampleSettings = { ...base, voice_id: native.voice_id, model_id: native.model_id };
 
   // 1. Sound plan (Claude): kept, so a retry doesn't pay for it again.
   const planKey = workKey(req.id, "plan.json");
@@ -394,7 +444,7 @@ export async function makeSample(
   let plan: SoundPlan = savedPlan ? (JSON.parse(savedPlan.toString("utf8")) as SoundPlan) : { mood: "calm", music: [], cues: [] };
   let planUsage = { input: 0, output: 0 };
   if (!savedPlan) {
-    const planned = await optional(req.id, "sound plan (Claude)", () => soundPlan(sentences, req.style_tags));
+    const planned = await optional(req.id, "sound plan (Claude)", () => soundPlan(sentences, req.style_tags, lang));
     if (planned) {
       plan = planned.plan;
       planUsage = planned.usage;
@@ -543,12 +593,13 @@ async function loudness(path: string): Promise<number | null> {
 
 // Speech to text on the narration alone (ElevenLabs Scribe), then: how many of the passage's
 // words were heard? Catches a wrong voice language, garbled speech and dropped lines.
-async function wordsMatched(voicePath: string, passage: string, lang: string): Promise<number | null> {
+type Heard = { matched: number | null; language: string | null; probability: number | null };
+async function wordsMatched(voicePath: string, passage: string): Promise<Heard | null> {
   const key = process.env.ELEVENLABS_API_KEY;
   if (!key) return null;
   const form = new FormData();
   form.append("model_id", "scribe_v1");
-  form.append("language_code", lang === "gu" ? "guj" : lang === "hi" ? "hin" : "eng");
+  // No language given: speech-to-text says which language it heard (the native check).
   form.append("file", new Blob([new Uint8Array(await readFile(voicePath))], { type: "audio/mpeg" }), "voice.mp3");
   const res = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
     method: "POST",
@@ -557,10 +608,12 @@ async function wordsMatched(voicePath: string, passage: string, lang: string): P
     signal: AbortSignal.timeout(90_000),
   });
   if (!res.ok) throw new Error(`Speech-to-text check failed (${res.status})`);
-  const heard = String(((await res.json()) as { text?: string }).text ?? "");
+  const stt = (await res.json()) as { text?: string; language_code?: string; language_probability?: number };
+  const heard = String(stt.text ?? "");
+  const lang = { language: stt.language_code ?? null, probability: typeof stt.language_probability === "number" ? stt.language_probability : null };
   const words = (t: string) => t.toLowerCase().match(/[\p{L}\p{M}\p{N}]+/gu) ?? [];
   const want = words(passage);
-  if (!want.length) return null;
+  if (!want.length) return { matched: null, ...lang };
   const bag = new Map<string, number>();
   for (const w of words(heard)) bag.set(w, (bag.get(w) ?? 0) + 1);
   let found = 0;
@@ -571,8 +624,10 @@ async function wordsMatched(voicePath: string, passage: string, lang: string): P
       bag.set(w, n - 1);
     }
   }
-  return Math.round((found / want.length) * 100) / 100;
+  return { matched: Math.round((found / want.length) * 100) / 100, ...lang };
 }
+
+const LANG_CODES: Record<string, string[]> = { gu: ["gu", "guj"], hi: ["hi", "hin"], en: ["en", "eng"] };
 
 // Limits for an automatic pass. Below them the sample is made again once, then a person looks.
 export const QC_LIMITS = { minSeconds: 20, maxSeconds: 90, minLufs: -19, maxLufs: -13, minWords: 0.6 };
@@ -585,19 +640,29 @@ export async function qualityCheck(mixPath: string, voicePath: string, passage: 
   if (lufs === null) problems.push("loudness not measured");
   else if (lufs < QC_LIMITS.minLufs || lufs > QC_LIMITS.maxLufs) problems.push(`loudness ${lufs} LUFS`);
   let matched: number | null = null;
+  let heardLang: string | null = null;
+  let langProb: number | null = null;
   try {
     const saved = sttKey && !fresh ? await readSaved(sttKey) : null;
-    if (saved) matched = (JSON.parse(saved.toString("utf8")) as { matched: number | null }).matched;
-    else {
-      matched = await wordsMatched(voicePath, passage, lang);
-      if (sttKey && matched !== null) await uploadPrivate(sttKey, asBuffer(Buffer.from(JSON.stringify({ matched }))), "application/json").catch(() => {});
+    let h: Heard | null = saved ? (JSON.parse(saved.toString("utf8")) as Heard) : null;
+    if (h && !("language" in h)) h = null; // saved before the language check: measure again
+    if (!h) {
+      h = await wordsMatched(voicePath, passage);
+      if (sttKey && h) await uploadPrivate(sttKey, asBuffer(Buffer.from(JSON.stringify(h))), "application/json").catch(() => {});
     }
+    matched = h?.matched ?? null;
+    heardLang = h?.language ?? null;
+    langProb = h?.probability ?? null;
+    // Native voice for native stories: the narration must be heard as the story's language.
+    const want = LANG_CODES[lang] ?? [lang];
+    if (heardLang && !want.includes(heardLang.toLowerCase())) problems.push(`heard as ${heardLang}, not ${SAMPLE_LANGS[lang as SampleLang] ?? lang}`);
+    else if (langProb !== null && langProb < 0.6) problems.push(`language unclear (${Math.round(langProb * 100)}% sure)`);
   } catch (e) {
     problems.push(e instanceof Error ? e.message : "speech-to-text check failed");
   }
   if (matched === null) problems.push("words not checked");
   else if (matched < QC_LIMITS.minWords) problems.push(`only ${Math.round(matched * 100)}% of the words heard`);
-  return { pass: !problems.length, seconds: Math.round(seconds * 10) / 10, lufs, words_matched: matched, problems };
+  return { pass: !problems.length, seconds: Math.round(seconds * 10) / 10, lufs, words_matched: matched, heard_language: heardLang, language_probability: langProb, problems };
 }
 
 // Removes an older sample and its credits (when a new one replaces it).

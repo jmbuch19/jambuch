@@ -149,13 +149,21 @@ export async function sampleFeeReceivedAction(form: FormData) {
 export async function saveSampleSettings(form: FormData) {
   await requireAdmin();
   const s = await sampleSettings();
-  const voice = String(form.get("voice_id") ?? "").trim();
-  const model = String(form.get("model_id") ?? "").trim();
   const cap = Number(form.get("daily_cap"));
+  const { DEFAULT_MODEL } = await import("@/lib/creators/sample");
+  const voices: Record<string, { voice_id: string; model_id: string }> = { ...(s.voices ?? {}) };
+  for (const l of ["gu", "hi", "en"] as const) {
+    const v = String(form.get(`voice_${l}`) ?? "").trim();
+    const m = String(form.get(`model_${l}`) ?? "").trim();
+    if (v === "") delete voices[l];
+    else if (/^[A-Za-z0-9]{10,40}$/.test(v)) voices[l] = { voice_id: v, model_id: /^[a-z0-9_]{3,60}$/.test(m) ? m : DEFAULT_MODEL[l] };
+  }
   const value = {
     ...s,
-    voice_id: /^[A-Za-z0-9]{10,40}$/.test(voice) ? voice : s.voice_id,
-    model_id: /^[a-z0-9_]{3,60}$/.test(model) ? model : s.model_id,
+    voices,
+    // The old single voice was used for every language; from now on it is English only.
+    voice_id: voices.en?.voice_id ?? "",
+    model_id: voices.en?.model_id ?? s.model_id,
     daily_cap: Number.isInteger(cap) && cap >= 0 && cap <= 50 ? cap : s.daily_cap,
     enabled: form.get("enabled") === "on",
   };

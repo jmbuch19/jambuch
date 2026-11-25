@@ -1,7 +1,7 @@
 import "server-only";
 import { adminClient } from "@/lib/supabase-admin";
 import { sendEmail } from "@/lib/email";
-import { deleteSample, makeSample, sampleSettings } from "./sample";
+import { SAMPLE_LANGS, deleteSample, makeSample, sampleSettings, voiceFor, type SampleLang } from "./sample";
 import { flowSettings } from "./flow";
 
 // The paid sample, end to end without Jaydeep (Jaydeep, 25 Nov 2026):
@@ -41,7 +41,9 @@ export async function runSampleJob(id: string, mode: "auto" | "manual", opts: { 
     return { status: "waiting", message };
   };
   if (!s.enabled) return wait("samples_off", "Samples are switched off in the settings.");
-  if (!s.voice_id) return wait("no_voice", "No narrator voice is chosen in the sample settings.");
+  if (!voiceFor(s, row.language)) {
+    return wait("no_voice", `No ${SAMPLE_LANGS[row.language as SampleLang] ?? row.language} narrator voice is chosen in the sample settings. A story is only read by a voice of its own language.`);
+  }
 
   const { count } = await db
     .from("creator_requests")

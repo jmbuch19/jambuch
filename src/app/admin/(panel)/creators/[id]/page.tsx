@@ -9,7 +9,7 @@ import type { CostLog } from "@/lib/creators/flow";
 import { PlanView } from "@/app/creators/start/steps";
 import { isStyleTopic } from "@/lib/creators/claude";
 import { sampleLink } from "@/lib/creators/delivery";
-import { listVoices, sampleSettings, type Voice } from "@/lib/creators/sample";
+import { DEFAULT_MODEL, SAMPLE_LANGS, listVoices, sampleSettings, speaksLanguage, voiceFor, type Voice } from "@/lib/creators/sample";
 import { advanceReceived, letContinue, sampleFeeReceivedAction, saveSampleSettings, sendSampleAction, setRequestState } from "../actions";
 import MakeSampleButton from "./make-sample";
 import { FreeRemakeButton, RefundForm } from "./refund-form";
@@ -294,7 +294,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           {r.sample_qc && (
             <p className={a.mutedSmall}>
               Automatic check: <b>{(r.sample_qc as { pass: boolean }).pass ? "passed" : "not passed"}</b> ·{" "}
-              {(r.sample_qc as { seconds: number }).seconds} s · {String((r.sample_qc as { lufs: number | null }).lufs ?? "?")} LUFS · words heard{" "}
+              {(r.sample_qc as { seconds: number }).seconds} s · {String((r.sample_qc as { lufs: number | null }).lufs ?? "?")} LUFS · heard as {String((r.sample_qc as { heard_language?: string | null }).heard_language ?? "?")} · words heard{" "}
               {(r.sample_qc as { words_matched: number | null }).words_matched === null
                 ? "?"
                 : `${Math.round(((r.sample_qc as { words_matched: number }).words_matched) * 100)}%`}
@@ -393,23 +393,41 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
       <h2 className={a.gapTop}>Sample settings</h2>
       <form action={saveSampleSettings} className={a.form}>
-        <label className={a.field}>
-          Narrator voice (ElevenLabs)
-          <select name="voice_id" defaultValue={settings.voice_id}>
-            <option value="">— choose —</option>
-            {voices.map((v) => (
-              <option key={v.voice_id} value={v.voice_id}>
-                {v.name}
-                {v.category ? ` (${v.category})` : ""}
-                {v.labels?.language ? ` · ${v.labels.language}` : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={a.field}>
-          Voice model
-          <input name="model_id" defaultValue={settings.model_id} />
-        </label>
+        <p className={a.mutedSmall}>
+          Native voice for native stories: each story is read only by the voice chosen for its own language. Voices
+          ElevenLabs lists for the language come first, then your designed voices; anything else is marked. Gujarati and
+          Hindi use ElevenLabs v4, like the Ramayana chapters.
+        </p>
+        {(["gu", "hi", "en"] as const).map((l) => {
+          const cur = voiceFor(settings, l);
+          const sorted = [...voices].sort(
+            (x, y) =>
+              Number(speaksLanguage(y, l)) - Number(speaksLanguage(x, l)) ||
+              Number(y.category === "generated") - Number(x.category === "generated") ||
+              x.name.localeCompare(y.name),
+          );
+          return (
+            <div key={l} className={a.fieldRow ?? ""} style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <label className={a.field} style={{ flex: "2 1 320px" }}>
+                {SAMPLE_LANGS[l]} narrator
+                <select name={`voice_${l}`} defaultValue={cur?.voice_id ?? ""}>
+                  <option value="">— none: {SAMPLE_LANGS[l]} samples wait for you —</option>
+                  {sorted.map((v) => (
+                    <option key={v.voice_id} value={v.voice_id}>
+                      {v.name}
+                      {v.category === "generated" ? " (our designed voice)" : v.category ? ` (${v.category})` : ""}
+                      {speaksLanguage(v, l) ? ` · speaks ${SAMPLE_LANGS[l]}` : ` · NOT listed for ${SAMPLE_LANGS[l]}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={a.field} style={{ flex: "1 1 140px" }}>
+                Model
+                <input name={`model_${l}`} defaultValue={cur?.model_id ?? DEFAULT_MODEL[l]} />
+              </label>
+            </div>
+          );
+        })}
         <label className={a.field}>
           Samples per day (all writers)
           <input name="daily_cap" type="number" min={0} max={50} defaultValue={settings.daily_cap} />
