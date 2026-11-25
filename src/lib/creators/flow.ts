@@ -19,8 +19,19 @@ export type FlowSettings = {
   max_followup_rounds: number;
   examples: Record<string, string>;
   payments_enabled: boolean; // off until the before-launch list (brief §2) is done
+  // Jaydeep, 25 Nov 2026: first 10 orders and every Premium order reviewed by him; then 1 in 5
+  // audited. Review hours leave the price only after 10 clean orders and a month of audits.
+  review: { first_orders_reviewed: number; premium_always: boolean; audit_every: number };
 };
-export const FLOW_DEFAULTS: FlowSettings = { claude_cap_usd: 2, voice_notes: false, max_plan_rounds: 3, max_followup_rounds: 2, examples: {}, payments_enabled: false };
+export const FLOW_DEFAULTS: FlowSettings = {
+  claude_cap_usd: 2,
+  voice_notes: false,
+  max_plan_rounds: 3,
+  max_followup_rounds: 2,
+  examples: {},
+  payments_enabled: false,
+  review: { first_orders_reviewed: 10, premium_always: true, audit_every: 5 },
+};
 
 export const STORY_MAX = 120_000; // six episodes; longer stories go to Assisted by email
 export const STORY_MIN = 200;
@@ -32,7 +43,8 @@ async function setting(key: string) {
 }
 
 export async function flowSettings(): Promise<FlowSettings> {
-  return { ...FLOW_DEFAULTS, ...((await setting("creators.flow")) as Partial<FlowSettings> | null) };
+  const v = ((await setting("creators.flow")) as Partial<FlowSettings> | null) ?? {};
+  return { ...FLOW_DEFAULTS, ...v, review: { ...FLOW_DEFAULTS.review, ...(v.review ?? {}) } };
 }
 // The pricing settings with today's USD→INR rate (src/lib/fx.ts) filled in.
 export async function pricingSettings(): Promise<PricingSettings> {

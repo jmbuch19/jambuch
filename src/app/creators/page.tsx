@@ -31,7 +31,7 @@ export default async function CreatorsPage() {
 
   return (
     <>
-      <LibraryHeader cta={{ href: "/creators/start", label: "Start with a free sample" }} />
+      <LibraryHeader cta={{ href: "/creators/start", label: "Start your story" }} />
       <main className={c.page}>
         <section className={c.hero}>
           <p className={h.eyebrow}>Creator’s Space · a paid studio service</p>
@@ -46,7 +46,7 @@ export default async function CreatorsPage() {
           </p>
           <div className={h.buttons}>
             <Link href="/creators/start" className={h.btnAccent}>
-              Start with a free sample
+              Start your story
             </Link>
             <a href="#examples" className={h.btnOutline}>
               Hear and see our work
@@ -123,14 +123,14 @@ export default async function CreatorsPage() {
           </h2>
           <ol className={c.steps}>
             <li>
-              <b>Sign in with your email and send your story.</b> It is checked against our content guidelines, then you answer a few questions about it. Nothing is paid now.
+              <b>Sign in with your email and send your story.</b> It is checked against our content guidelines, then you answer a few questions about it. Nothing is paid yet.
             </li>
             <li>
-              <b>I reply with a plan and a fixed quote</b>: voices, music, pictures, length.
+              <b>You get a one-page plan and a fixed price</b>: voices, music, pictures, length. Change it until it is right.
             </li>
             <li>
-              <b>A free sample first:</b> 30–60 seconds of your story, so you can hear and see the style before you
-              order. Everything after the sample is paid.
+              <b>A 30–60 second sample (₹499)</b> of your own story, so you can hear and see the style before you order the
+              full piece. If you go ahead, the ₹499 is taken off the full price.
             </li>
             <li>
               <b>The full piece:</b> you listen or watch, and flag anything to correct. My mistakes are always fixed free.
@@ -154,22 +154,22 @@ export default async function CreatorsPage() {
             <li>Political propaganda, or medical, legal or money claims presented as fact.</li>
           </ul>
           <p className={c.small}>
-            Every story is checked against this list when it is sent. If we can’t make it, we say why, and nothing is
-            charged.
+            Every story is checked against this list when it is sent, before anything is paid. If something needs to
+            change, we suggest how.
           </p>
         </section>
 
         <section id="request" className={`${c.block} ${c.requestBlock}`} aria-labelledby="ask">
           <h2 id="ask" className={c.h2}>
-            Start with a free sample
+            Start your story
           </h2>
           <p className={c.text}>
             Sign in with your email (we send a short code, no password), paste your story, and answer a few questions
-            about it. A free 30–60 second sample comes first; everything after it is paid.
+            about it. You see your plan and fixed price before paying anything; the ₹499 sample comes next.
           </p>
           <div className={h.buttons}>
             <Link href="/creators/start" className={h.btnAccent}>
-              Start with a free sample
+              Start your story
             </Link>
           </div>
         </section>

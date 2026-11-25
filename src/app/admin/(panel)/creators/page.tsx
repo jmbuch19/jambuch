@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 const when = (iso: string) =>
   new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" });
 
-const OPEN = ["draft", "screening", "questions", "plan", "submitted", "needs_human"];
+const OPEN = ["draft", "screening", "questions", "plan", "sample_due", "submitted", "needs_human"];
 const WHY: Record<string, string> = {
   big_screen: "festival / TV / cinema",
   screening: "screening unsure",

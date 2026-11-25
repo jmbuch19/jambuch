@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { confirmPayment, startAdvance } from "./pay-actions";
+import { confirmPayment, startPayment, type PayKind } from "./pay-actions";
 import h from "../../home.module.css";
 import c from "../creators.module.css";
 
@@ -27,7 +27,8 @@ function loadCheckout(): Promise<boolean> {
   });
 }
 
-export default function PayAdvance({ id, advance }: { id: string; advance: number }) {
+// kind "sample": the ₹499 after the plan is approved. kind "advance": after the sample.
+export default function PayButton({ id, kind, amount, label }: { id: string; kind: PayKind; amount: number; label?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -36,7 +37,7 @@ export default function PayAdvance({ id, advance }: { id: string; advance: numbe
   async function pay() {
     setBusy(true);
     setMessage("");
-    const co = await startAdvance(id);
+    const co = await startPayment(id, kind);
     if ("error" in co) {
       setBusy(false);
       return setMessage(co.error);
@@ -68,11 +69,15 @@ export default function PayAdvance({ id, advance }: { id: string; advance: numbe
     rzp.open();
   }
 
-  if (paid) return <b>Advance paid. Thank you: work on your story begins.</b>;
+  if (paid)
+    return <b>{kind === "sample" ? "Paid. Thank you: your sample is being made, and we’ll email you when it is ready." : "Advance paid. Thank you: work on your story begins."}</b>;
   return (
     <span className={c.inlineForm}>
       <button type="button" className={h.ideaSend} onClick={pay} disabled={busy}>
-        {busy ? "Opening payment…" : `Approve the sample and pay the 50% advance (₹${advance.toLocaleString("en-IN")})`}
+        {busy
+          ? "Opening payment…"
+          : (label ??
+            (kind === "sample" ? `Pay ₹${amount.toLocaleString("en-IN")} for my sample` : `Approve the sample and pay the advance (₹${amount.toLocaleString("en-IN")})`))}
       </button>
       {message && (
         <span className={h.ideaError} role="alert">

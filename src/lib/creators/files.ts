@@ -49,6 +49,7 @@ export type Draft = {
   episodes: Episode[];
   pictures: string[]; // keys under ref/
   flagged: boolean; // the firewall saw instruction-like text somewhere
+  fix?: { reason: string; suggestions: { where: string; change: string }[] }; // the fix-it flow
 };
 
 export const EMPTY_DRAFT: Draft = {

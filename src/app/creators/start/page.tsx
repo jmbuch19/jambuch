@@ -5,7 +5,7 @@ import { adminClient } from "@/lib/supabase-admin";
 import LibraryHeader from "../../library/header";
 import Flow, { type FlowInitial } from "./flow";
 import ListenButton from "./listen-button";
-import PayAdvance from "./pay-button";
+import PayButton from "./pay-button";
 import { signOutWriter, withdrawRequest } from "./actions";
 import { clientDraft } from "./flow-actions";
 import { flowSettings } from "@/lib/creators/flow";
@@ -15,7 +15,7 @@ import h from "../../home.module.css";
 import c from "../creators.module.css";
 
 export const metadata: Metadata = {
-  title: "Start with a free sample · Creator's Space · jambuch.in",
+  title: "Start your story · Creator's Space · jambuch.in",
   robots: { index: false },
 };
 
@@ -29,6 +29,7 @@ const STATE_LABEL: Record<string, string> = {
   screening: "Being checked",
   questions: "In progress",
   plan: "Plan ready for you",
+  sample_due: "Plan approved: your sample is next",
   submitted: "With the studio",
   ordered: "In production",
   needs_human: "A person is reading it",
@@ -89,7 +90,7 @@ export default async function StartPage() {
         <section className={c.block} aria-labelledby="start">
           <p className={h.eyebrow}>Creator’s Space · a paid studio service</p>
           <h1 id="start" className={c.h2}>
-            Start with a free sample
+            Start your story
           </h1>
 
           {user && (
@@ -112,8 +113,15 @@ export default async function StartPage() {
                   <b>{r.sample_state === "sent" && r.sample_key ? "Your sample is ready" : (STATE_LABEL[r.state] ?? r.state)}</b>
                   {r.sample_state === "sent" && r.sample_key && <ListenButton id={r.id} />}
                   {payments && r.state === "submitted" && r.sample_state === "sent" && !!(r.quote as { advance?: number } | null)?.advance && (
-                    <PayAdvance id={r.id} advance={(r.quote as { advance: number }).advance} />
+                    <PayButton id={r.id} kind="advance" amount={(r.quote as { advance: number }).advance} />
                   )}
+                  {r.state === "sample_due" &&
+                    (payments && (r.quote as { sample?: number } | null)?.sample ? (
+                      <PayButton id={r.id} kind="sample" amount={(r.quote as { sample: number }).sample} />
+                    ) : (
+                      <span className={c.small}>Online payment opens soon; we’ll email you when you can pay for your sample.</span>
+                    ))}
+                  {r.state === "submitted" && r.sample_state !== "sent" && <span className={c.small}>your sample is being made</span>}
                   {r.state === "ordered" && <span className={c.small}>advance paid · in production</span>}
                   {r.sample_state === "sent" && r.files_delete_at && (
                     <span className={c.small}>

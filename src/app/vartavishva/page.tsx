@@ -183,7 +183,7 @@ export default async function VartavishvaPage() {
           </h2>
           <p className={v.text}>
             Creator’s Space, our studio, turns writers’ stories into narrated audio stories and illustrated videos in
-            Gujarati, Hindi or English. Start with a free 30–60 second sample.
+            Gujarati, Hindi or English. Start with a 30–60 second sample of your own story.
           </p>
           <a href="https://jambuch.in/creators" className={v.primary}>
             Get your story made

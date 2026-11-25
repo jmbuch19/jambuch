@@ -11,7 +11,9 @@
 //   overhead  = fixed monthly costs (Vercel, the Claude plan's share…) ÷ expected orders a month
 //   price     = 2 × tool_cost + review hours × ₹/hour + add-ons + overhead
 //             ÷ (1 − gateway fee), at least the minimum, rounded UP to ₹99
-//   advance   = 50%, final = the rest. The 30–60 s sample is free (Jaydeep, 25 Nov 2026).
+//   sample    = ₹499 (setting), paid after the plan is approved, counted toward the advance:
+//   advance   = 50% − sample fee, final = the rest; sample + advance + final = price
+//   (Jaydeep, 25 Nov 2026: paid sample, deducted from the full price).
 
 import type { Answers } from "./questions";
 import { LEVEL_PRESETS } from "./questions";
@@ -51,6 +53,7 @@ export type PricingSettings = {
   round_to: number;
   addons_inr: { exclusive_voice: number; own_voice: number };
   assisted_weekly_cap: number;
+  sample_fee_inr: number; // one sample per order (a series has one sample), deducted from the price
   // Fixed running costs carried by Creator's Space, spread over the orders expected a month.
   // Costs already priced per order (ElevenLabs credits, Claude API tokens) do not belong here.
   fixed_costs: FixedCost[];
@@ -105,6 +108,7 @@ export const PRICING_DEFAULTS: Omit<PricingSettings, "fx"> = {
     { name: "Claude Pro (chat + Code), Creator's Space share", amount: 20, currency: "USD", per: "month", share: 0.5 },
   ],
   expected_orders_per_month: 5,
+  sample_fee_inr: 499,
 };
 
 // US$ per million tokens, from `creators.claude_prices` (models → input/output).
@@ -274,14 +278,18 @@ export function priceOne(i: PriceInput, s: PricingSettings, cp: ClaudePrices | n
 }
 
 // A long story is made as episodes, each quoted and paid separately (brief §1).
-export type Quote = { total: number; advance: number; final: number; episodes: Price[]; input: PriceInput; made_at: string };
+// sample + advance + final = total. The sample fee is taken off the advance (it is never
+// more than half the price: the minimum price is ₹999).
+export type Quote = { total: number; sample: number; advance: number; final: number; episodes: Price[]; input: PriceInput; made_at: string };
 
 export function quote(i: PriceInput, episodeChars: number[], s: PricingSettings, cp: ClaudePrices | null): Quote {
   const parts = episodeChars.length > 1 ? episodeChars : [i.chars];
   const episodes = parts.map((chars, n) => priceOne({ ...i, chars, shorts: n === 0 ? i.shorts : 0 }, s, cp));
   const total = episodes.reduce((a, p) => a + p.price, 0);
-  const advance = episodes.reduce((a, p) => a + p.advance, 0);
-  return { total, advance, final: total - advance, episodes, input: i, made_at: new Date().toISOString() };
+  const half = Math.round(total / 2);
+  const sample = Math.min(Math.max(0, Math.round(s.sample_fee_inr)), half);
+  const advance = half - sample;
+  return { total, sample, advance, final: total - half, episodes, input: i, made_at: new Date().toISOString() };
 }
 
 // The answers → the engine's input (choices the writer did not make fall back to the

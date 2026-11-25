@@ -444,8 +444,16 @@ Added when the spec was filed; nothing above was changed. Decide these first.
 
 ### Decisions (Jaydeep, 25 Nov 2026)
 
-1. **Sample stays free.** Every "₹499 sample" above reads as "free sample"; no
-   payment before the sample. Razorpay is needed only for the 50% advance (step 11).
+1. ~~Sample stays free.~~ **Changed the same day: the sample is PAID, ₹499**, as this spec
+   says: approve plan → pay ₹499 → automatic sample → automatic quality check → sent. The
+   ₹499 is deducted from the full price (counted toward the advance). No page may say
+   "free sample".
+1b. **Review time stays in the price**: Jaydeep reviews the first 10 orders and all Premium;
+   1 in 5 audited after that. Review hours come out of pricing only after 10 clean orders
+   and a month of audits.
+1c. **Fix-it flow** after a screening problem: only suggestions that genuinely remove it
+   (e.g. replace quoted lyrics with the writer's own lines); never disguises, never where
+   the line is; max 3 re-checks, then the polite "come back with a fresh idea" page.
 2. Accepted as written: the new flow replaces the form; 18+ moves to sign-in.
 3. **Build everything**, including the pricing engine and .docx/.pdf extraction.
    Anything with a running cost (Razorpay account, speech-to-text provider for

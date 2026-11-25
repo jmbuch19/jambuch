@@ -12,6 +12,8 @@ import {
   episodeTitles,
   followUpRound,
   screenStory,
+  fixSuggestions,
+  FIXABLE,
   storyFacts,
   styleTags,
   suggestLooks,
@@ -355,9 +357,10 @@ export async function setStoryLanguage(id: string, lang: string) {
 // ---------------------------------------------------------------- consent + screening (1.3)
 
 export type ScreenResult = {
-  status: "clear" | "needs_human" | "refused" | "error";
+  status: "clear" | "fix" | "needs_human" | "refused" | "error";
   message?: string;
   draft?: ClientDraft;
+  fix?: { suggestions: { where: string; change: string }[]; story: string; left: number };
 };
 
 const SCREEN_TICKS = ["terms_refund", "rights_origin", "data_processing"] as const;
@@ -366,6 +369,14 @@ export async function consentAndScreen(id: string, form: FormData): Promise<Scre
   const r = await own(id, ["draft"]);
   if (!r) return { status: "error", message: "This request can’t be changed any more." };
   if (r.screening_result === "clear") return { status: "clear", draft: await clientDraft(id) };
+  if (r.screening_result) {
+    // Already screened with a problem: show the fix-it page again (no new check).
+    const d0 = await readDraft(id);
+    const { data: cur } = await adminClient().from("creator_requests").select("rechecks").eq("id", id).single();
+    if (d0.fix) {
+      return { status: "fix", message: d0.fix.reason, fix: { suggestions: d0.fix.suggestions, story: await readStory(id), left: MAX_RECHECKS - (cur?.rechecks ?? 0) } };
+    }
+  }
   if (!r.story_key) return { status: "error", message: "Please add your story first." };
   if (!r.answers.origin) return { status: "error", message: "Please say where the story comes from." };
   const str = (k: string) => String(form.get(k) ?? "").trim();
@@ -391,55 +402,124 @@ export async function consentAndScreen(id: string, form: FormData): Promise<Scre
   ]
     .filter(Boolean)
     .join("\n");
+  return screenAndRoute({ ...r, story, d, prices, settings, origin });
+}
+
+const MAX_RECHECKS = 3;
+
+// The writer's words when a story can't be made (Gujarati and Hindi: drafts for Jaydeep).
+const FRESH_IDEA: Record<ConsentLang, string> = {
+  en: "We’re sorry: we can’t make this story as it is. You’re very welcome to come back with a fresh idea or a different story; we’d love to hear it. If you’d like to talk it over, reply to our email.",
+  gu: "માફ કરશો: આ વાર્તા જેમ છે તેમ અમે બનાવી શકતા નથી. નવા વિચાર કે બીજી વાર્તા સાથે ફરી આવજો; અમને સાંભળવું ગમશે. વાત કરવી હોય તો અમારા ઇમેલનો જવાબ આપજો.",
+  hi: "क्षमा करें: यह कहानी जैसी है वैसी हम नहीं बना सकते। नए विचार या दूसरी कहानी के साथ फिर आइए; हमें सुनना अच्छा लगेगा। बात करनी हो तो हमारे ईमेल का जवाब दें।",
+};
+
+type ScreenInput = Row & {
+  story: string;
+  d: Draft;
+  prices: Awaited<ReturnType<typeof claudePrices>>;
+  settings: Awaited<ReturnType<typeof flowSettings>>;
+  origin: string;
+};
+
+// Screening and what follows it (Jaydeep, 25 Nov 2026):
+//   clear                          → continue (characters and setting are listed once)
+//   a problem the writer can fix   → a gentle page with suggestions that genuinely remove it;
+//                                    the writer edits and re-checks, at most 3 times
+//   anything else, or 3 re-checks  → the polite "come back with a fresh idea" page
+//   unsure, with nothing to fix    → a person at the studio reads it
+async function screenAndRoute(x: ScreenInput): Promise<ScreenResult> {
+  const { id, story, d, prices, settings } = x;
+  const lang = uiLang(x.answers);
   const m = meterFor("screening", prices);
   let screening;
   try {
     await update(id, { state: "screening" });
-    screening = await screenStory(story, "", m.meter, origin);
+    screening = await screenStory(story, "", m.meter, x.origin);
   } catch (e) {
     console.error("creators screening failed:", e instanceof Error ? e.message : e);
     await update(id, { state: "draft" });
     return { status: "error", message: "We couldn’t read the story just now. Please try again in a little while." };
   }
-  const log = await m.save(id, r.claude_cost);
+  let log = await m.save(id, x.claude_cost);
   await update(id, {
-    state: screening.result === "clear" ? "draft" : screening.result,
+    state: "draft",
     screening_result: screening.result,
     screening_categories: screening.categories,
     screening_reason: screening.reason || null,
-    ...(screening.result === "refused" ? { files_delete_at: now() } : {}),
   });
 
-  if (screening.result === "refused") {
+  const refuse = async (): Promise<ScreenResult> => {
+    await update(id, { state: "refused", files_delete_at: now() });
     revalidatePath("/creators/start");
-    return {
-      status: "refused",
-      message: (screening.reason || "This story falls outside what we can make.") + " Our content guidelines are on the Creator’s Space page. Nothing has been charged.",
-    };
-  }
-  if (screening.result === "needs_human") {
-    await update(id, { needs_human_why: "screening" });
-    await mailStudio({
-      subject: `Creator's Space: request from ${r.name} needs your eye`,
-      lines: [
-        `${r.name} <${r.email}> sent a story that the automatic check could not clear.`,
-        `Check: ${screening.categories.join(", ") || "no answer from the checker"}${screening.reason ? ` — ${screening.reason}` : ""}`,
-        "",
-        `Read the story: ${adminLink(id)}`,
-        "",
-        "Nothing more was asked and nothing was made. Let them continue, close or refuse it on the request page.",
-      ],
-      replyTo: r.email,
-    });
-    revalidatePath("/creators/start");
-    return { status: "needs_human", message: "Thank you. Before we go further, a person at the studio will read your story. We’ll write to you by email, usually within two working days." };
+    return { status: "refused", message: FRESH_IDEA[lang] };
+  };
+
+  if (screening.result !== "clear") {
+    const fixable = screening.categories.length > 0 && screening.categories.every((c) => FIXABLE.has(c));
+    if (!fixable) {
+      // Never offered a fix: refused outright, or unsure with nothing the writer could change.
+      if (screening.result === "refused" || screening.categories.length > 0) return refuse();
+      await update(id, { state: "needs_human", needs_human_why: "screening" });
+      await mailStudio({
+        subject: `Creator's Space: request from ${x.name} needs your eye`,
+        lines: [
+          `${x.name} <${x.email}> sent a story that the automatic check could not settle.`,
+          `Check: ${screening.categories.join(", ") || "no answer from the checker"}${screening.reason ? ` — ${screening.reason}` : ""}`,
+          "",
+          `Read the story: ${adminLink(id)}`,
+          "",
+          "Let them continue, close or refuse it on the request page.",
+        ],
+        replyTo: x.email,
+      });
+      revalidatePath("/creators/start");
+      return {
+        status: "needs_human",
+        message: "Thank you. Before we go further, a person at the studio will read your story. We’ll write to you by email, usually within two working days.",
+      };
+    }
+    const { data: cur } = await adminClient().from("creator_requests").select("rechecks").eq("id", id).single();
+    if ((cur?.rechecks ?? 0) >= MAX_RECHECKS) return refuse();
+
+    const m2 = meterFor("fix_suggestions", prices);
+    let suggestions = null;
+    try {
+      suggestions = await fixSuggestions(story, screening.categories, screening.reason, lang, m2.meter);
+    } catch (e) {
+      console.error("creators fix suggestions failed:", e instanceof Error ? e.message : e);
+    }
+    log = await m2.save(id, log);
+    if (!suggestions?.length) return refuse();
+    const first = !d.fix;
+    d.fix = { reason: screening.reason, suggestions };
+    await saveDraft(id, d);
+    await update(id, { current_step: "consent" });
+    if (first) {
+      await sendEmail({
+        to: x.email,
+        subject: lang === "gu" ? "તમારી વાર્તામાં નાનો ફેરફાર જરૂરી છે · A small change is needed" : "Creator's Space: a small change is needed in your story",
+        text: [
+          `Dear ${x.name || "writer"},`,
+          "",
+          "Before we can make your story, one part of it needs a small change. Our suggestions are waiting for you, with the story ready to edit:",
+          "https://jambuch.in/creators/start",
+          "",
+          "Jaydeep Buch",
+          "Creator's Space · jambuch.in/creators",
+        ].join("\n"),
+        replyTo: process.env.ADMIN_EMAIL,
+      });
+    }
+    return { status: "fix", message: screening.reason, fix: { suggestions, story, left: MAX_RECHECKS - (cur?.rechecks ?? 0) } };
   }
 
   // Clear: list the characters and the setting once (cheap model), to prefill stages 5–6.
+  if (d.fix) delete d.fix;
   if (!overCap(log, settings) && !d.characters_found) {
-    const m2 = meterFor("story_facts", prices);
+    const m3 = meterFor("story_facts", prices);
     try {
-      const facts = await storyFacts(story, uiLang(r.answers), 8, m2.meter);
+      const facts = await storyFacts(story, lang, 8, m3.meter);
       if (facts) {
         d.characters = facts.characters.map((c) => ({
           name: c.name,
@@ -457,12 +537,40 @@ export async function consentAndScreen(id: string, form: FormData): Promise<Scre
       console.error("creators story facts failed:", e instanceof Error ? e.message : e);
     }
     d.characters_found = true;
-    await saveDraft(id, d);
-    await m2.save(id, log);
+    await m3.save(id, log);
   }
+  await saveDraft(id, d);
   await update(id, { current_step: "purpose" });
   return { status: "clear", draft: await clientDraft(id) };
 }
+
+// The writer changed their story after our suggestions: check it again (consents are
+// already on record). At most 3 re-checks.
+export async function recheckStory(id: string, text: string): Promise<ScreenResult> {
+  const r = await own(id, ["draft"]);
+  if (!r) return { status: "error", message: "This request can’t be changed any more." };
+  if (r.screening_result === "clear") return { status: "clear", draft: await clientDraft(id) };
+  const { data: cur } = await adminClient().from("creator_requests").select("rechecks").eq("id", id).single();
+  if ((cur?.rechecks ?? 0) >= MAX_RECHECKS) {
+    await update(id, { state: "refused", files_delete_at: now() });
+    return { status: "refused", message: FRESH_IDEA[uiLang(r.answers)] };
+  }
+  const { text: story, flagged } = cleanStory(text);
+  if (story.length < STORY_MIN) return { status: "error", message: "Please keep at least a few paragraphs of the story." };
+  if (story.length > STORY_MAX) return { status: "error", message: "The story is too long." };
+  if (!claudeReady()) return { status: "error", message: "Requests are paused for a short while. Please try again later." };
+  await saveStory(id, story);
+  await update(id, { story_sha256: sha256(story), story_chars: story.length, rechecks: (cur?.rechecks ?? 0) + 1 });
+  const [d, prices, settings] = await Promise.all([readDraft(id), claudePrices(), flowSettings()]);
+  if (flagged) d.flagged = true;
+  if (overCap(r.claude_cost, settings)) {
+    await toHuman(r, "claude_cap", [`The draft reached the Claude budget of US$${settings.claude_cap_usd} during the fix-it re-checks.`]);
+    return { status: "needs_human", message: "Thank you. A person at the studio will read your story and write to you." };
+  }
+  const origin = BY_ID.origin.options?.find((o) => o.id === r.answers.origin)?.label.en ?? "";
+  return screenAndRoute({ ...r, story_chars: story.length, story, d, prices, settings, origin });
+}
+
 
 // ---------------------------------------------------------------- stage 3: prices per level
 
@@ -730,7 +838,7 @@ export type PlanResult = {
   plan?: string;
   version?: number;
   roundsLeft?: number;
-  quote?: { total: number; advance: number; final: number; episodes: number; minutes: number; days: number };
+  quote?: { total: number; sample: number; advance: number; final: number; episodes: number; minutes: number; days: number };
   error?: string;
   stopped?: boolean;
 };
@@ -741,6 +849,7 @@ function quoteSummary(q: Quote, level: string) {
   const minutes = q.episodes.reduce((a, e) => a + e.breakdown.minutes, 0);
   return {
     total: q.total,
+    sample: q.sample ?? 0,
     advance: q.advance,
     final: q.final,
     episodes: q.episodes.length,
@@ -845,8 +954,9 @@ export async function discussPlan(id: string): Promise<{ ok: boolean }> {
   return { ok: true };
 }
 
-// Approve plan → the baseline (brief §6E) → the studio makes the free sample.
-export async function approvePlan(id: string, form: FormData): Promise<{ ok: boolean; error?: string }> {
+// Approve plan → the baseline (brief §6E) → 'sample_due': the writer pays ₹499, then the
+// sample is made, checked and sent automatically (Jaydeep, 25 Nov 2026).
+export async function approvePlan(id: string, form: FormData): Promise<{ ok: boolean; error?: string; pay?: { amount: number; online: boolean } }> {
   const r = await own(id, ["plan"]);
   if (!r) return { ok: false, error: "This request can’t be changed any more." };
   if (String(form.get("consent_plan_baseline") ?? "") !== "yes") return { ok: false, error: "Please tick the box to approve the plan." };
@@ -870,7 +980,7 @@ export async function approvePlan(id: string, form: FormData): Promise<{ ok: boo
     ],
   });
 
-  await update(id, { state: "submitted", plan_approved_at: now(), current_step: null });
+  await update(id, { state: "sample_due", plan_approved_at: now(), current_step: null });
   const q = r.quote;
   await mailStudio({
     subject: `Creator's Space: plan approved by ${r.name}${r.answers.service === "assisted" || r.answers.level === "premium" ? " (Assisted)" : ""}${d.flagged ? " [firewall flag]" : ""}`,
@@ -878,15 +988,17 @@ export async function approvePlan(id: string, form: FormData): Promise<{ ok: boo
       `${r.name} <${r.email}> approved plan version ${r.plan_version}.`,
       r.whatsapp ? `WhatsApp: ${r.whatsapp}` : "",
       `Level ${r.answers.level ?? "standard"} · ${r.story_chars.toLocaleString("en-IN")} characters · about ${Math.round(narrationMinutes(r.story_chars, r.language))} min`,
-      q ? `Quote: ₹${q.total.toLocaleString("en-IN")} (advance ₹${q.advance.toLocaleString("en-IN")}, ${q.episodes.length} part(s))` : "",
+      q ? `Quote: ₹${q.total.toLocaleString("en-IN")} (sample ₹${q.sample}, advance ₹${q.advance.toLocaleString("en-IN")}, final ₹${q.final.toLocaleString("en-IN")}, ${q.episodes.length} part(s))` : "",
       d.flagged ? "The firewall flagged instruction-like text in this request: read it before making anything." : "",
       "",
-      `Make the free sample: ${adminLink(id)}`,
+      "Next: the writer pays the ₹499 sample fee; the sample is then made, checked and sent automatically.",
+      `Request: ${adminLink(id)}`,
     ].filter(Boolean),
     replyTo: r.email,
   });
   revalidatePath("/creators/start");
-  return { ok: true };
+  const online = (await flowSettings()).payments_enabled && !!process.env.RAZORPAY_KEY_ID && !!process.env.RAZORPAY_KEY_SECRET;
+  return { ok: true, pay: { amount: q?.sample ?? 0, online } };
 }
 
 // ---------------------------------------------------------------- voice notes (principle 4)
@@ -960,4 +1072,14 @@ export async function abandonDraft(id: string) {
   await update(id, { story_key: null, files_purged_at: now() });
   revalidatePath("/creators/start");
   return { ok: true };
+}
+
+// A writer returning to a story that needs a fix sees the suggestions again at once.
+export async function pendingFix(id: string): Promise<ScreenResult | null> {
+  const r = await own(id, ["draft"]);
+  if (!r || !r.screening_result || r.screening_result === "clear") return null;
+  const d = await readDraft(id);
+  if (!d.fix) return null;
+  const { data: cur } = await adminClient().from("creator_requests").select("rechecks").eq("id", id).single();
+  return { status: "fix", message: d.fix.reason, fix: { suggestions: d.fix.suggestions, story: await readStory(id), left: MAX_RECHECKS - (cur?.rechecks ?? 0) } };
 }

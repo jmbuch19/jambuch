@@ -10,7 +10,7 @@ import { deleteForever, uploadPrivate } from "@/lib/r2";
 import { soundPlan, type SoundPlan } from "./claude";
 import { creditsKey, readStory, sampleKey } from "./files";
 
-// Phase 2a: the free 30–60 second AUDIO sample (docs/CREATORS_SPACE_BRIEF.md §6H).
+// Phase 2a: the paid (₹499) 30–60 second AUDIO sample (docs/CREATORS_SPACE_BRIEF.md §6H).
 //   1. passage   the story's opening, word for word, cut at a sentence end (code, not AI)
 //   2. plan      Claude picks mood, music words and up to 3 sound cues from the vocabulary
 //   3. voice     ElevenLabs reads the passage (voice and model from settings)
@@ -94,7 +94,8 @@ const SOUND_QUERY: Record<string, string> = {
 };
 
 export type Credit = { kind: "music" | "effect"; source: "freesound"; id: number; name: string; author: string; licence: string; url: string };
-export type SampleResult = { key: string; credits: Credit[]; cost: Record<string, number | string>; plan: SoundPlan };
+export type QualityCheck = { pass: boolean; seconds: number; lufs: number | null; words_matched: number | null; problems: string[] };
+export type SampleResult = { key: string; credits: Credit[]; cost: Record<string, number | string>; plan: SoundPlan; qc: QualityCheck };
 
 // ---------------------------------------------------------------- 1. passage
 
@@ -304,6 +305,7 @@ export async function makeSample(req: { id: string; language: string; style_tags
     }
 
     const out = await mix({ dir, tag: tagPath, voice: voicePath, music: musicPath, effects, voiceStart, total, tagEndAt });
+    const qc = await qualityCheck(out, voicePath, passage, lang);
     const bytes = await readFile(out);
 
     const key = sampleKey(req.id, n);
@@ -315,6 +317,7 @@ export async function makeSample(req: { id: string; language: string; style_tags
       key,
       credits,
       plan,
+      qc,
       cost: {
         elevenlabs_chars: passage.length + TAG_TEXT[lang].length,
         claude_input_tokens: planned?.usage.input ?? 0,
@@ -327,6 +330,72 @@ export async function makeSample(req: { id: string; language: string; style_tags
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+}
+
+// ---------------------------------------------------------------- automatic quality check
+
+// Integrated loudness (LUFS) from FFmpeg's EBU R128 meter.
+async function loudness(path: string): Promise<number | null> {
+  const out = await run(ffmpeg(), ["-hide_banner", "-nostats", "-i", path, "-af", "ebur128", "-f", "null", "-"], {
+    timeout: 60_000,
+    maxBuffer: 16 * 1024 * 1024,
+  }).catch((e: { stderr?: string }) => ({ stderr: e.stderr ?? "" }));
+  const m = /Integrated loudness:\s*I:\s*(-?\d+(?:\.\d+)?) LUFS/.exec(String(out.stderr));
+  return m ? Number(m[1]) : null;
+}
+
+// Speech to text on the narration alone (ElevenLabs Scribe), then: how many of the passage's
+// words were heard? Catches a wrong voice language, garbled speech and dropped lines.
+async function wordsMatched(voicePath: string, passage: string, lang: string): Promise<number | null> {
+  const key = process.env.ELEVENLABS_API_KEY;
+  if (!key) return null;
+  const form = new FormData();
+  form.append("model_id", "scribe_v1");
+  form.append("language_code", lang === "gu" ? "guj" : lang === "hi" ? "hin" : "eng");
+  form.append("file", new Blob([new Uint8Array(await readFile(voicePath))], { type: "audio/mpeg" }), "voice.mp3");
+  const res = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
+    method: "POST",
+    headers: { "xi-api-key": key },
+    body: form,
+    signal: AbortSignal.timeout(90_000),
+  });
+  if (!res.ok) throw new Error(`Speech-to-text check failed (${res.status})`);
+  const heard = String(((await res.json()) as { text?: string }).text ?? "");
+  const words = (t: string) => t.toLowerCase().match(/[\p{L}\p{M}\p{N}]+/gu) ?? [];
+  const want = words(passage);
+  if (!want.length) return null;
+  const bag = new Map<string, number>();
+  for (const w of words(heard)) bag.set(w, (bag.get(w) ?? 0) + 1);
+  let found = 0;
+  for (const w of want) {
+    const n = bag.get(w) ?? 0;
+    if (n > 0) {
+      found++;
+      bag.set(w, n - 1);
+    }
+  }
+  return Math.round((found / want.length) * 100) / 100;
+}
+
+// Limits for an automatic pass. Below them the sample is made again once, then a person looks.
+export const QC_LIMITS = { minSeconds: 20, maxSeconds: 90, minLufs: -19, maxLufs: -13, minWords: 0.6 };
+
+export async function qualityCheck(mixPath: string, voicePath: string, passage: string, lang: string): Promise<QualityCheck> {
+  const problems: string[] = [];
+  const seconds = await duration(mixPath);
+  if (seconds < QC_LIMITS.minSeconds || seconds > QC_LIMITS.maxSeconds) problems.push(`length ${Math.round(seconds)} s`);
+  const lufs = await loudness(mixPath);
+  if (lufs === null) problems.push("loudness not measured");
+  else if (lufs < QC_LIMITS.minLufs || lufs > QC_LIMITS.maxLufs) problems.push(`loudness ${lufs} LUFS`);
+  let matched: number | null = null;
+  try {
+    matched = await wordsMatched(voicePath, passage, lang);
+  } catch (e) {
+    problems.push(e instanceof Error ? e.message : "speech-to-text check failed");
+  }
+  if (matched === null) problems.push("words not checked");
+  else if (matched < QC_LIMITS.minWords) problems.push(`only ${Math.round(matched * 100)}% of the words heard`);
+  return { pass: !problems.length, seconds: Math.round(seconds * 10) / 10, lufs, words_matched: matched, problems };
 }
 
 // Removes an older sample and its credits (when a new one replaces it).

@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["ffmpeg-static"],
   outputFileTracingIncludes: {
     "/admin/creators/[id]": ["./node_modules/ffmpeg-static/ffmpeg"],
+    "/api/creators/sample-job": ["./node_modules/ffmpeg-static/ffmpeg"],
   },
   async redirects() {
     return [

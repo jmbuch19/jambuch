@@ -243,3 +243,30 @@ Jaydeep: a fixed rupee rate is wrong practice. Now:
 - Each quote records the gateway fee and "left for you" (review time + margin, before GST
   and income tax). 12-min story: Basic ₹1,699 (left ₹814), Standard ₹3,599 (left ₹2,264),
   Premium ₹6,899 (left ₹5,131).
+
+
+## 25 Nov 2026 — paid ₹499 sample, automatic sample + check, fix-it flow (branch, NOT live)
+
+Jaydeep changed the sample to paid (₹499) and asked for step 1 of the hands-off pipeline.
+- Flow: plan approved → state `sample_due` → ₹499 (Razorpay, or admin "received outside
+  Razorpay") → `submitted` → /api/creators/sample-job (FFmpeg shipped with it) makes the
+  sample → automatic check (20–90 s, −19…−13 LUFS, ≥60% of the passage's words heard back by
+  ElevenLabs speech-to-text) → sent. A failed check is made once more; a second failure, no
+  voice chosen or samples off waits for Jaydeep (the writer is told it takes a little
+  longer). The daily cap defers to the daily job, which also restarts paid samples not made.
+- Quote: `sample` (₹499, setting `sample_fee_inr`) counted toward the advance:
+  sample + advance + final = price. Every "free sample" text replaced (landing, terms,
+  summary ticks EN/GU/HI, home band, vartavishva, flow, emails); TERMS_VERSION 2026-11-25.1.
+- Fix-it flow: fixable screening categories (lyrics, copied text, real-person harm, hate,
+  mockery, violence/self-harm/dangerous detail, propaganda, misleading claims) get Opus
+  suggestions that remove the problem (no disguises, no limits stated), the story editable on
+  the page, and up to 3 re-checks; then the polite fresh-idea page. Sexual content, harm to
+  children or 3 failed re-checks → that page at once. Unsure with no category → Jaydeep.
+  The writer gets an email the first time.
+- Review rule in settings (`creators.flow.review`); each order pack records
+  `review: jaydeep | audit | auto`.
+- Launch list (brief §2) gains: lawyer-checked terms (required), the move to vartavishva.in
+  and Razorpay verifying that site.
+
+Before merge (Jaydeep): run `20261125200000_creator_sample_fee.sql` (state `sample_due`,
+payment kind `sample`, columns `sample_qc`, `rechecks`). Check the new Gujarati/Hindi lines.

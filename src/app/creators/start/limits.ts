@@ -2,4 +2,4 @@
 export const LIMITS = { open: 3, perDay: 5 } as const;
 
 // States that still need something from the writer or the studio.
-export const OPEN_STATES = ["draft", "screening", "questions", "plan", "submitted", "needs_human"];
+export const OPEN_STATES = ["draft", "screening", "questions", "plan", "sample_due", "submitted", "needs_human"];

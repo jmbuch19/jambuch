@@ -5,6 +5,7 @@ import { deleteRequestFiles } from "@/lib/creators/files";
 import { deleteSample } from "@/lib/creators/sample";
 import { sendEmail } from "@/lib/email";
 import { refreshFx } from "@/lib/fx";
+import { triggerSampleJob } from "@/lib/creators/sample-job";
 
 // Creator's Space: request files whose time is up (brief §6B): 7 days after the sample was
 // sent, at once for withdrawn, refused or closed requests without a sent sample, and for
@@ -43,7 +44,7 @@ async function abandonedDrafts(db: ReturnType<typeof adminClient>, now: string) 
   const { data: rows, error } = await db
     .from("creator_requests")
     .select("id, email, name, language, updated_at, reminded_at")
-    .in("state", ["draft", "questions", "plan"])
+    .in("state", ["draft", "questions", "plan", "sample_due"])
     .lt("updated_at", new Date(t - 3 * day).toISOString())
     .limit(200);
   if (error) throw new Error(error.message);
@@ -163,6 +164,22 @@ export async function GET(request: Request) {
         .eq("series_id", s.id);
       if (!count) await db.from("courtyard_series").delete().eq("id", s.id);
     }
+  }
+
+  // Paid samples not made yet (the daily cap was reached, or a start was missed): try again.
+  try {
+    const { data: due } = await db
+      .from("creator_requests")
+      .select("id")
+      .eq("state", "submitted")
+      .is("sample_state", null)
+      .is("needs_human_why", null)
+      .limit(20);
+    let started = 0;
+    for (const r of due ?? []) if (await triggerSampleJob(r.id)) started++;
+    purged.creator_samples_started = started;
+  } catch (err) {
+    failed.creator_samples = err instanceof Error ? err.message : String(err);
   }
 
   // The day's USD → INR rate for pricing (src/lib/fx.ts). A refused rate (no answer, or a

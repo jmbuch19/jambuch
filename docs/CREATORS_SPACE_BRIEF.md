@@ -33,7 +33,7 @@ made from your work here"). Never mix the two in copy, data or navigation.
 | Minimum order | **₹999** for any creation. **No job is free** except the tiny sample below (Jaydeep, 22 Nov 2026) |
 | Finish levels | **Basic · Standard · Premium** (section 3A): presets for the configurator plus image density, assets and checks |
 | Service mode | **Self-serve** (autopilot) or **Assisted** (Jaydeep involved: consultation, curation, personal review; more time and money). Premium and AI animated film are always Assisted |
-| Sample | **Free, 30–60 seconds** (changed 22 Nov 2026; was 60–90 s for ₹499). The only free work. One per writer (verified email + phone), watermarked, primary language only, a daily cap on free samples (setting), Turnstile + email verification before it is made. Everything else is paid |
+| Sample | **Paid: ₹499, 30–60 seconds** (Jaydeep, 25 Nov 2026; replaces the free sample of 22 Nov). Paid after the plan is approved; then made, quality-checked and sent automatically. Deducted from the full price if the writer goes ahead (counted toward the advance); not refunded if they stop after it; refunded if we cannot make it. Watermarked, primary language only, a daily cap (setting). Nothing is free |
 | Payment | **50% advance** after sample approval; **50% before clean download** |
 | Review | **Autopilot** (section 6A): the AI assistant guides the writer, the writer approves the script and the sample, automated checks choose drafts and replace Jaydeep's final review (no shot-list approval step for the writer). Jaydeep is alerted only for exceptions. Admin toggle per package: `autopilot` / `jaydeep_reviews` (start: `jaydeep_reviews` for the first 10 orders, then autopilot) |
 | Revisions | Replaced by **flag-based corrections** (section 6E): only flagged errors are corrected. **Our mistakes: always free.** **Content changes: free up to 20% of the work in one round; above 20%, charged** |
@@ -55,7 +55,7 @@ made from your work here"). Never mix the two in copy, data or navigation.
    making and delivering generated content to paying clients.
 3. **GST/tax.** Jaydeep confirms with his CA whether he must register for GST at
    his expected turnover. Invoices support both modes (setting `GST_ENABLED`).
-4. **Terms and refund policy** (sections 7–8) reviewed by Jaydeep (and ideally a
+4. **Terms and refund policy** (sections 7–8) reviewed by Jaydeep **and checked by a lawyer** (required, 25 Nov 2026; was "ideally"; a
    lawyer) and published at `/creators/terms`.
 5. **Razorpay** live keys in Vercel env vars (never in code). Test mode until then.
    Confirm Razorpay accepts Jaydeep as an individual seller, and its KYC is done.
@@ -91,6 +91,12 @@ made from your work here"). Never mix the two in copy, data or navigation.
    (section 10A). A second ElevenLabs subscription is a fixed cost in the dashboard.
 10. **Backups.** Confirm Supabase backup retention. Keep all creative text out of
     the database (R2 only), so no backup ever holds a writer's content past 7 days.
+12. **Move Creator's Space to vartavishva.in** and have **Razorpay verify that site**
+    (website verification is per domain; jambuch.in's approval doesn't carry over).
+    (Jaydeep, 25 Nov 2026.)
+13. **Review rule:** Jaydeep reviews the first 10 orders and every Premium order himself;
+    after that 1 in 5 is audited (setting `creators.flow.review`). Review hours stay in
+    the price until 10 clean orders and a month of audits.
 11. **End-to-end test** in test mode: order → sample → advance → preview → flags →
     final → download → day-7 deletion → certificate, using a fake order with a
     clock override. Also test inactivity cancellation and series storage expiry.

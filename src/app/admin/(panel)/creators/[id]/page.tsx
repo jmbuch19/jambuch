@@ -10,7 +10,7 @@ import { PlanView } from "@/app/creators/start/steps";
 import { isStyleTopic } from "@/lib/creators/claude";
 import { sampleLink } from "@/lib/creators/delivery";
 import { listVoices, sampleSettings, type Voice } from "@/lib/creators/sample";
-import { advanceReceived, letContinue, saveSampleSettings, sendSampleAction, setRequestState } from "../actions";
+import { advanceReceived, letContinue, sampleFeeReceivedAction, saveSampleSettings, sendSampleAction, setRequestState } from "../actions";
 import MakeSampleButton from "./make-sample";
 import a from "../../../admin.module.css";
 
@@ -239,6 +239,15 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       <p className={a.mutedSmall}>Style tags: {r.style_tags?.join(", ") || "none"}</p>
 
       <h2 className={a.gapTop}>Sample</h2>
+      {r.state === "sample_due" && (
+        <form action={sampleFeeReceivedAction} className={a.actions}>
+          <input type="hidden" name="id" value={id} />
+          <p>Plan approved; waiting for the ₹{(r.quote as { sample?: number } | null)?.sample ?? 499} sample fee.</p>
+          <button type="submit" className={a.secondary}>
+            ₹{(r.quote as { sample?: number } | null)?.sample ?? 499} received outside Razorpay: make the sample now
+          </button>
+        </form>
+      )}
       {r.state === "submitted" && r.story_key ? (
         <>
           <p>
@@ -247,7 +256,16 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             {r.sample_sent_at ? ` · sent ${when(r.sample_sent_at)}` : ""}
             {r.files_delete_at ? ` · files deleted after ${when(r.files_delete_at)}` : ""}
           </p>
-          {r.sample_error && <p className={a.error}>Last attempt failed: {r.sample_error}</p>}
+          {r.sample_error && <p className={a.error}>Last attempt: {r.sample_error}</p>}
+          {r.sample_qc && (
+            <p className={a.mutedSmall}>
+              Automatic check: <b>{(r.sample_qc as { pass: boolean }).pass ? "passed" : "not passed"}</b> ·{" "}
+              {(r.sample_qc as { seconds: number }).seconds} s · {String((r.sample_qc as { lufs: number | null }).lufs ?? "?")} LUFS · words heard{" "}
+              {(r.sample_qc as { words_matched: number | null }).words_matched === null
+                ? "?"
+                : `${Math.round(((r.sample_qc as { words_matched: number }).words_matched) * 100)}%`}
+            </p>
+          )}
           {listen && (
             <>
               <audio controls preload="none" src={listen} style={{ width: "100%", maxWidth: 560 }} />
@@ -318,7 +336,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         </>
       )}
 
-      {["draft", "screening", "questions", "plan", "submitted", "needs_human"].includes(r.state) && (
+      {["draft", "screening", "questions", "plan", "sample_due", "submitted", "needs_human"].includes(r.state) && (
         <form action={setRequestState} className={a.actions}>
           <input type="hidden" name="id" value={id} />
           <button type="submit" name="state" value="closed" className={a.secondary}>

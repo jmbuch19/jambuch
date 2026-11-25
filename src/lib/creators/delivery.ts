@@ -58,7 +58,7 @@ export async function deliveryLink(orderId: string, key: string, kind: DeliveryK
   return url;
 }
 
-// The free sample (Phase 2a): a watermarked mixed MP3 in creators/<id>/sample/. Same rules:
+// The paid sample (Phase 2a): a watermarked mixed MP3 in creators/<id>/sample/. Same rules:
 // a 15-minute link, only that exact kind of file, never a part.
 const SAMPLE_NAME = /^sample-\d+\.mp3$/;
 

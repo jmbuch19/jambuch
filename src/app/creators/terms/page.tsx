@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <>
-      <LibraryHeader cta={{ href: "/creators/start", label: "Start with a free sample" }} />
+      <LibraryHeader cta={{ href: "/creators/start", label: "Start your story" }} />
       <main className={`${c.page} ${c.terms}`}>
         <section className={c.block}>
           <p className={h.eyebrow}>Creator’s Space · a paid studio service</p>
@@ -62,24 +62,32 @@ export default function TermsPage() {
               service, separate from the free Courtyard. Billing is in the name of Jaydeep Buch.
             </li>
             <li>
-              The 30–60 second sample is free: one per writer, watermarked, in the story’s first language. Everything
-              after the sample is paid. The minimum order is ₹999.
+              Every order starts with a 30–60 second sample (₹499), made after you approve your creative plan:
+              watermarked, in the story’s first language. The minimum order is ₹999.
             </li>
             <li>We may refuse any request or order, with a reason.</li>
           </ul>
 
           <h2>2. Payment</h2>
           <ul className={c.text}>
-            <li>The price is fixed in your quote.</li>
-            <li>50% is paid in advance after you approve the sample; 50% is paid before the clean files are unlocked.</li>
+            <li>The price is fixed in your quote, which comes with your creative plan.</li>
+            <li>The ₹499 sample fee is paid after you approve the plan, before the sample is made.</li>
+            <li>
+              If you go ahead after the sample, the ₹499 is deducted from the full price. Of the rest, about half is paid in
+              advance and the remainder before the clean files are unlocked.
+            </li>
           </ul>
 
           <h2 id="refund">3. Refund policy</h2>
           <ul className={c.text}>
-            <li>The sample is free, so there is nothing to refund before or after it.</li>
+            <li>
+              The ₹499 sample fee is not refunded if you decide to stop after hearing or seeing the sample: it paid for the
+              sample.
+            </li>
+            <li>If we cannot make or deliver your sample, the ₹499 is refunded in full.</li>
             <li>The advance is not refundable once production has started, unless we cannot deliver; then it is refunded in full.</li>
             <li>There is no refund after the clean files are downloaded. You are asked to confirm before downloading.</li>
-            <li>An order refused by our checks or by us before the sample is refunded in full.</li>
+            <li>Nothing is charged for a story our checks or we refuse before the plan: payment starts only after you approve the plan.</li>
             <li>If a package is withdrawn because a provider changed or stopped, unused payments are refunded.</li>
             <li>Refunds go back through Razorpay to the original payment method.</li>
           </ul>

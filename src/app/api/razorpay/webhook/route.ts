@@ -1,5 +1,5 @@
 import { webhookSignatureValid } from "@/lib/creators/razorpay";
-import { advancePaid, paymentFailed } from "@/lib/creators/orders";
+import { paymentPaid, paymentFailed } from "@/lib/creators/orders";
 
 // Razorpay webhook (Dashboard → Webhooks: https://jambuch.in/api/razorpay/webhook, events
 // order.paid, payment.captured, payment.failed; secret = RAZORPAY_WEBHOOK_SECRET).
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   const orderId = ev.payload?.order?.entity?.id ?? payment?.order_id ?? "";
   try {
     if ((ev.event === "order.paid" || ev.event === "payment.captured") && orderId && payment?.id) {
-      const res = await advancePaid(orderId, payment.id, "webhook");
+      const res = await paymentPaid(orderId, payment.id, "webhook");
       if (!res.ok) console.warn("razorpay webhook:", ev.event, orderId, res.reason);
     } else if (ev.event === "payment.failed" && orderId) {
       await paymentFailed(orderId, payment?.error_description ?? "failed");

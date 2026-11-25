@@ -8,7 +8,8 @@
 //   showIf    the cascade: the question appears only when this is true
 //   stop      an answer that ends the flow, with the message shown
 //
-// The sample is FREE (Jaydeep, 25 Nov 2026): no text here may mention ₹499.
+// The sample is PAID: ₹499 after the plan is approved, deducted from the full price if the
+// writer goes ahead (Jaydeep, 25 Nov 2026, superseding the free sample). Never "free sample".
 // Gujarati and Hindi are first drafts: Jaydeep checks every line before launch.
 
 import { VOCABULARY } from "./vocabulary";
@@ -789,9 +790,9 @@ export const UI: Record<string, L> = {
   startOver: { en: "Start again", gu: "ફરી શરૂ કરો", hi: "फिर से शुरू करें" },
   typicalPrice: { en: "Typical price", gu: "સામાન્ય કિંમત", hi: "सामान्य कीमत" },
   rangeNote: {
-    en: "A range only, not a quote. Your fixed price comes with your plan, before anything is made. The 30–60 second sample is free.",
-    gu: "ફક્ત અંદાજ, ભાવપત્રક નહીં. તમારી નક્કી કિંમત પ્લાન સાથે આવશે, કંઈ પણ બને તે પહેલાં. 30–60 સેકન્ડનો નમૂનો મફત છે.",
-    hi: "केवल अनुमान, कोटेशन नहीं। आपकी तय कीमत योजना के साथ आएगी, कुछ भी बनने से पहले। 30–60 सेकंड का नमूना मुफ़्त है।",
+    en: "A range only, not a quote. Your fixed price comes with your plan, before anything is made. The 30–60 second sample of your story costs ₹499, taken off the full price if you go ahead.",
+    gu: "ફક્ત અંદાજ, ભાવપત્રક નહીં. તમારી નક્કી કિંમત પ્લાન સાથે આવશે, કંઈ પણ બને તે પહેલાં. તમારી વાર્તાના 30–60 સેકન્ડના નમૂનાના ₹499; આગળ વધો તો પૂરી કિંમતમાંથી બાદ થાય છે.",
+    hi: "केवल अनुमान, कोटेशन नहीं। आपकी तय कीमत योजना के साथ आएगी, कुछ भी बनने से पहले। आपकी कहानी के 30–60 सेकंड के नमूने के ₹499; आगे बढ़ें तो पूरी कीमत में से घटते हैं।",
   },
 };
 

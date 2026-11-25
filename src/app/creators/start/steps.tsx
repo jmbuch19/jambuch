@@ -3,6 +3,8 @@
 import { startTransition, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import {
   consentAndScreen,
+  pendingFix,
+  recheckStory,
   episodeOpenings,
   levelPrices,
   makePlanAction,
@@ -24,6 +26,7 @@ import {
 } from "./flow-actions";
 import { uploadPicture } from "./flow-actions";
 import ConsentTicks, { allTicked, type Ticks } from "./consent-ticks";
+import PayButton from "./pay-button";
 import { SpamCheckBox, sendLabel, useSpamCheck } from "../../spam-check";
 import { COLOUR_LABELS, LEVEL_PRESETS, STYLE_LABELS, UI, VOICE_TYPES, isCustom, narrationMinutes, t, type Answers, type L, type Lang } from "@/lib/creators/questions";
 import type { Character } from "@/lib/creators/files";
@@ -104,15 +107,16 @@ const W: Record<string, L> = {
   pronHelp: { en: "Correct any guide that is wrong; leave it empty if you’re unsure. This list goes into your script.", gu: "ખોટું માર્ગદર્શન સુધારો; ખાતરી ન હોય તો ખાલી રાખો. આ યાદી સ્ક્રિપ્ટમાં જશે.", hi: "गलत मार्गदर्शन सुधारें; पक्का न हो तो खाली छोड़ें। यह सूची स्क्रिप्ट में जाएगी।" },
   writingPlan: { en: "Writing your creative plan… (up to a minute)", gu: "તમારો ક્રિએટિવ પ્લાન લખીએ છીએ… (એક મિનિટ સુધી)", hi: "आपकी क्रिएटिव योजना लिख रहे हैं… (एक मिनट तक)" },
   price: { en: "Your fixed price", gu: "તમારી નક્કી કિંમત", hi: "आपकी तय कीमत" },
-  advance: { en: "{a} in advance after you approve the free sample, {f} before the final download.", gu: "મફત નમૂનો મંજૂર કર્યા પછી {a} એડવાન્સ, અંતિમ ડાઉનલોડ પહેલાં {f}.", hi: "मुफ़्त नमूना स्वीकार करने के बाद {a} अग्रिम, अंतिम डाउनलोड से पहले {f}।" },
+  advance: { en: "{s} now for your sample. If you go ahead after it: {a} in advance (your {s} already counted), then {f} before the final download.", gu: "હમણાં નમૂના માટે {s}. તે પછી આગળ વધો તો: {a} એડવાન્સ (તમારા {s} ગણાઈ ગયા છે), પછી અંતિમ ડાઉનલોડ પહેલાં {f}.", hi: "अभी नमूने के लिए {s}। उसके बाद आगे बढ़ें तो: {a} अग्रिम (आपके {s} गिने जा चुके हैं), फिर अंतिम डाउनलोड से पहले {f}।" },
   episodesPrice: { en: "For {e} episodes, each paid separately.", gu: "{e} એપિસોડ માટે, દરેકની ચુકવણી અલગ.", hi: "{e} एपिसोड के लिए, हर एक का भुगतान अलग।" },
   delivery: { en: "About {m} minutes. Delivery within {d} days of the advance (at the latest).", gu: "આશરે {m} મિનિટ. એડવાન્સ પછી વધુમાં વધુ {d} દિવસમાં ડિલિવરી.", hi: "लगभग {m} मिनट। अग्रिम के बाद अधिकतम {d} दिनों में डिलीवरी।" },
-  freeSample: { en: "Nothing is paid now. Next, the studio makes your free 30–60 second sample.", gu: "હમણાં કંઈ ચૂકવવાનું નથી. હવે સ્ટુડિયો તમારો 30–60 સેકન્ડનો મફત નમૂનો બનાવશે.", hi: "अभी कुछ नहीं देना है। अब स्टूडियो आपका 30–60 सेकंड का मुफ़्त नमूना बनाएगा।" },
+  freeSample: { en: "Your 30–60 second sample is made automatically once the {s} is paid, and checked before it reaches you. If you stop after the sample, the {s} is not refunded.", gu: "{s} ચૂકવાય પછી તમારો 30–60 સેકન્ડનો નમૂનો આપમેળે બને છે, અને તમને મળે તે પહેલાં ચકાસાય છે. નમૂના પછી અટકો તો {s} પાછા મળતા નથી.", hi: "{s} चुकाने के बाद आपका 30–60 सेकंड का नमूना अपने आप बनता है, और आप तक पहुँचने से पहले जाँचा जाता है। नमूने के बाद रुकें तो {s} वापस नहीं मिलते।" },
   changeAsk: { en: "Would you like anything changed? ({n} changes left)", gu: "કંઈ બદલવું છે? ({n} ફેરફાર બાકી)", hi: "कुछ बदलना है? ({n} बदलाव बाकी)" },
   changeBtn: { en: "Change the plan", gu: "પ્લાન બદલો", hi: "योजना बदलें" },
   discuss: { en: "Let’s discuss", gu: "ચાલો વાત કરીએ", hi: "चलिए बात करें" },
-  approve: { en: "Approve the plan and make my free sample", gu: "પ્લાન મંજૂર કરો અને મારો મફત નમૂનો બનાવો", hi: "योजना स्वीकार करें और मेरा मुफ़्त नमूना बनाएँ" },
-  approved: { en: "Thank you. Your plan is approved and with the studio. We’ll email you when your free sample is ready, usually within two days.", gu: "આભાર. તમારો પ્લાન મંજૂર થઈ સ્ટુડિયો પાસે છે. મફત નમૂનો તૈયાર થશે ત્યારે ઇમેલ કરીશું, સામાન્ય રીતે બે દિવસમાં.", hi: "धन्यवाद। आपकी योजना स्वीकृत होकर स्टूडियो के पास है। मुफ़्त नमूना तैयार होने पर ईमेल करेंगे, आमतौर पर दो दिनों में।" },
+  approve: { en: "Approve the plan", gu: "પ્લાન મંજૂર કરો", hi: "योजना स्वीकार करें" },
+  approved: { en: "Thank you. Your plan is approved. Pay {s} for your sample below; it is made and checked automatically, and we email you when it is ready.", gu: "આભાર. તમારો પ્લાન મંજૂર થયો. નીચે તમારા નમૂના માટે {s} ચૂકવો; તે આપમેળે બને અને ચકાસાય છે, અને તૈયાર થાય ત્યારે ઇમેલ કરીશું.", hi: "धन्यवाद। आपकी योजना स्वीकृत है। नीचे अपने नमूने के लिए {s} चुकाएँ; यह अपने आप बनता और जाँचा जाता है, और तैयार होने पर हम ईमेल करेंगे।" },
+  payLater: { en: "Online payment opens soon. We’ll email you as soon as you can pay for your sample.", gu: "ઑનલાઇન ચુકવણી ટૂંક સમયમાં શરૂ થશે. નમૂના માટે ચૂકવી શકો ત્યારે અમે ઇમેલ કરીશું.", hi: "ऑनलाइन भुगतान जल्द शुरू होगा। नमूने के लिए भुगतान कर सकें तब हम ईमेल करेंगे।" },
   discussed: { en: "Thank you. Jaydeep will write to you to talk the plan through.", gu: "આભાર. પ્લાન વિશે વાત કરવા જયદીપ તમને લખશે.", hi: "धन्यवाद। योजना पर बात करने के लिए जयदीप आपको लिखेंगे।" },
   recording: { en: "Recording… speak now", gu: "રેકોર્ડિંગ… હવે બોલો", hi: "रिकॉर्डिंग… अब बोलिए" },
   tryAgain: { en: "Try again", gu: "ફરી પ્રયત્ન કરો", hi: "फिर कोशिश करें" },
@@ -277,11 +281,20 @@ export function StoryStep({
 const SCREEN_KINDS = ["terms_refund", "rights_origin", "data_processing"] as const;
 
 export function ConsentStep({ id, lang, setCd, onDone, onFinal }: StepProps) {
+  const [fix, setFix] = useState<{ reason: string; suggestions: { where: string; change: string }[]; story: string; left: number } | null>(null);
   const [ticks, setTicks] = useState<Ticks>({});
   const [tickLang, setTickLang] = useState(lang);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const check = useSpamCheck("creator");
+
+  // Back after a fix was asked for: straight to the suggestions.
+  useEffect(() => {
+    if (!id) return;
+    pendingFix(id).then((res) => {
+      if (res?.status === "fix" && res.fix) setFix({ reason: res.message ?? "", ...res.fix });
+    });
+  }, [id]);
 
   async function go(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -294,13 +307,29 @@ export function ConsentStep({ id, lang, setCd, onDone, onFinal }: StepProps) {
     if (res.status === "clear") {
       if (res.draft) setCd(res.draft);
       onDone();
+    } else if (res.status === "fix" && res.fix) {
+      setFix({ reason: res.message ?? "", ...res.fix });
     } else if (res.status === "error") {
       setError(res.message ?? "");
       check.reset();
-    } else onFinal?.(res.status, res.message ?? "");
+    } else onFinal?.(res.status as "needs_human" | "refused", res.message ?? "");
   }
 
   if (busy) return <p className={c.working} role="status">{t(UI.working, lang)}</p>;
+  if (fix)
+    return (
+      <FixStory
+        id={id!}
+        lang={lang}
+        fix={fix}
+        onClear={(d) => {
+          if (d) setCd(d);
+          onDone();
+        }}
+        onFix={setFix}
+        onFinal={(k, m) => onFinal?.(k, m)}
+      />
+    );
   return (
     <form onSubmit={go} className={`${h.ideaForm} ${c.form}`}>
       <ConsentTicks kinds={SCREEN_KINDS} lang={tickLang} setLang={setTickLang} ticks={ticks} setTicks={setTicks} />
@@ -318,6 +347,87 @@ export function ConsentStep({ id, lang, setCd, onDone, onFinal }: StepProps) {
         </button>
       </div>
     </form>
+  );
+}
+
+// ---------------------------------------------------------------- 1.3b fix-it (Jaydeep, 25 Nov 2026)
+
+const FIX_W: Record<string, L> = {
+  title: { en: "A small change is needed before we can make your story", gu: "તમારી વાર્તા બનાવતાં પહેલાં નાનો ફેરફાર જરૂરી છે", hi: "आपकी कहानी बनाने से पहले एक छोटा बदलाव ज़रूरी है" },
+  intro: {
+    en: "Our check found something we can’t include as it is. Here is how to change it; edit your story below, then check it again.",
+    gu: "અમારી ચકાસણીમાં એવું કંઈક મળ્યું જે જેમ છે તેમ અમે સામેલ કરી શકતા નથી. તેને કેવી રીતે બદલવું તે નીચે છે; વાર્તા સુધારો, પછી ફરી ચકાસો.",
+    hi: "हमारी जाँच में कुछ ऐसा मिला जिसे हम जैसा है वैसा शामिल नहीं कर सकते। उसे कैसे बदलें, यह नीचे है; कहानी सुधारें, फिर दोबारा जाँचें।",
+  },
+  near: { en: "Near: “{s}…”", gu: "અહીં: “{s}…”", hi: "यहाँ: “{s}…”" },
+  story: { en: "Your story (edit it here)", gu: "તમારી વાર્તા (અહીં સુધારો)", hi: "आपकी कहानी (यहाँ सुधारें)" },
+  again: { en: "Check my story again ({n} left)", gu: "મારી વાર્તા ફરી ચકાસો ({n} બાકી)", hi: "मेरी कहानी फिर जाँचें ({n} बाकी)" },
+  same: { en: "Please make the changes first.", gu: "પહેલાં ફેરફાર કરો.", hi: "पहले बदलाव करें।" },
+};
+const fw = (k: string, lang: Lang, vars: Record<string, string | number> = {}) => t(FIX_W[k], lang).replace(/\{(\w+)\}/g, (_, x) => String(vars[x] ?? ""));
+
+function FixStory({
+  id,
+  lang,
+  fix,
+  onClear,
+  onFix,
+  onFinal,
+}: {
+  id: string;
+  lang: Lang;
+  fix: { reason: string; suggestions: { where: string; change: string }[]; story: string; left: number };
+  onClear: (d?: ClientDraft) => void;
+  onFix: (f: { reason: string; suggestions: { where: string; change: string }[]; story: string; left: number }) => void;
+  onFinal: (kind: "needs_human" | "refused", message: string) => void;
+}) {
+  const [text, setText] = useState(fix.story);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function again() {
+    if (text.trim() === fix.story.trim()) return setError(fw("same", lang));
+    setBusy(true);
+    setError("");
+    const res = await recheckStory(id, text);
+    setBusy(false);
+    if (res.status === "clear") onClear(res.draft);
+    else if (res.status === "fix" && res.fix) {
+      onFix({ reason: res.message ?? "", ...res.fix });
+      setText(res.fix.story);
+    } else if (res.status === "error") setError(res.message ?? "");
+    else onFinal(res.status as "needs_human" | "refused", res.message ?? "");
+  }
+
+  if (busy) return <p className={c.working} role="status">{t(UI.working, lang)}</p>;
+  return (
+    <div className={`${h.ideaForm} ${c.form}`} lang={lang}>
+      <h3 className={c.q}>{fw("title", lang)}</h3>
+      <p className={c.help}>{fw("intro", lang)}</p>
+      {fix.reason && <p className={c.text}>{fix.reason}</p>}
+      <ol className={c.episodeList}>
+        {fix.suggestions.map((x, i) => (
+          <li key={i}>
+            {x.where && <div className={c.small}>{fw("near", lang, { s: x.where })}</div>}
+            {x.change}
+          </li>
+        ))}
+      </ol>
+      <label className={h.field}>
+        {fw("story", lang)}
+        <textarea rows={16} value={text} onChange={(e) => setText(e.target.value)} />
+      </label>
+      {error && (
+        <p className={h.ideaError} role="alert">
+          {error}
+        </p>
+      )}
+      <div className={c.nav}>
+        <button type="button" className={h.ideaSend} onClick={again} disabled={fix.left <= 0}>
+          {fw("again", lang, { n: fix.left })}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -837,6 +947,7 @@ export function PlanStep({ id, lang, onFinal }: StepProps) {
   const [error, setError] = useState("");
   const [change, setChange] = useState("");
   const [tick, setTick] = useState(false);
+  const [paid, setPaid] = useState<{ amount: number; online: boolean } | null>(null);
   const started = useRef(false);
 
   async function load(changeText?: string) {
@@ -871,16 +982,23 @@ export function PlanStep({ id, lang, onFinal }: StepProps) {
     );
 
   const q = plan.quote!;
+  if (paid && id)
+    return (
+      <div className={h.ideaSent} role="status">
+        <p>{w(paid.online ? "approved" : "payLater", lang, { s: money(paid.amount) })}</p>
+        {paid.online && <PayButton id={id} kind="sample" amount={paid.amount} />}
+      </div>
+    );
   return (
     <>
       <PlanView md={plan.plan} />
       <div className={c.priceBox}>
         <p>{w("price", lang)}</p>
         <p className={c.bigPrice}>{money(q.total)}</p>
-        <p>{w("advance", lang, { a: money(q.advance), f: money(q.final) })}</p>
+        <p>{w("advance", lang, { s: money(q.sample), a: money(q.advance), f: money(q.final) })}</p>
         {q.episodes > 1 && <p>{w("episodesPrice", lang, { e: q.episodes })}</p>}
         <p className={c.small}>{w("delivery", lang, { m: q.minutes, d: q.days })}</p>
-        <p className={c.small}>{w("freeSample", lang)}</p>
+        <p className={c.small}>{w("freeSample", lang, { s: money(q.sample) })}</p>
       </div>
 
       {(plan.roundsLeft ?? 0) > 0 ? (
@@ -918,7 +1036,7 @@ export function PlanStep({ id, lang, onFinal }: StepProps) {
           if (!id) return;
           const data = new FormData(e.currentTarget);
           const res = await approvePlan(id, data);
-          if (res.ok) onFinal?.("approved", w("approved", lang));
+          if (res.ok) setPaid({ amount: res.pay?.amount ?? q.sample, online: !!res.pay?.online });
           else setError(res.error ?? "");
         }}
       >

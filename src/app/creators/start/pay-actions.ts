@@ -5,11 +5,13 @@ import { sessionClient } from "@/lib/supabase-server";
 import { adminClient } from "@/lib/supabase-admin";
 import { flowSettings } from "@/lib/creators/flow";
 import { createOrder, paymentSignatureValid, razorpayKeyId, razorpayReady } from "@/lib/creators/razorpay";
-import { advancePaid } from "@/lib/creators/orders";
+import { paymentPaid } from "@/lib/creators/orders";
 import type { Quote } from "@/lib/creators/pricing";
 
-// The 50% advance after the writer has heard the free sample (brief §1, §4 step 7).
-// The amount comes from the quote saved with the approved plan; nothing from the browser.
+// Payments a writer makes (brief §1, §4; Jaydeep, 25 Nov 2026):
+//   sample   ₹499 after the plan is approved → the sample is made automatically
+//   advance  after the writer has heard the sample (the ₹499 is already counted in it)
+// The amount always comes from the quote saved with the approved plan; nothing from the browser.
 
 async function signedInUser() {
   const {
@@ -18,13 +20,20 @@ async function signedInUser() {
   return user?.email ? { id: user.id, email: user.email.toLowerCase() } : null;
 }
 
+export type PayKind = "sample" | "advance";
 export type Checkout = { key: string; orderId: string; amount: number; name: string; email: string; contact: string; description: string } | { error: string };
 
-export async function startAdvance(requestId: string): Promise<Checkout> {
+const NEEDS: Record<PayKind, { state: string; sample?: string; error: string }> = {
+  sample: { state: "sample_due", error: "The sample is paid for after you approve your plan." },
+  advance: { state: "submitted", sample: "sent", error: "The advance is paid after your sample is ready." },
+};
+
+export async function startPayment(requestId: string, kind: PayKind): Promise<Checkout> {
   const user = await signedInUser();
   if (!user) return { error: "Please sign in again." };
+  if (!(kind in NEEDS)) return { error: "Unknown payment." };
   const settings = await flowSettings();
-  if (!settings.payments_enabled || !razorpayReady()) return { error: "Online payment is not open yet. Please reply to the studio’s email." };
+  if (!settings.payments_enabled || !razorpayReady()) return { error: "Online payment is not open yet. We’ll email you as soon as you can pay." };
 
   const db = adminClient();
   const { data: r } = await db
@@ -33,29 +42,31 @@ export async function startAdvance(requestId: string): Promise<Checkout> {
     .eq("id", requestId)
     .maybeSingle();
   if (!r || r.user_id !== user.id) return { error: "This request isn’t yours." };
-  if (r.state !== "submitted" || r.sample_state !== "sent") return { error: "The advance is paid after your free sample is ready." };
+  const need = NEEDS[kind];
+  if (r.state !== need.state || (need.sample && r.sample_state !== need.sample)) return { error: need.error };
   const quote = r.quote as Quote | null;
-  if (!quote?.advance) return { error: "Your quote is missing. Please reply to the studio’s email." };
-  const amountPaise = Math.round(quote.advance * 100);
+  const rupees = kind === "sample" ? quote?.sample : quote?.advance;
+  if (!rupees) return { error: "Your quote is missing. Please reply to the studio’s email." };
+  const amountPaise = Math.round(rupees * 100);
 
   // An unpaid order for the same amount is reused (the writer closed the window and came back).
   const { data: open } = await db
     .from("creator_payments")
     .select("razorpay_order_id, amount_paise, status")
     .eq("request_id", requestId)
-    .eq("kind", "advance")
+    .eq("kind", kind)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (open?.status === "paid") return { error: "Your advance is already paid. Thank you." };
+  if (open?.status === "paid") return { error: "This is already paid. Thank you." };
   let orderId = open && open.status === "created" && open.amount_paise === amountPaise ? open.razorpay_order_id : "";
 
   if (!orderId) {
     try {
       const order = await createOrder({
         amountPaise,
-        receipt: `adv-${requestId.slice(0, 8)}-${Date.now().toString(36)}`,
-        notes: { request_id: requestId, kind: "advance" },
+        receipt: `${kind === "sample" ? "smp" : "adv"}-${requestId.slice(0, 8)}-${Date.now().toString(36)}`,
+        notes: { request_id: requestId, kind },
       });
       orderId = order.id;
     } catch (e) {
@@ -64,7 +75,7 @@ export async function startAdvance(requestId: string): Promise<Checkout> {
     }
     const { error } = await db
       .from("creator_payments")
-      .insert({ request_id: requestId, user_id: user.id, kind: "advance", amount_paise: amountPaise, razorpay_order_id: orderId });
+      .insert({ request_id: requestId, user_id: user.id, kind, amount_paise: amountPaise, razorpay_order_id: orderId });
     if (error) return { error: "Something went wrong on our side. Please try again." };
   }
 
@@ -75,12 +86,12 @@ export async function startAdvance(requestId: string): Promise<Checkout> {
     name: r.name || "",
     email: r.email,
     contact: r.whatsapp || "",
-    description: `Creator's Space · 50% advance`,
+    description: kind === "sample" ? "Creator's Space · your 30–60 second sample" : "Creator's Space · advance",
   };
 }
 
 // The checkout's success callback. The signature proves the payment belongs to our order;
-// advancePaid() then asks Razorpay that the full amount was paid.
+// paymentPaid() then asks Razorpay that the full amount was paid.
 export async function confirmPayment(orderId: string, paymentId: string, signature: string): Promise<{ ok: boolean; error?: string }> {
   const user = await signedInUser();
   if (!user) return { ok: false, error: "Please sign in again." };
@@ -88,7 +99,7 @@ export async function confirmPayment(orderId: string, paymentId: string, signatu
   const { data: p } = await adminClient().from("creator_payments").select("user_id").eq("razorpay_order_id", orderId).maybeSingle();
   if (!p || p.user_id !== user.id) return { ok: false, error: "This payment isn’t yours." };
   try {
-    const res = await advancePaid(orderId, paymentId, "checkout");
+    const res = await paymentPaid(orderId, paymentId, "checkout");
     revalidatePath("/creators/start");
     return res.ok ? { ok: true } : { ok: false, error: "Razorpay hasn’t confirmed the full amount yet. It usually does within minutes; we’ll email you." };
   } catch (e) {
