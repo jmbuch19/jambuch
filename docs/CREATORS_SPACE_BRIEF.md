@@ -561,6 +561,31 @@ Nalinkant Chhaya tribute, the Ramayana narrator voice, the Story Tube brand).
 - "Projects" instead of Ramayana chapters: per-writer voice (never the Ramayana
   narrator), style reference, lexicon.
 
+### Painting lessons from Ramayana ch58–59 (25 Nov 2026)
+Built into the engine from day one, not learned again per job:
+1. **One solo anchor per recurring character, approved before any scene with them.**
+   The anchor shows that character **alone**, in a plain setting, with the
+   distinguishing features spelled out (colour, crown, dress). A reference picture
+   with two characters in it gets copied wrongly: ch58's crowned Sugriva came out as
+   Hanuman twice because his reference also showed a crowned Hanuman.
+2. **A standard background rule in every painting prompt:** paint only the places the
+   scene names; no snow or tall pale peaks; no distant city, temple town, palace or
+   fort, and no sea or ships, unless the scene names them. Without it about half the
+   paintings added them.
+3. **Every painting is checked at full size before it is used** (hands, tails, figure
+   counts, who is who, gestures on the right person, setting, family-safe), by a
+   separate checker against the prompt. A painting run that skipped this left 14 of
+   27 paintings needing a fix or a repaint.
+4. **Masked fixes, not repaints,** for one wrong part (about 775 credits against
+   about 1,000); repaint only when the action itself is wrong (who stands, who holds
+   what). At most 3 paintings per shot, then a person decides.
+5. **Who does what goes first in the prompt, with names on every hand** ("HANUMAN'S
+   OWN RIGHT hand…", "RAMA is SEATED…"); the painter otherwise swaps gestures
+   between figures.
+6. **Spend is guarded per job and per day, and every paid run is attributable** (who
+   or what started it). An unattributed overnight run spent most of a day's image
+   budget on 25 Nov.
+
 ### Money and safety
 - **No job is free except the 30–60 s sample** (section 1). Payment (Razorpay)
   before full production. Daily caps on free samples and on jobs in production.
@@ -858,10 +883,13 @@ accounts, tax and any dispute. Show this list in the terms.
 - **(A) Download only.** We publish nothing. Files deleted at day 7.
 - **(B) Download and allow jambuch.in to publish.** The writer grants a free,
   non-exclusive permission to publish the finished work, credited to them, on
-  jambuch.in (Courtyard), the [YouTube channel for writers' work: name to confirm] and Spotify, with
-  no payment to either side. We don't monetise it and receive no money from it
-  (note: platforms such as YouTube may show their own ads on any video; we get
-  nothing from them). Only the **published final files** are
+  jambuch.in (Courtyard), Jaydeep's YouTube channel **વાર્તા વિશ્વ-Story Tube**
+  (alongside the Ramayana) and Spotify, with no payment to either side. We don't
+  monetise it and receive no money from it: when Story Tube joins the YouTube
+  Partner Programme, **monetisation is switched off on every writer's video**
+  (YouTube allows this per video). YouTube may still show its own ads on any
+  video; we get nothing from them. A revenue share would need a separate written
+  agreement with the writer and a new terms version. Only the **published final files** are
   kept beyond day 7, in a separate `published/` area; everything else (story
   text, drafts, previews, scripts) is still deleted at day 7.
   - The writer can **withdraw permission any time** from their order page;
