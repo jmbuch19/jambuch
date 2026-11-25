@@ -71,7 +71,8 @@ export async function runSampleJob(id: string, mode: "auto" | "manual", opts: { 
     try {
       const made = await makeSample({ id, language: row.language, style_tags: row.style_tags ?? [] }, attempt, { fresh: !!opts.fresh && tries === 0, forceVoice: forceNext });
       paidVoices += Number(made.cost.voice_paid ?? 0);
-      if (lastKey && lastKey !== made.key) await deleteSample(lastKey).catch(() => {});
+      // A sent sample's file stays until the request's files are deleted (the writer may still have it open).
+      if (lastKey && lastKey !== made.key && !hadSent) await deleteSample(lastKey).catch(() => {});
       lastKey = made.key;
       await db
         .from("creator_requests")

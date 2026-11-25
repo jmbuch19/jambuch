@@ -6,7 +6,7 @@ import a from "../../../admin.module.css";
 
 // Making a sample takes about a minute and spends ElevenLabs credits: ask first, then keep the
 // button busy and offer Stop (the maker halts before its next step; nothing more is spent).
-export default function MakeSampleButton({ id, again }: { id: string; again: boolean }) {
+export default function MakeSampleButton({ id, again, label }: { id: string; again: boolean; label?: string }) {
   const [state, action, pending] = useActionState<MakeState, FormData>(makeSampleAction, { status: "idle" });
   return (
     <div>
@@ -18,7 +18,7 @@ export default function MakeSampleButton({ id, again }: { id: string; again: boo
       >
         <input type="hidden" name="id" value={id} />
         <button type="submit" disabled={pending} className={again ? a.secondary : a.primary}>
-          {pending ? "Making the sample… (about a minute)" : again ? "Make it again" : "Make sample"}
+          {pending ? "Making the sample… (about a minute)" : (label ?? (again ? "Make it again" : "Make sample"))}
         </button>
       </form>
       {pending && <StopButton id={id} />}

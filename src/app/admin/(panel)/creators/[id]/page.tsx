@@ -355,6 +355,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             {r.sample_state === "making" && <StopButton id={id} />}
             {r.sample_state !== "sent" && r.sample_state !== "making" && <MakeSampleButton id={id} again={!!r.sample_key} />}
             {r.sample_state === "sent" && <FreeRemakeButton id={id} used={(r.sample_remakes ?? 0) >= 1} />}
+            {r.sample_state === "sent" && <MakeSampleButton id={id} again label="Make a new version (studio’s cost; the writer keeps the current one until you send)" />}
             {r.sample_state === "review" && (
               <form action={sendSampleAction}>
                 <input type="hidden" name="id" value={id} />
