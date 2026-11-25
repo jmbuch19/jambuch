@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, type FormEvent } from "react";
+import { StopButton } from "./make-sample";
 import { freeRemakeAction, refundAction, type MakeState, type RefundState } from "../actions";
 import a from "../../../admin.module.css";
 
@@ -74,16 +75,24 @@ export function FreeRemakeButton({ id, used }: { id: string; used: boolean }) {
   const [state, action, pending] = useActionState<MakeState, FormData>(freeRemakeAction, { status: "idle" });
   if (used) return <p className={a.mutedSmall}>The free remake has been used.</p>;
   return (
-    <form action={action}>
-      <input type="hidden" name="id" value={id} />
-      <button type="submit" className={a.secondary} disabled={pending}>
-        {pending ? "Remaking… (about a minute)" : "Free remake (the sample missed the approved plan)"}
-      </button>
+    <div>
+      <form
+        action={action}
+        onSubmit={(e: FormEvent<HTMLFormElement>) => {
+          if (!confirm("Use the one free remake? It makes the sample again from scratch (new sound plan and voice, about 900 ElevenLabs characters). The writer keeps the current sample if you stop or it fails.")) e.preventDefault();
+        }}
+      >
+        <input type="hidden" name="id" value={id} />
+        <button type="submit" className={a.secondary} disabled={pending}>
+          {pending ? "Remaking… (about a minute)" : "Free remake (the sample missed the approved plan)"}
+        </button>
+      </form>
+      {pending && <StopButton id={id} />}
       {state.status !== "idle" && (
         <p className={state.status === "error" ? a.error : a.notice} role="status">
           {state.message}
         </p>
       )}
-    </form>
+    </div>
   );
 }

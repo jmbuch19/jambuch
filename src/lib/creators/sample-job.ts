@@ -1,7 +1,7 @@
 import "server-only";
 import { adminClient } from "@/lib/supabase-admin";
 import { sendEmail } from "@/lib/email";
-import { SAMPLE_LANGS, deleteSample, makeSample, sampleSettings, voiceFor, type SampleLang } from "./sample";
+import { SAMPLE_LANGS, SampleStopped, clearStop, deleteSample, makeSample, sampleSettings, voiceFor, type SampleLang } from "./sample";
 import { flowSettings } from "./flow";
 
 // The paid sample, end to end without Jaydeep (Jaydeep, 25 Nov 2026):
@@ -58,6 +58,9 @@ export async function runSampleJob(id: string, mode: "auto" | "manual", opts: { 
   let paidVoices = Number(prevCost.voice_paid_total ?? 0);
   if (paidVoices >= MAX_PAID_VOICES) return wait("cost_cap", `This sample has already paid for ${paidVoices} voice recordings; check it before spending more.`);
 
+  const prevState = row.sample_state as string | null;
+  const hadSent = prevState === "sent" && !!row.sample_key;
+  await clearStop(id);
   await db.from("creator_requests").update({ sample_state: "making", sample_error: null, updated_at: now() }).eq("id", id);
   let attempt = Number(prevCost.attempt ?? 0);
   let lastKey = row.sample_key as string | null;
@@ -94,12 +97,21 @@ export async function runSampleJob(id: string, mode: "auto" | "manual", opts: { 
       forceNext = true;
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      console.error("creators: sample attempt failed for", id, message);
+      const stopped = e instanceof SampleStopped;
+      console.error("creators: sample attempt", stopped ? "stopped" : "failed", "for", id, message);
+      // A remake that stops or fails gives the writer's sent sample back; a first sample that is
+      // stopped goes back to "not made".
       await db
         .from("creator_requests")
-        .update({ sample_state: "failed", sample_error: message.slice(0, 500), sample_made_at: now(), sample_cost: { attempt, voice_paid_total: paidVoices }, updated_at: now() })
+        .update({
+          sample_state: hadSent ? "sent" : stopped ? (prevState === "making" ? null : prevState) : "failed",
+          sample_error: message.slice(0, 500),
+          sample_cost: { ...((row.sample_cost as Record<string, unknown> | null) ?? {}), attempt, voice_paid_total: paidVoices },
+          updated_at: now(),
+        })
         .eq("id", id);
-      if (mode === "manual") return { status: "failed", message };
+      await clearStop(id);
+      if (stopped || mode === "manual") return { status: "failed", message };
     }
   }
   // Two automatic attempts did not pass.

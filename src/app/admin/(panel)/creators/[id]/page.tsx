@@ -11,7 +11,7 @@ import { isStyleTopic } from "@/lib/creators/claude";
 import { sampleLink } from "@/lib/creators/delivery";
 import { DEFAULT_MODEL, SAMPLE_LANGS, listVoices, sampleSettings, speaksLanguage, voiceFor, type Voice } from "@/lib/creators/sample";
 import { advanceReceived, letContinue, sampleFeeReceivedAction, saveSampleSettings, sendSampleAction, setRequestState } from "../actions";
-import MakeSampleButton from "./make-sample";
+import MakeSampleButton, { StopButton } from "./make-sample";
 import { FreeRemakeButton, RefundForm } from "./refund-form";
 import a from "../../../admin.module.css";
 
@@ -328,7 +328,8 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             </>
           )}
           <div className={a.actions}>
-            {r.sample_state !== "sent" && <MakeSampleButton id={id} again={!!r.sample_key} />}
+            {r.sample_state === "making" && <StopButton id={id} />}
+            {r.sample_state !== "sent" && r.sample_state !== "making" && <MakeSampleButton id={id} again={!!r.sample_key} />}
             {r.sample_state === "sent" && <FreeRemakeButton id={id} used={(r.sample_remakes ?? 0) >= 1} />}
             {r.sample_state === "review" && (
               <form action={sendSampleAction}>

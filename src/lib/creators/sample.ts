@@ -423,6 +423,27 @@ async function savedVoice(id: string, text: string, s: SampleSettings, force: bo
   return { audio, paid: true };
 }
 
+// ---------------------------------------------------------------- stop (Jaydeep, 25 Nov 2026)
+
+// A running sample can't be killed from the browser; the Stop button leaves a flag in the
+// request's work folder and the maker checks it before each step (above all before the paid
+// voice), so a stop in time spends nothing more.
+export class SampleStopped extends Error {
+  constructor() {
+    super("Stopped by you.");
+  }
+}
+const stopKey = (id: string) => workKey(id, "stop");
+export async function requestStop(id: string) {
+  await uploadPrivate(stopKey(id), asBuffer(Buffer.from(new Date().toISOString())), "text/plain");
+}
+export async function clearStop(id: string) {
+  await deleteForever({ url: `r2-private:${stopKey(id)}`, bucket: "private", key: stopKey(id) }).catch(() => {});
+}
+async function checkStop(id: string) {
+  if (await readSaved(stopKey(id))) throw new SampleStopped();
+}
+
 export async function makeSample(
   req: { id: string; language: string; style_tags: string[] },
   n: number,
@@ -438,6 +459,7 @@ export async function makeSample(
   if (!native) throw new Error(`No ${SAMPLE_LANGS[lang as SampleLang] ?? lang} narrator voice is chosen in the sample settings.`);
   const s: SampleSettings = { ...base, voice_id: native.voice_id, model_id: native.model_id };
 
+  await checkStop(req.id);
   // 1. Sound plan (Claude): kept, so a retry doesn't pay for it again.
   const planKey = workKey(req.id, "plan.json");
   const savedPlan = opts.fresh ? null : await readSaved(planKey);
@@ -506,6 +528,7 @@ export async function makeSample(
       used.push({ order_id: req.id, asset_id: `freesound-${hit.id}`, asset_kind: "sfx", role: "sample-cue" });
     }
 
+    await checkStop(req.id);
     // 3. The paid voice, once: stored as soon as it arrives (or recovered after a timeout).
     const [voice, tagAudio] = await step(req.id, "voice (ElevenLabs)", () =>
       Promise.all([savedVoice(req.id, passage, s, !!(opts.forceVoice || opts.fresh)), spokenTag(lang, s)]),
@@ -528,6 +551,7 @@ export async function makeSample(
     }
     const effects = cueFiles.map((c) => ({ path: c.path, at: voiceStart + ends[c.after - 1] * voiceSec + 0.1 }));
 
+    await checkStop(req.id);
     // 4. Mix (free), then the check (its speech-to-text result is kept per voice too).
     const out = await step(req.id, "mix (FFmpeg)", () => mix({ dir, tag: tagPath, voice: voicePath, music: musicPath, effects, voiceStart, total, tagEndAt }));
     const qc = await step(req.id, "quality check", () =>

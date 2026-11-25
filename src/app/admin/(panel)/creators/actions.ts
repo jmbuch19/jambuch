@@ -189,6 +189,14 @@ export async function refundAction(_prev: RefundState, form: FormData): Promise<
   return { status: out.ok ? "done" : "error", message: out.message };
 }
 
+// Stop a sample being made: it halts before its next step (nothing more is spent after it).
+export async function stopSampleAction(form: FormData) {
+  await requireAdmin();
+  const id = String(form.get("id") ?? "");
+  const { requestStop } = await import("@/lib/creators/sample");
+  await requestStop(id);
+}
+
 // One free remake when the sample missed the approved plan (max one per request).
 export async function freeRemakeAction(_prev: MakeState, form: FormData): Promise<MakeState> {
   await requireAdmin();
@@ -197,9 +205,10 @@ export async function freeRemakeAction(_prev: MakeState, form: FormData): Promis
   const { data: r } = await db.from("creator_requests").select("sample_remakes").eq("id", id).maybeSingle();
   if (!r) return { status: "error", message: "Request not found." };
   if (r.sample_remakes >= 1) return { status: "error", message: "The free remake has already been given." };
-  await db.from("creator_requests").update({ sample_remakes: r.sample_remakes + 1, sample_state: "review", updated_at: now() }).eq("id", id);
   const { runSampleJob } = await import("@/lib/creators/sample-job");
   const out = await runSampleJob(id, "manual", { fresh: true });
+  // Counted as used only when a new sample was actually made.
+  if (out.status === "review") await db.from("creator_requests").update({ sample_remakes: r.sample_remakes + 1 }).eq("id", id);
   revalidatePath(`/admin/creators/${id}`);
   return out.status === "review" ? { status: "done", message: `Remade from scratch (free remake used). ${out.message} Listen, then send it.` } : { status: "error", message: out.message };
 }
