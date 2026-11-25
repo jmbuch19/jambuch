@@ -145,6 +145,51 @@ merge `creators-space` into main.
   the narrator voice and make the first sample. Jyot's request (sent before stories
   were stored) has no stored story: ask him to send it again, or test with a new one.
 
+## 25 Nov 2026 — the guided question flow (docs/CREATORS_QUESTION_FLOW.md), branch `creators-space`
+
+Decisions (Jaydeep, recorded at the end of the spec): sample stays FREE; festival/TV/cinema
+stops and waits for Jaydeep; build everything; paths stay `creators/<id>/`; tags from
+vocabulary.ts.
+
+Built (not live until merged):
+- `src/lib/creators/questions.ts`: every question, EN/GU/HI, the cascade (`showIf`), stops,
+  level presets. Wording can be changed there without touching logic.
+- `/creators/start` is now one question per screen with a progress bar, a language switch,
+  autosave (this browser before sign-in, the server after). Stage 0 has no Claude call; the
+  18+ tick moved to sign-in; the old two-step form is gone.
+- Story: paste, or upload .docx/.txt/.pdf (mammoth, unpdf; broken Gujarati/Hindi PDFs are
+  caught and the writer is asked for Word or text); language detected in code; up to
+  120,000 characters, split into ~20,000-character episodes the writer can move.
+- Claude steps, each metered per request against `creators.flow.claude_cap_usd` (over the
+  cap → waits for Jaydeep): screening (now also checks the declared origin), characters and
+  setting (Haiku), look suggestions, follow-up questions (multiple choice + "you decide",
+  max 2 rounds × 5, plus the pronunciation list), the creative plan (Opus, up to 3 changes,
+  then "Let's discuss"), free sound/avoid words → tags.
+- `src/lib/creators/firewall.ts`: the prompt firewall (clean, quote, flag instruction-like text).
+- `src/lib/creators/pricing.ts`: the pricing engine (brief §5), settings `creators.pricing`;
+  stage-0 price range, per-level prices, fixed quote per episode; prices end in 99, ₹999 minimum.
+- Plan approval = `plan_baseline` consent → `submitted` → the existing free audio sample.
+- Admin: list shows why a request waits, quote, Claude cost; request page shows choices, the
+  writer's words, characters, Saathi's questions, pronunciation, episodes, pictures, plan,
+  quote breakdown; "Let the writer continue"; "50% advance received" builds the order pack
+  (`creators/<id>/order_pack.json`) until Razorpay exists; JSON editors for pricing and flow.
+- Daily job: reminder on day 3, abandoned drafts withdrawn and deleted on day 14; purge now
+  deletes everything under `creators/<id>/` (new `listPrivate` in r2.ts).
+
+Before it can go live (Jaydeep):
+1. Run `20261125000000_creator_flow.sql` in the SQL editor (states, `answers` etc., the
+   `creators.pricing` and `creators.flow` settings). Then Claude verifies and merges.
+2. Check the Gujarati and Hindi wording in questions.ts and steps.tsx.
+3. Set the pricing assumptions in /admin/creators: ₹ per $ (85), review hours per level,
+   render ₹/minute, motion clip credits, add-on prices, Hindi/English characters per minute.
+4. Voice notes are built but OFF (`creators.flow.voice_notes`): each note costs ElevenLabs
+   credits. Switch on only when you agree to the cost.
+
+Not built (needs a decision or something outside the code): Razorpay payment of the advance
+(by hand for now); the 15-second example clips (slot: `creators.flow.examples`); own-voice
+recording upload (the add-on is asked; the recording is requested after the sample); test
+pictures with the sample (the sample is audio only, Phase 2a).
+
 ## For tomorrow (office PC), 25 Nov 2026
 
 1. DONE 25 Nov: `20261124500000_creator_samples.sql` run by user, verified live (9

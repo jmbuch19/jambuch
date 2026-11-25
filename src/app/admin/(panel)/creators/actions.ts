@@ -33,10 +33,91 @@ export async function setRequestState(form: FormData) {
   }
   await db
     .from("creator_requests")
-    .update({ state, updated_at: now(), ...(keepForWriter ? {} : { story_key: null, sample_key: null }) })
+    .update({ state, updated_at: now(), ...(keepForWriter ? {} : { story_key: null, sample_key: null, files_delete_at: now(), files_purged_at: now() }) })
     .eq("id", id);
   revalidatePath("/admin/creators");
   revalidatePath(`/admin/creators/${id}`);
+}
+
+// A request that waited for Jaydeep (question flow: big screen, screening, Claude budget,
+// "let's discuss") goes back to the writer, who continues where they stopped.
+export async function letContinue(form: FormData) {
+  await requireAdmin();
+  const id = String(form.get("id") ?? "");
+  const db = adminClient();
+  const { data: r } = await db
+    .from("creator_requests")
+    .select("id, state, needs_human_why, answers, plan_version, screening_result, email, name, language")
+    .eq("id", id)
+    .maybeSingle();
+  if (!r || r.state !== "needs_human") return;
+  const why = r.needs_human_why ?? "";
+  const answers = { ...(r.answers ?? {}) } as Record<string, unknown>;
+  const patch: Record<string, unknown> = { needs_human_why: null, updated_at: now() };
+  if (why === "big_screen") answers.big_screen_cleared = "yes"; // the stop in questions.ts lets them past
+  if (why === "screening") patch.screening_result = "clear";
+  if (why === "plan_discuss") patch.plan_rounds = 0;
+  patch.answers = answers;
+  patch.state = r.plan_version > 0 ? "plan" : "draft";
+  // An old-form request (before the question flow) can't continue in the flow.
+  if (!why) return;
+  await db.from("creator_requests").update(patch).eq("id", id);
+  await sendEmail({
+    to: r.email,
+    subject: r.language === "gu" ? "તમારી વિનંતી આગળ વધી શકે છે · You can continue" : "Creator's Space: you can continue your request",
+    text: [
+      `Dear ${r.name || "writer"},`,
+      "",
+      "Thank you for waiting. You can now continue your request where you left off:",
+      "https://jambuch.in/creators/start",
+      "",
+      "Jaydeep Buch",
+      "Creator's Space · jambuch.in/creators",
+    ].join("\n"),
+    replyTo: process.env.ADMIN_EMAIL,
+  });
+  revalidatePath(`/admin/creators/${id}`);
+  revalidatePath("/admin/creators");
+}
+
+// The 50% advance has arrived (by hand until Razorpay is set up, brief §2 item 5): the
+// order pack is built and stored privately, and the request becomes an order.
+export async function advanceReceived(form: FormData) {
+  await requireAdmin();
+  const id = String(form.get("id") ?? "");
+  const db = adminClient();
+  const { data: r } = await db.from("creator_requests").select("id, state, language, answers, style_tags, quote, plan_version, sample_state").eq("id", id).maybeSingle();
+  if (!r || r.state !== "submitted" || r.sample_state !== "sent" || !r.plan_version) return;
+  const { data: consents } = await db.from("creator_consents").select("kind, terms_version").eq("request_id", id);
+  const version = (k: string) => consents?.find((c) => c.kind === k)?.terms_version ?? "";
+  const { readDraft, savePack } = await import("@/lib/creators/files");
+  const { orderPack } = await import("@/lib/creators/flow");
+  const pack = orderPack(r, await readDraft(id), {
+    terms_version: version("terms_refund"),
+    data_consent_version: version("data_processing"),
+    own_voice: !!consents?.some((c) => c.kind === "own_voice"),
+  });
+  const key = await savePack(id, pack);
+  // The 7-day sample clock stops: the files are now needed for production.
+  await db.from("creator_requests").update({ state: "ordered", order_pack_key: key, files_delete_at: null, updated_at: now() }).eq("id", id);
+  revalidatePath(`/admin/creators/${id}`);
+  revalidatePath("/admin/creators");
+}
+
+// Pricing and flow settings, edited as JSON (every number of the pricing engine, brief §5).
+export async function saveJsonSetting(form: FormData) {
+  await requireAdmin();
+  const key = String(form.get("key") ?? "");
+  if (!["creators.pricing", "creators.flow"].includes(key)) return;
+  let value: unknown;
+  try {
+    value = JSON.parse(String(form.get("value") ?? ""));
+  } catch {
+    return;
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return;
+  await adminClient().from("settings").upsert({ key, value, updated_at: now() });
+  revalidatePath("/admin/creators", "layout");
 }
 
 export type MakeState = { status: "idle" | "error" | "done"; message?: string };

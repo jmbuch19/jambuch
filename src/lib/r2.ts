@@ -157,6 +157,30 @@ export async function readPrivate(key: string) {
   return new Uint8Array(await res.arrayBuffer());
 }
 
+// Every key in the private bucket that starts with `prefix` (e.g. "creators/<id>/").
+export async function listPrivate(prefix: string) {
+  const { s, client } = r2();
+  if (!s.privateBucket) throw new Error("Can't list files: R2_PRIVATE_BUCKET is not set.");
+  const keys: string[] = [];
+  let token = "";
+  for (let page = 0; page < 50; page++) {
+    const url = new URL(`https://${settings().account}.r2.cloudflarestorage.com/${s.privateBucket}`);
+    url.searchParams.set("list-type", "2");
+    url.searchParams.set("prefix", prefix);
+    if (token) url.searchParams.set("continuation-token", token);
+    const res = await client.fetch(url.toString());
+    if (!res.ok) throw new Error(`Couldn't list ${prefix} in R2 (${res.status}).`);
+    const xml = await res.text();
+    const unescape = (v: string) =>
+      v.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+    for (const m of xml.matchAll(/<Key>([^<]*)<\/Key>/g)) keys.push(unescape(m[1]));
+    const next = xml.match(/<NextContinuationToken>([^<]*)<\/NextContinuationToken>/);
+    if (!/<IsTruncated>true<\/IsTruncated>/.test(xml) || !next) break;
+    token = unescape(next[1]);
+  }
+  return keys;
+}
+
 // Publishing: moves a private file to the public bucket under the same key
 // and returns its media.jambuch.in link.
 export async function publishPrivate(f: FileRef) {
