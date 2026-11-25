@@ -42,6 +42,9 @@ export default async function CreatorRequestsPage() {
   return (
     <>
       <h1 className={a.title}>Creator’s Space requests</h1>
+      <p className={a.mutedSmall}>
+        <Link href="/admin/creators/agent">Production agent (Managed Agents, read-only) →</Link>
+      </p>
       <p className={a.intro}>
         The guided question flow (docs/CREATORS_QUESTION_FLOW.md): sign-in, the limits (3 open per writer, 5 new a day),
         the story, consents and screening come before any other Claude call. “Needs your eye” requests are emailed to you;
