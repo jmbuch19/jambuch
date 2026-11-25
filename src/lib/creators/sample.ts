@@ -164,7 +164,7 @@ async function freesound(query: string, minSec: number, maxSec: number): Promise
     page_size: "5",
     token,
   });
-  const res = await fetch(`https://freesound.org/apiv2/search/text/?${params}`, { signal: AbortSignal.timeout(20_000) });
+  const res = await fetch(`https://freesound.org/apiv2/search/text/?${params}`, { signal: AbortSignal.timeout(12_000) });
   if (!res.ok) {
     console.warn("freesound search failed:", res.status, query);
     return null;
@@ -246,6 +246,31 @@ export async function mix(o: {
 
 // ---------------------------------------------------------------- the whole sample
 
+// Runs one named step, logs how long it took, and names the step in any error, so a failure
+// says which service was slow or refused ("voice (ElevenLabs): …").
+async function step<T>(id: string, name: string, fn: () => Promise<T>): Promise<T> {
+  const t0 = Date.now();
+  try {
+    const out = await fn();
+    console.log(`sample ${id}: ${name} ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+    return out;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`sample ${id}: ${name} failed after ${((Date.now() - t0) / 1000).toFixed(1)} s: ${msg}`);
+    throw new Error(`${name}: ${msg}`);
+  }
+}
+
+// Music and effects are a nice-to-have: a slow or failed Freesound search or download is
+// logged and skipped, and the sample is made without that sound.
+async function optional<T>(id: string, name: string, fn: () => Promise<T>): Promise<T | null> {
+  try {
+    return await step(id, name, fn);
+  } catch {
+    return null;
+  }
+}
+
 export async function makeSample(req: { id: string; language: string; style_tags: string[] }, n: number): Promise<SampleResult> {
   const s = await sampleSettings();
   const story = await readStory(req.id);
@@ -253,14 +278,14 @@ export async function makeSample(req: { id: string; language: string; style_tags
   if (!sentences.length) throw new Error("The story has no text to read.");
   const passage = sentences.join(" ");
 
-  const planned = await soundPlan(sentences, req.style_tags);
+  const planned = await optional(req.id, "sound plan (Claude)", () => soundPlan(sentences, req.style_tags));
   const plan: SoundPlan = planned?.plan ?? { mood: "calm", music: [], cues: [] };
 
   const dir = await mkdtemp(join(tmpdir(), "sample-"));
   try {
     // Voice: the passage and the spoken tag.
     const lang = req.language in TAG_TEXT ? req.language : "en";
-    const [voiceAudio, tagAudio] = await Promise.all([speak(passage, s), speak(TAG_TEXT[lang], s)]);
+    const [voiceAudio, tagAudio] = await step(req.id, "voice (ElevenLabs)", () => Promise.all([speak(passage, s), speak(TAG_TEXT[lang], s)]));
     const voicePath = join(dir, "voice.mp3");
     const tagPath = join(dir, "tag.mp3");
     await writeFile(voicePath, voiceAudio);
@@ -276,11 +301,14 @@ export async function makeSample(req: { id: string; language: string; style_tags
     let musicPath: string | null = null;
     if (!plan.music.includes("none")) {
       const q = MUSIC_QUERY[plan.music[0] ?? ""] ?? MOOD_QUERY[plan.mood] ?? "calm ambient pad";
-      const hit = await freesound(q, 30, 600);
-      if (hit?.previews["preview-hq-mp3"]) {
-        musicPath = join(dir, "music.mp3");
-        await download(hit.previews["preview-hq-mp3"], musicPath);
-        credits.push({ kind: "music", source: "freesound", id: hit.id, name: hit.name, author: hit.username, licence: "CC0 1.0", url: hit.url });
+      const hit = await optional(req.id, "music search (Freesound)", () => freesound(q, 30, 600));
+      const url = hit?.previews["preview-hq-mp3"];
+      if (hit && url) {
+        const path = join(dir, "music.mp3");
+        if ((await optional(req.id, "music download (Freesound)", () => download(url, path))) !== null) {
+          musicPath = path;
+          credits.push({ kind: "music", source: "freesound", id: hit.id, name: hit.name, author: hit.username, licence: "CC0 1.0", url: hit.url });
+        }
       }
     }
 
@@ -295,17 +323,17 @@ export async function makeSample(req: { id: string; language: string; style_tags
     for (const [i, cue] of plan.cues.entries()) {
       const q = SOUND_QUERY[cue.sound];
       if (!q) continue;
-      const hit = await freesound(q, 0.5, 8);
+      const hit = await optional(req.id, `effect search ${cue.sound} (Freesound)`, () => freesound(q, 0.5, 8));
       const url = hit?.previews["preview-hq-mp3"];
       if (!hit || !url) continue;
       const path = join(dir, `fx${i}.mp3`);
-      await download(url, path);
+      if ((await optional(req.id, `effect download ${cue.sound} (Freesound)`, () => download(url, path))) === null) continue;
       effects.push({ path, at: voiceStart + ends[cue.after - 1] * voiceSec + 0.1 });
       credits.push({ kind: "effect", source: "freesound", id: hit.id, name: hit.name, author: hit.username, licence: "CC0 1.0", url: hit.url });
     }
 
-    const out = await mix({ dir, tag: tagPath, voice: voicePath, music: musicPath, effects, voiceStart, total, tagEndAt });
-    const qc = await qualityCheck(out, voicePath, passage, lang);
+    const out = await step(req.id, "mix (FFmpeg)", () => mix({ dir, tag: tagPath, voice: voicePath, music: musicPath, effects, voiceStart, total, tagEndAt }));
+    const qc = await step(req.id, "quality check", () => qualityCheck(out, voicePath, passage, lang));
     const bytes = await readFile(out);
 
     const key = sampleKey(req.id, n);
