@@ -33,10 +33,78 @@ export async function setRequestState(form: FormData) {
   }
   await db
     .from("creator_requests")
-    .update({ state, updated_at: now(), ...(keepForWriter ? {} : { story_key: null, sample_key: null }) })
+    .update({ state, updated_at: now(), ...(keepForWriter ? {} : { story_key: null, sample_key: null, files_delete_at: now(), files_purged_at: now() }) })
     .eq("id", id);
   revalidatePath("/admin/creators");
   revalidatePath(`/admin/creators/${id}`);
+}
+
+// A request that waited for Jaydeep (question flow: big screen, screening, Claude budget,
+// "let's discuss") goes back to the writer, who continues where they stopped.
+export async function letContinue(form: FormData) {
+  await requireAdmin();
+  const id = String(form.get("id") ?? "");
+  const db = adminClient();
+  const { data: r } = await db
+    .from("creator_requests")
+    .select("id, state, needs_human_why, answers, plan_version, screening_result, email, name, language")
+    .eq("id", id)
+    .maybeSingle();
+  if (!r || r.state !== "needs_human") return;
+  const why = r.needs_human_why ?? "";
+  const answers = { ...(r.answers ?? {}) } as Record<string, unknown>;
+  const patch: Record<string, unknown> = { needs_human_why: null, updated_at: now() };
+  if (why === "big_screen") answers.big_screen_cleared = "yes"; // the stop in questions.ts lets them past
+  if (why === "screening") patch.screening_result = "clear";
+  if (why === "plan_discuss") patch.plan_rounds = 0;
+  patch.answers = answers;
+  patch.state = r.plan_version > 0 ? "plan" : "draft";
+  // An old-form request (before the question flow) can't continue in the flow.
+  if (!why) return;
+  await db.from("creator_requests").update(patch).eq("id", id);
+  await sendEmail({
+    to: r.email,
+    subject: r.language === "gu" ? "તમારી વિનંતી આગળ વધી શકે છે · You can continue" : "Creator's Space: you can continue your request",
+    text: [
+      `Dear ${r.name || "writer"},`,
+      "",
+      "Thank you for waiting. You can now continue your request where you left off:",
+      "https://jambuch.in/creators/start",
+      "",
+      "Jaydeep Buch",
+      "Creator's Space · jambuch.in/creators",
+    ].join("\n"),
+    replyTo: process.env.ADMIN_EMAIL,
+  });
+  revalidatePath(`/admin/creators/${id}`);
+  revalidatePath("/admin/creators");
+}
+
+// The 50% advance arrived outside Razorpay (bank transfer, or before payments are switched
+// on): the order pack is built and the request becomes an order, as after a Razorpay payment.
+export async function advanceReceived(form: FormData) {
+  await requireAdmin();
+  const id = String(form.get("id") ?? "");
+  const { buildOrder } = await import("@/lib/creators/orders");
+  await buildOrder(id);
+  revalidatePath(`/admin/creators/${id}`);
+  revalidatePath("/admin/creators");
+}
+
+// Pricing and flow settings, edited as JSON (every number of the pricing engine, brief §5).
+export async function saveJsonSetting(form: FormData) {
+  await requireAdmin();
+  const key = String(form.get("key") ?? "");
+  if (!["creators.pricing", "creators.flow"].includes(key)) return;
+  let value: unknown;
+  try {
+    value = JSON.parse(String(form.get("value") ?? ""));
+  } catch {
+    return;
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return;
+  await adminClient().from("settings").upsert({ key, value, updated_at: now() });
+  revalidatePath("/admin/creators", "layout");
 }
 
 export type MakeState = { status: "idle" | "error" | "done"; message?: string };
@@ -110,6 +178,8 @@ export async function sendSampleAction(form: FormData) {
   const deleteAt = new Date(Date.now() + 7 * DAY);
   const when = deleteAt.toLocaleDateString("en-IN", { day: "numeric", month: "long", timeZone: "Asia/Kolkata" });
   const gu = row.language === "gu";
+  const { flowSettings } = await import("@/lib/creators/flow");
+  const payOnline = (await flowSettings()).payments_enabled && !!process.env.RAZORPAY_KEY_ID;
   const sent = await sendEmail({
     to: row.email,
     subject: gu ? "તમારી વાર્તાનો નમૂનો તૈયાર છે · Your sample is ready" : "Your Creator's Space sample is ready",
@@ -124,7 +194,9 @@ export async function sendSampleAction(form: FormData) {
       "",
       `The sample and your story are deleted on ${when}, 7 days from today. Please download a copy if you want to keep it.`,
       "",
-      "If you'd like the full story made, reply to this email.",
+      payOnline
+        ? "To go ahead, sign in at the same page and pay the 50% advance online. If you have questions first, reply to this email."
+        : "If you'd like the full story made, reply to this email.",
       "",
       "Jaydeep Buch",
       "Creator's Space · jambuch.in/creators",

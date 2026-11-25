@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { sessionClient } from "@/lib/supabase-server";
+import { adminClient } from "@/lib/supabase-admin";
 import LibraryHeader from "../../library/header";
-import SignInForm from "./sign-in-form";
-import RequestWizard from "./request-wizard";
+import Flow, { type FlowInitial } from "./flow";
 import ListenButton from "./listen-button";
+import PayAdvance from "./pay-button";
 import { signOutWriter, withdrawRequest } from "./actions";
-import { LIMITS, OPEN_STATES } from "./limits";
+import { clientDraft } from "./flow-actions";
+import { flowSettings } from "@/lib/creators/flow";
+import { OPEN_STATES } from "./limits";
+import type { Answers } from "@/lib/creators/questions";
 import h from "../../home.module.css";
 import c from "../creators.module.css";
 
@@ -15,18 +19,24 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-// Signed in only: reads the visitor's session on every request.
+// Signed in only beyond stage 0: reads the visitor's session on every request.
 export const dynamic = "force-dynamic";
+// The plan step runs Claude inside a server action on this page.
+export const maxDuration = 120;
 
 const STATE_LABEL: Record<string, string> = {
+  draft: "In progress",
   screening: "Being checked",
-  questions: "Waiting for your answers",
+  questions: "In progress",
+  plan: "Plan ready for you",
   submitted: "With the studio",
+  ordered: "In production",
   needs_human: "A person is reading it",
   refused: "Not accepted",
   withdrawn: "Withdrawn",
   closed: "Closed",
 };
+const EDITABLE = ["draft", "questions", "plan"];
 
 export default async function StartPage() {
   const db = await sessionClient();
@@ -37,12 +47,40 @@ export default async function StartPage() {
   const { data: requests } = user
     ? await db
         .from("creator_requests")
-        .select("id, state, created_at, story_chars, sample_state, sample_key, files_delete_at")
+        .select("id, state, created_at, story_chars, sample_state, sample_key, files_delete_at, quote")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(10)
     : { data: null };
-  const open = (requests ?? []).filter((r) => OPEN_STATES.includes(r.state) && r.state !== "questions").length;
+
+  // The writer's open draft, if any, is continued where they left off.
+  const open = requests?.find((r) => EDITABLE.includes(r.state));
+  let initial: FlowInitial = null;
+  if (open) {
+    const { data: row } = await adminClient()
+      .from("creator_requests")
+      .select("id, answers, current_step, name, whatsapp, story_chars, story_key, language, screening_result, plan_version, state")
+      .eq("id", open.id)
+      .single();
+    if (row) {
+      const draft = await clientDraft(row.id);
+      initial = {
+        id: row.id,
+        answers: (row.answers ?? {}) as Answers,
+        currentStep: row.state === "plan" ? "plan" : row.current_step,
+        name: row.name ?? "",
+        whatsapp: row.whatsapp ?? "",
+        storyChars: row.story_chars ?? 0,
+        storyLang: row.story_key ? row.language : null,
+        screened: row.screening_result === "clear",
+        draft,
+      };
+    }
+  }
+  const settings = await flowSettings();
+  // Payments open only when switched on in admin and the keys are set (brief §2).
+  const payments = settings.payments_enabled && !!process.env.RAZORPAY_KEY_ID && !!process.env.RAZORPAY_KEY_SECRET;
+  const others = (requests ?? []).filter((r) => r.id !== open?.id);
 
   return (
     <>
@@ -54,62 +92,49 @@ export default async function StartPage() {
             Start with a free sample
           </h1>
 
-          {!user ? (
-            <>
-              <p className={c.text}>
-                First, sign in with your email. We send a short code; no password is needed. We ask for it before
-                anything is read or made, so each sample reaches a real writer.
-              </p>
-              <SignInForm />
-            </>
-          ) : (
-            <>
-              <div className={c.small}>
-                Signed in as <b>{user.email}</b> ·{" "}
-                <form action={signOutWriter} className={c.inlineForm}>
-                  <button type="submit" className={c.linkButton}>
-                    sign out
-                  </button>
-                </form>
-              </div>
-
-              {!!requests?.length && (
-                <ul className={c.requests} aria-label="Your requests">
-                  {requests.map((r) => (
-                    <li key={r.id}>
-                      <span>{new Date(r.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
-                      <span>{r.story_chars.toLocaleString("en-IN")} characters</span>
-                      <b>{r.sample_state === "sent" && r.sample_key ? "Your sample is ready" : (STATE_LABEL[r.state] ?? r.state)}</b>
-                      {r.sample_state === "sent" && r.sample_key && <ListenButton id={r.id} />}
-                      {r.sample_state === "sent" && r.files_delete_at && (
-                        <span className={c.small}>
-                          deleted after{" "}
-                          {new Date(r.files_delete_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" })}
-                        </span>
-                      )}
-                      {OPEN_STATES.includes(r.state) && (
-                        <form action={withdrawRequest} className={c.inlineForm}>
-                          <input type="hidden" name="id" value={r.id} />
-                          <button type="submit" className={c.linkButton}>
-                            withdraw
-                          </button>
-                        </form>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {open >= LIMITS.open ? (
-                <p className={c.text}>
-                  You have {LIMITS.open} requests open, the most at one time. We’ll reply by email; you can also
-                  withdraw one above.
-                </p>
-              ) : (
-                <RequestWizard />
-              )}
-            </>
+          {user && (
+            <div className={c.small}>
+              Signed in as <b>{user.email}</b> ·{" "}
+              <form action={signOutWriter} className={c.inlineForm}>
+                <button type="submit" className={c.linkButton}>
+                  sign out
+                </button>
+              </form>
+            </div>
           )}
+
+          {!!others.length && (
+            <ul className={c.requests} aria-label="Your requests">
+              {others.map((r) => (
+                <li key={r.id}>
+                  <span>{new Date(r.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+                  <span>{r.story_chars.toLocaleString("en-IN")} characters</span>
+                  <b>{r.sample_state === "sent" && r.sample_key ? "Your sample is ready" : (STATE_LABEL[r.state] ?? r.state)}</b>
+                  {r.sample_state === "sent" && r.sample_key && <ListenButton id={r.id} />}
+                  {payments && r.state === "submitted" && r.sample_state === "sent" && !!(r.quote as { advance?: number } | null)?.advance && (
+                    <PayAdvance id={r.id} advance={(r.quote as { advance: number }).advance} />
+                  )}
+                  {r.state === "ordered" && <span className={c.small}>advance paid · in production</span>}
+                  {r.sample_state === "sent" && r.files_delete_at && (
+                    <span className={c.small}>
+                      deleted after{" "}
+                      {new Date(r.files_delete_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" })}
+                    </span>
+                  )}
+                  {OPEN_STATES.includes(r.state) && (
+                    <form action={withdrawRequest} className={c.inlineForm}>
+                      <input type="hidden" name="id" value={r.id} />
+                      <button type="submit" className={c.linkButton}>
+                        withdraw
+                      </button>
+                    </form>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <Flow key={initial?.id ?? (user ? "signed-in" : "new")} signedIn={!!user} initial={initial} voiceNotes={settings.voice_notes} />
         </section>
 
         <p className={c.apart}>

@@ -1,11 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
-import { readBrief, readStory } from "@/lib/creators/files";
+import { readBrief, readDraft, readPlan, readStory } from "@/lib/creators/files";
+import { signedPrivateUrl } from "@/lib/r2";
+import { BY_ID, STYLE_LABELS, COLOUR_LABELS } from "@/lib/creators/questions";
+import type { Quote } from "@/lib/creators/pricing";
+import type { CostLog } from "@/lib/creators/flow";
+import { PlanView } from "@/app/creators/start/steps";
 import { isStyleTopic } from "@/lib/creators/claude";
 import { sampleLink } from "@/lib/creators/delivery";
 import { listVoices, sampleSettings, type Voice } from "@/lib/creators/sample";
-import { saveSampleSettings, sendSampleAction, setRequestState } from "../actions";
+import { advanceReceived, letContinue, saveSampleSettings, sendSampleAction, setRequestState } from "../actions";
 import MakeSampleButton from "./make-sample";
 import a from "../../../admin.module.css";
 
@@ -24,15 +29,30 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const { data: r } = await db.from("creator_requests").select("*").eq("id", id).maybeSingle();
   if (!r) notFound();
 
-  const [story, brief, settings, voices, listen] = await Promise.all([
+  const purged = !!r.files_purged_at;
+  const [story, brief, draft, plan, settings, voices, listen] = await Promise.all([
     r.story_key ? readStory(id).catch(() => null) : Promise.resolve(null),
     r.story_key ? readBrief(id) : Promise.resolve(null),
+    purged ? Promise.resolve(null) : readDraft(id),
+    r.plan_version ? readPlan(id, r.plan_version) : Promise.resolve(null),
     sampleSettings(),
     listVoices().catch(() => [] as Voice[]),
     r.sample_key ? sampleLink(id, r.sample_key).catch(() => null) : Promise.resolve(null),
   ]);
   const credits = (r.sample_credits ?? []) as { kind: string; name: string; author: string; licence: string; url: string }[];
   const cost = (r.sample_cost ?? {}) as Record<string, string | number>;
+  const answers = (r.answers ?? {}) as Record<string, string | string[]>;
+  const quote = r.quote as Quote | null;
+  const claudeCost = r.claude_cost as CostLog | null;
+  const { data: payments } = await db.from("creator_payments").select("kind, amount_paise, status, razorpay_order_id, razorpay_payment_id, created_at, paid_at, failure_reason").eq("request_id", id).order("created_at");
+  const pictures = draft
+    ? await Promise.all(draft.pictures.map(async (key) => ({ key, url: await signedPrivateUrl({ url: `r2-private:${key}`, bucket: "private", key }, 900) })))
+    : [];
+  const label = (qid: string, v: string | string[]) => {
+    const q = BY_ID[qid];
+    const one = (x: string) => q?.options?.find((o) => o.id === x)?.label.en ?? x;
+    return Array.isArray(v) ? v.map(one).join(", ") : one(v);
+  };
 
   return (
     <>
@@ -47,6 +67,158 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         {r.whatsapp ? ` · WhatsApp ${r.whatsapp}` : ""} · {r.language} · {r.make} · {r.length} · sent {when(r.created_at)}
         {r.music_replacement ? " · MUSIC REPLACEMENT" : r.big_screen === "unsure" ? " · big screen: not sure" : ""}
       </p>
+
+      {r.state === "needs_human" && r.needs_human_why && (
+        <form action={letContinue} className={a.actions}>
+          <input type="hidden" name="id" value={id} />
+          <p>
+            Waiting for you: <b>{r.needs_human_why.replace(/_/g, " ")}</b>.{" "}
+            {r.needs_human_why === "big_screen"
+              ? "Quote the music replacement add-on by email first."
+              : r.needs_human_why === "claude_cap"
+                ? "Raise claude_cap_usd in the flow settings first if needed."
+                : ""}
+          </p>
+          <button type="submit" className={a.primary}>
+            Let the writer continue (emails them)
+          </button>
+        </form>
+      )}
+
+      {!!Object.keys(answers).length && (
+        <>
+          <h2 className={a.gapTop}>Choices</h2>
+          <ul className={a.mutedSmall}>
+            {Object.entries(answers).map(([k, v]) => (
+              <li key={k}>
+                <b>{BY_ID[k]?.label.en ?? k}</b>:{" "}
+                {k === "look_style" ? STYLE_LABELS[String(v)]?.en : k === "look_colour" ? COLOUR_LABELS[String(v)]?.en : label(k, v)}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {draft && (
+        <>
+          {!!Object.keys(draft.text).length && (
+            <>
+              <h2 className={a.gapTop}>The writer’s own words{draft.flagged ? " (firewall flag: instruction-like text somewhere)" : ""}</h2>
+              <ul>
+                {Object.entries(draft.text).map(([k, v]) => (
+                  <li key={k}>
+                    <b>{BY_ID[k]?.label.en ?? k}</b>: {v}
+                  </li>
+                ))}
+              </ul>
+              <p className={a.mutedSmall}>For reading only; never paste these into a prompt.</p>
+            </>
+          )}
+          {!!draft.characters.length && (
+            <>
+              <h2 className={a.gapTop}>Characters</h2>
+              <ul>
+                {draft.characters.map((ch, i) => (
+                  <li key={i}>
+                    <b>{ch.name}</b> ({ch.role}
+                    {ch.age ? `, ${ch.age}` : ""}){ch.look ? ` · ${ch.look}` : ""}
+                    {ch.voice ? ` · voice: ${ch.voice}` : ""}
+                    {ch.real_person !== "no" ? ` · real person: ${ch.real_person.replace(/_/g, " ")}` : ""}
+                    {ch.sacred ? ` · ${ch.sacred.replace(/_/g, " ")}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {!!draft.followups.length && (
+            <>
+              <h2 className={a.gapTop}>Studio Saathi’s questions</h2>
+              <ul>
+                {draft.followups.flatMap((rd) =>
+                  rd.questions.map((q) => (
+                    <li key={q.id}>
+                      {q.question}
+                      <br />
+                      <b>{rd.answers[q.id] === "__decide" ? "You decide" : rd.answers[q.id] || "(no answer)"}</b>
+                    </li>
+                  )),
+                )}
+              </ul>
+            </>
+          )}
+          {!!draft.pronunciation.length && (
+            <p className={a.mutedSmall}>
+              Pronunciation: {draft.pronunciation.map((x) => `${x.word}${x.say_as ? ` = ${x.say_as}` : ""}`).join(" · ")}
+            </p>
+          )}
+          {draft.episodes.length > 1 && (
+            <p className={a.mutedSmall}>
+              Episodes: {draft.episodes.map((e, i) => `${i + 1}. ${e.title} (from character ${e.start})`).join(" · ")}
+            </p>
+          )}
+          {!!pictures.length && (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {pictures.map((p) =>
+                p.url ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- short-lived private link
+                  <img key={p.key} src={p.url} alt="" width={120} height={120} style={{ objectFit: "cover", borderRadius: 6 }} />
+                ) : null,
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {plan && (
+        <>
+          <h2 className={a.gapTop}>
+            Creative plan v{r.plan_version}
+            {r.plan_approved_at ? ` · approved ${when(r.plan_approved_at)}` : " · not approved yet"}
+          </h2>
+          <PlanView md={plan} />
+        </>
+      )}
+      {quote && (
+        <>
+          <h2 className={a.gapTop}>
+            Quote ₹{quote.total.toLocaleString("en-IN")} · advance ₹{quote.advance.toLocaleString("en-IN")}
+          </h2>
+          {quote.episodes.map((e, i) => (
+            <p key={i} className={a.mutedSmall}>
+              {quote.episodes.length > 1 ? `Episode ${i + 1}: ` : ""}₹{e.price} · {e.breakdown.minutes} min · {e.breakdown.stills} pictures · tools ₹
+              {e.breakdown.inr.tool_cost} (narration {e.breakdown.inr.narration}, images {e.breakdown.inr.images}, Claude {e.breakdown.inr.claude}, render{" "}
+              {e.breakdown.inr.render}, buffered {e.breakdown.inr.buffered}) · review {e.breakdown.review_hours} h = ₹{e.breakdown.inr.review} · add-ons ₹
+              {e.breakdown.inr.addons}
+            </p>
+          ))}
+        </>
+      )}
+      {claudeCost && (
+        <p className={a.mutedSmall}>
+          Claude so far: ${claudeCost.usd.toFixed(3)} · {claudeCost.calls.map((x) => `${x.step} ${x.usd.toFixed(3)}`).join(" · ")}
+        </p>
+      )}
+      {r.state === "submitted" && r.sample_state === "sent" && r.plan_version > 0 && (
+        <form action={advanceReceived} className={a.actions}>
+          <input type="hidden" name="id" value={id} />
+          <button type="submit" className={a.primary}>
+            50% advance received: build the order pack
+          </button>
+          <span className={a.mutedSmall}>By hand until Razorpay is set up. Stops the 7-day deletion clock.</span>
+        </form>
+      )}
+      {r.order_pack_key && <p className={a.mutedSmall}>Order pack: {r.order_pack_key}</p>}
+      {!!payments?.length && (
+        <ul className={a.mutedSmall}>
+          {payments.map((p) => (
+            <li key={p.razorpay_order_id}>
+              {p.kind} ₹{(p.amount_paise / 100).toLocaleString("en-IN")} · <b>{p.status}</b> · order {p.razorpay_order_id}
+              {p.razorpay_payment_id ? ` · payment ${p.razorpay_payment_id}` : ""} · {when(p.paid_at ?? p.created_at)}
+              {p.failure_reason ? ` · ${p.failure_reason}` : ""}
+            </li>
+          ))}
+        </ul>
+      )}
 
       <h2 className={a.gapTop}>Screening</h2>
       <p>
@@ -136,7 +308,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         </>
       )}
 
-      {["screening", "questions", "submitted", "needs_human"].includes(r.state) && (
+      {["draft", "screening", "questions", "plan", "submitted", "needs_human"].includes(r.state) && (
         <form action={setRequestState} className={a.actions}>
           <input type="hidden" name="id" value={id} />
           <button type="submit" name="state" value="closed" className={a.secondary}>
