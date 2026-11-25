@@ -48,3 +48,6 @@ supabase/.branches
 
 # Google OAuth client secrets (YouTube upload)
 client_secret*.json
+
+# Ray series lives in the private repo D:/jambuch-audio-pilot/ray (25 Nov 2026): never commit it here
+ray/
