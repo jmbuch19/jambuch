@@ -9,8 +9,10 @@ import ffmpegPath from "ffmpeg-static";
 import { adminClient } from "@/lib/supabase-admin";
 import { deleteForever, readPrivate, uploadPrivate } from "@/lib/r2";
 import { logUsage, pickEffect, pickMusic } from "./library";
+import { narrationRules } from "./rules";
+import { buildScript, stripTitle } from "./script";
 import { soundPlan, type SoundPlan } from "./claude";
-import { creditsKey, readStory, sampleKey } from "./files";
+import { creditsKey, readDraft, readStory, sampleKey } from "./files";
 
 // Phase 2a: the paid (₹499) 30–60 second AUDIO sample (docs/CREATORS_SPACE_BRIEF.md §6H).
 //   1. passage   the story's opening, word for word, cut at a sentence end (code, not AI)
@@ -166,14 +168,19 @@ export function openingSentences(story: string, maxChars: number): string[] {
 
 // ---------------------------------------------------------------- 3. voice
 
-async function speak(text: string, s: SampleSettings): Promise<Buffer> {
+async function speak(text: string, s: SampleSettings, ctx: { previous?: string; next?: string } = {}): Promise<Buffer> {
   const key = process.env.ELEVENLABS_API_KEY;
   if (!key) throw new Error("ELEVENLABS_API_KEY is not set.");
   if (!s.voice_id) throw new Error("No voice chosen: pick one in admin (Creator's Space → Sample settings).");
   const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(s.voice_id)}?output_format=mp3_44100_128`, {
     method: "POST",
     headers: { "xi-api-key": key, "Content-Type": "application/json", Accept: "audio/mpeg" },
-    body: JSON.stringify({ text, model_id: s.model_id }),
+    body: JSON.stringify({
+      text,
+      model_id: s.model_id,
+      ...(ctx.previous ? { previous_text: ctx.previous.slice(-400) } : {}),
+      ...(ctx.next ? { next_text: ctx.next.slice(0, 400) } : {}),
+    }),
     signal: AbortSignal.timeout(120_000),
   });
   if (!res.ok) throw new Error(`ElevenLabs answered ${res.status}: ${(await res.text()).slice(0, 300)}`);
@@ -279,6 +286,34 @@ async function duration(path: string): Promise<number> {
   return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
 }
 
+// The music bed sits at 0.22; in the silence after the opening it swells softly to 0.5 and
+// settles back (0.6 s ramps), before the story starts.
+function musicVolume(swell: { from: number; to: number } | null) {
+  if (!swell || swell.to - swell.from < 0.5) return "volume=0.22";
+  const a = swell.from.toFixed(2);
+  const b = swell.to.toFixed(2);
+  return `volume='0.22+0.28*min(1,max(0,(t-${a})/0.6))*min(1,max(0,(${b}-t)/0.6))':eval=frame`;
+}
+
+// Joins voiced segments with real silences between them (the engine's rule: pauses go in at
+// the joins, never inside the voice). Returns the joined file and each segment's start time.
+async function joinSegments(dir: string, files: string[], gaps: number[]) {
+  const durs = await Promise.all(files.map((f) => duration(f)));
+  const starts: number[] = [];
+  let t = 0;
+  durs.forEach((d, i) => {
+    starts.push(t);
+    t += d + (gaps[i] ?? 0);
+  });
+  const args = ["-hide_banner", "-y", ...files.flatMap((f) => ["-i", f])];
+  const f = files.map((_, i) => `[${i}:a]aresample=44100,aformat=channel_layouts=mono,apad=pad_dur=${(gaps[i] ?? 0).toFixed(2)}[s${i}]`);
+  f.push(`${files.map((_, i) => `[s${i}]`).join("")}concat=n=${files.length}:v=0:a=1[out]`);
+  const out = join(dir, "voice.mp3");
+  args.push("-filter_complex", f.join(";"), "-map", "[out]", "-c:a", "libmp3lame", "-b:a", "192k", out);
+  await run(ffmpeg(), args, { timeout: 120_000, maxBuffer: 16 * 1024 * 1024 });
+  return { path: out, starts, durs };
+}
+
 export async function mix(o: {
   dir: string;
   tag: string;
@@ -288,6 +323,8 @@ export async function mix(o: {
   voiceStart: number;
   total: number;
   tagEndAt: number;
+  swell?: { from: number; to: number } | null;
+  lufs?: number;
 }) {
   const inputs = [o.tag, o.voice, o.tag, ...(o.music ? [o.music] : []), ...o.effects.map((e) => e.path)];
   const args: string[] = ["-hide_banner", "-y"];
@@ -305,7 +342,7 @@ export async function mix(o: {
   let idx = 3;
   if (o.music) {
     f.push(
-      `[${idx}:a]aresample=44100,aloop=loop=-1:size=2000000000,atrim=0:${o.total.toFixed(2)},volume=0.22,` +
+      `[${idx}:a]aresample=44100,aloop=loop=-1:size=2000000000,atrim=0:${o.total.toFixed(2)},${musicVolume(o.swell ?? null)},` +
         `afade=t=in:d=1.5,afade=t=out:st=${Math.max(0, o.total - 2.5).toFixed(2)}:d=2.5[mbed]`,
     );
     f.push(`[mbed][vkey]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=500[mduck]`);
@@ -318,7 +355,7 @@ export async function mix(o: {
     f.push(`[${idx + n}:a]aresample=44100,atrim=0:5,afade=t=out:st=4:d=1,volume=0.5,adelay=${ms(e.at)}|${ms(e.at)}[fx${n}]`);
     mixIn.push(`[fx${n}]`);
   });
-  f.push(`${mixIn.join("")}amix=inputs=${mixIn.length}:duration=first:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=11[out]`);
+  f.push(`${mixIn.join("")}amix=inputs=${mixIn.length}:duration=first:normalize=0,loudnorm=I=${o.lufs ?? -16}:TP=-1.5:LRA=11[out]`);
 
   const out = join(o.dir, "sample.mp3");
   args.push("-filter_complex", f.join(";"), "-map", "[out]", "-ac", "2", "-ar", "44100", "-c:a", "libmp3lame", "-b:a", "192k", out);
@@ -400,7 +437,13 @@ async function fromHistory(text: string, s: SampleSettings, since: number): Prom
 
 // The narration: from storage if already made for this exact text, voice and model; else made
 // once, recovered from ElevenLabs' history if our wait timed out, and stored at once.
-async function savedVoice(id: string, text: string, s: SampleSettings, force: boolean): Promise<{ audio: Buffer; paid: boolean }> {
+async function savedVoice(
+  id: string,
+  text: string,
+  s: SampleSettings,
+  force: boolean,
+  ctx: { previous?: string; next?: string } = {},
+): Promise<{ audio: Buffer; paid: boolean }> {
   const key = workKey(id, `voice-${hashOf(`${s.voice_id}|${s.model_id}|${text}`)}.mp3`);
   if (!force) {
     const saved = await readSaved(key);
@@ -409,7 +452,7 @@ async function savedVoice(id: string, text: string, s: SampleSettings, force: bo
   const since = Date.now();
   let audio: Buffer;
   try {
-    audio = await speak(text, s);
+    audio = await speak(text, s, ctx);
   } catch (e) {
     // A refusal (4xx) costs nothing; a timeout, network error or 5xx may have been charged.
     const msg = e instanceof Error ? e.message : String(e);
@@ -449,12 +492,15 @@ export async function makeSample(
   n: number,
   opts: { forceVoice?: boolean; fresh?: boolean } = {},
 ): Promise<SampleResult> {
-  const base = await sampleSettings();
-  const story = await readStory(req.id);
-  const sentences = openingSentences(story, base.max_chars);
-  if (!sentences.length) throw new Error("The story has no text to read.");
-  const passage = sentences.join(" ");
+  const [base, story, draft, rules] = await Promise.all([sampleSettings(), readStory(req.id), readDraft(req.id), narrationRules()]);
   const lang = req.language in TAG_TEXT ? req.language : "en";
+  // Title and author are separate fields; a first line that repeats the title is not read twice.
+  const title = (draft.text.title ?? "").trim();
+  const author = (draft.text.author ?? draft.text.credit_name ?? "").trim();
+  const script = buildScript(stripTitle(story, title), base.max_chars, { title, author, lang }, rules.pauses);
+  const sentences = script.sentences;
+  if (!sentences.length) throw new Error("The story has no text to read.");
+  const passage = script.spoken;
   const native = voiceFor(base, lang);
   if (!native) throw new Error(`No ${SAMPLE_LANGS[lang as SampleLang] ?? lang} narrator voice is chosen in the sample settings.`);
   const s: SampleSettings = { ...base, voice_id: native.voice_id, model_id: native.model_id };
@@ -530,30 +576,59 @@ export async function makeSample(
 
     await checkStop(req.id);
     // 3. The paid voice, once: stored as soon as it arrives (or recovered after a timeout).
-    const [voice, tagAudio] = await step(req.id, "voice (ElevenLabs)", () =>
-      Promise.all([savedVoice(req.id, passage, s, !!(opts.forceVoice || opts.fresh)), spokenTag(lang, s)]),
+    // Each segment separately, three at a time, with its neighbours as context for intonation.
+    const segs = script.segments;
+    const force = !!(opts.forceVoice || opts.fresh);
+    const voiced: { audio: Buffer; paid: boolean }[] = new Array(segs.length);
+    const tagAudio = await step(req.id, "voice (ElevenLabs)", async () => {
+      for (let i = 0; i < segs.length; i += 3) {
+        await Promise.all(
+          segs.slice(i, i + 3).map(async (seg, j) => {
+            const k = i + j;
+            voiced[k] = await savedVoice(req.id, seg.text, s, force, { previous: segs[k - 1]?.text, next: segs[k + 1]?.text });
+          }),
+        );
+        await checkStop(req.id);
+      }
+      return spokenTag(lang, s);
+    });
+    const files = await Promise.all(
+      voiced.map(async (v, i) => {
+        const path = join(dir, `seg${i}.mp3`);
+        await writeFile(path, v.audio);
+        return path;
+      }),
     );
-    const voicePath = join(dir, "voice.mp3");
+    const joined = await step(req.id, "join with pauses (FFmpeg)", () => joinSegments(dir, files, segs.map((x) => x.gapAfter)));
+    const voicePath = joined.path;
     const tagPath = join(dir, "tag.mp3");
-    await writeFile(voicePath, voice.audio);
     await writeFile(tagPath, tagAudio);
     const [voiceSec, tagSec] = await Promise.all([duration(voicePath), duration(tagPath)]);
     const voiceStart = tagSec + 0.6;
-    const tagEndAt = voiceStart + voiceSec + 1.2;
+    const tagEndAt = voiceStart + voiceSec + rules.pauses.end;
     const total = tagEndAt + tagSec + 1.5;
 
-    // Effects placed after their sentence, in proportion to the characters read so far.
-    const ends: number[] = [];
-    let acc = 0;
-    for (const t of sentences) {
-      acc += t.length + 1;
-      ends.push(acc / (passage.length + 1));
-    }
-    const effects = cueFiles.map((c) => ({ path: c.path, at: voiceStart + ends[c.after - 1] * voiceSec + 0.1 }));
+    // The music swell: the silence after the opening (title and author), before the story.
+    const lastOpening = segs.map((x) => x.kind).lastIndexOf("author") >= 0 ? segs.map((x) => x.kind).lastIndexOf("author") : segs.map((x) => x.kind).lastIndexOf("title");
+    const swell =
+      lastOpening >= 0
+        ? { from: voiceStart + joined.starts[lastOpening] + joined.durs[lastOpening], to: voiceStart + joined.starts[lastOpening] + joined.durs[lastOpening] + segs[lastOpening].gapAfter }
+        : null;
+
+    // Effects: just after the segment that holds their sentence.
+    const segOf = (n: number) => segs.findIndex((x) => x.sentences.includes(n));
+    const effects = cueFiles.flatMap((c) => {
+      const k = segOf(c.after);
+      return k < 0 ? [] : [{ path: c.path, at: voiceStart + joined.starts[k] + joined.durs[k] + 0.1 }];
+    });
+    const paidChars = voiced.reduce((sum, v, i) => sum + (v.paid ? segs[i].text.length : 0), 0);
+    const voice = { paid: voiced.some((v) => v.paid) };
 
     await checkStop(req.id);
     // 4. Mix (free), then the check (its speech-to-text result is kept per voice too).
-    const out = await step(req.id, "mix (FFmpeg)", () => mix({ dir, tag: tagPath, voice: voicePath, music: musicPath, effects, voiceStart, total, tagEndAt }));
+    const out = await step(req.id, "mix (FFmpeg)", () =>
+      mix({ dir, tag: tagPath, voice: voicePath, music: musicPath, effects, voiceStart, total, tagEndAt, swell: musicPath ? swell : null, lufs: rules.videoLufs }),
+    );
     const qc = await step(req.id, "quality check", () =>
       qualityCheck(out, voicePath, passage, lang, workKey(req.id, `stt-${hashOf(`${s.voice_id}|${s.model_id}|${passage}`)}.json`), !!(opts.forceVoice || opts.fresh)),
     );
@@ -572,7 +647,10 @@ export async function makeSample(
       qc,
       cost: {
         // Only what this attempt actually paid for.
-        elevenlabs_chars: voice.paid ? passage.length : 0,
+        elevenlabs_chars: paidChars,
+        segments: segs.length,
+        pauses_from_engine: rules.fromEngine.join(",") || "none",
+        pauses_stand_in: rules.standIn.join(",") || "none",
         voice_paid: voice.paid ? 1 : 0,
         claude_input_tokens: planUsage.input,
         claude_output_tokens: planUsage.output,

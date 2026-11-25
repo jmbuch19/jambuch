@@ -217,3 +217,21 @@ export async function freeRemakeAction(_prev: MakeState, form: FormData): Promis
   revalidatePath(`/admin/creators/${id}`);
   return out.status === "review" ? { status: "done", message: `Remade from scratch (free remake used). ${out.message} Listen, then send it.` } : { status: "error", message: out.message };
 }
+
+// Title and author for the sample's opening (kept in the private draft). Requests made before
+// these fields existed get them here.
+export async function saveTitleAuthorAction(form: FormData) {
+  await requireAdmin();
+  const id = String(form.get("id") ?? "");
+  const { readDraft, saveDraft } = await import("@/lib/creators/files");
+  const { cleanText } = await import("@/lib/creators/firewall");
+  const d = await readDraft(id);
+  const title = cleanText(form.get("title"), 200).text;
+  const author = cleanText(form.get("author"), 200).text;
+  if (title) d.text.title = title;
+  else delete d.text.title;
+  if (author) d.text.author = author;
+  else delete d.text.author;
+  await saveDraft(id, d);
+  revalidatePath(`/admin/creators/${id}`);
+}

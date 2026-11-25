@@ -329,3 +329,29 @@ orders → case by case; sample missing the approved plan → one free remake; b
 Before merge (Jaydeep): run `20261125300000_creator_refunds_disputes.sql`; in Razorpay →
 Webhooks add the events `refund.processed`, `refund.failed` and the `payment.dispute.*` events
 (created, won, lost, closed, under_review, action_required).
+
+## 25 Nov 2026 — sample opening, title/author, pauses from the engine's rules
+
+Bug (Jaydeep): the title was read as part of the story with no pause.
+- Question flow: required **Title** and **Author name** beside the story (kept in the private
+  draft; author prefilled from the writer's name). A first line that matches the title
+  (letters and digits only) is left out of the narration. Admin can set both for older requests.
+- Sample script (`src/lib/creators/script.ts`): opening "વાર્તા: <title>. લેખક: <author>."
+  (Hindi "कहानी: … लेखक: …", English "Story: … Written by …"), then the story's opening split
+  into segments (paragraphs; narration ↔ dialogue changes; scene breaks = *** or blank lines,
+  depending on the text's own layout). Each segment voiced separately with previous/next text
+  for intonation, cached per segment (retries free).
+- Pauses are real silences added when joining (FFmpeg), never left to the voice; the music bed
+  swells softly (0.22 → 0.5) in the silence after the opening; the end pause comes before the
+  closing tag; loudness from the rules.
+- **Rules come from the engine, not this site** (`src/lib/creators/rules.ts`): read from
+  private R2 `media/rules/narration.json` (to be exported by the home PC from docs/narration.md
+  and sound-guide.md):
+  `{ "source": "...", "pauses": { "join": 0.3, "paragraph": [0.6, 0.8], "scene_break": [...],
+  "dialogue_change": [...], "title": ..., "author": ..., "title_swell": ..., "end": ... },
+  "loudness": { "video_lufs": -16 } }`. Until it exists, stand-ins are used and admin marks them.
+- **Missing from the engine's narration.md on 25 Nov** (home PC to add): title (stand-in 1.5 s),
+  author (1.0 s), opening music swell (2.0 s), scene break (1.5–2 s), dialogue speaker change
+  (0.3–0.5 s), end before the closing card (2.0 s). Present: join 0.3 s (narration.md),
+  paragraph 0.6–0.8 s (sound-guide.md "action runs tight"; quiet scenes 1.2–2 s).
+- Later, camera and colour rules for videos come from the engine the same way.

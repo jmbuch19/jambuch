@@ -10,7 +10,8 @@ import { PlanView } from "@/app/creators/start/steps";
 import { isStyleTopic } from "@/lib/creators/claude";
 import { sampleLink } from "@/lib/creators/delivery";
 import { DEFAULT_MODEL, SAMPLE_LANGS, listVoices, sampleSettings, speaksLanguage, voiceFor, type Voice } from "@/lib/creators/sample";
-import { advanceReceived, letContinue, sampleFeeReceivedAction, saveSampleSettings, sendSampleAction, setRequestState } from "../actions";
+import { advanceReceived, letContinue, sampleFeeReceivedAction, saveSampleSettings, saveTitleAuthorAction, sendSampleAction, setRequestState } from "../actions";
+import { narrationRules } from "@/lib/creators/rules";
 import MakeSampleButton, { StopButton } from "./make-sample";
 import { FreeRemakeButton, RefundForm } from "./refund-form";
 import a from "../../../admin.module.css";
@@ -30,6 +31,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const { data: r } = await db.from("creator_requests").select("*").eq("id", id).maybeSingle();
   if (!r) notFound();
 
+  const narr = await narrationRules();
   const purged = !!r.files_purged_at;
   const [story, brief, draft, plan, settings, voices, listen] = await Promise.all([
     r.story_key ? readStory(id).catch(() => null) : Promise.resolve(null),
@@ -273,6 +275,28 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       <p className={a.mutedSmall}>Style tags: {r.style_tags?.join(", ") || "none"}</p>
 
       <h2 className={a.gapTop}>Sample</h2>
+      {draft && (
+        <form action={saveTitleAuthorAction} className={a.form} style={{ maxWidth: 640 }}>
+          <input type="hidden" name="id" value={id} />
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <label className={a.field} style={{ flex: "1 1 240px" }}>
+              Title (read first)
+              <input name="title" defaultValue={draft.text.title ?? ""} maxLength={200} />
+            </label>
+            <label className={a.field} style={{ flex: "1 1 200px" }}>
+              Author
+              <input name="author" defaultValue={draft.text.author ?? draft.text.credit_name ?? ""} maxLength={200} />
+            </label>
+          </div>
+          <button type="submit" className={a.secondary}>
+            Save title and author
+          </button>
+        </form>
+      )}
+      <p className={a.mutedSmall}>
+        Pauses {narr.source ? `from the engine (${narr.source})` : "(engine rules not exported yet)"}:{" "}
+        {Object.entries(narr.pauses).map(([k, v]) => `${k.replace(/_/g, " ")} ${v} s${narr.standIn.includes(k as never) ? " (stand-in)" : ""}`).join(" · ")}
+      </p>
       {r.state === "sample_due" && (
         <form action={sampleFeeReceivedAction} className={a.actions}>
           <input type="hidden" name="id" value={id} />

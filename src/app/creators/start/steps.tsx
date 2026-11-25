@@ -35,6 +35,13 @@ import c from "../creators.module.css";
 
 // Words on the special screens (Gujarati and Hindi: drafts for Jaydeep to check).
 const W: Record<string, L> = {
+  storyTitle: { en: "Title of the story", gu: "વાર્તાનું શીર્ષક", hi: "कहानी का शीर्षक" },
+  storyAuthor: { en: "Author’s name", gu: "લેખકનું નામ", hi: "लेखक का नाम" },
+  titleNote: {
+    en: "The narration opens with the title and the author’s name. Don’t repeat the title at the top of the story; if you do, we leave it out.",
+    gu: "વાચન શીર્ષક અને લેખકના નામથી શરૂ થાય છે. વાર્તાની ઉપર શીર્ષક ફરી ન લખો; લખશો તો અમે તેને છોડી દઈશું.",
+    hi: "वाचन शीर्षक और लेखक के नाम से शुरू होता है। कहानी के ऊपर शीर्षक दोबारा न लिखें; लिखेंगे तो हम उसे छोड़ देंगे।",
+  },
   paste: { en: "Paste your story here", gu: "તમારી વાર્તા અહીં પેસ્ટ કરો", hi: "अपनी कहानी यहाँ पेस्ट करें" },
   orUpload: { en: "Or upload a Word (.docx), text (.txt) or PDF file", gu: "અથવા Word (.docx), ટેક્સ્ટ (.txt) કે PDF ફાઇલ અપલોડ કરો", hi: "या Word (.docx), टेक्स्ट (.txt) या PDF फ़ाइल अपलोड करें" },
   pdfNote: { en: "Please copy from Word or Google Docs rather than a PDF when you can: Gujarati and Hindi often come out broken from PDFs.", gu: "શક્ય હોય તો PDF નહીં, Word કે Google Docsમાંથી કૉપી કરો: PDFમાંથી ગુજરાતી-હિન્દી ઘણી વાર તૂટી જાય છે.", hi: "हो सके तो PDF नहीं, Word या Google Docs से कॉपी करें: PDF से गुजराती-हिन्दी अक्सर टूट जाती है।" },
@@ -175,12 +182,15 @@ export function PriceRange({ lang, answers, onDone }: StepProps) {
 export function StoryStep({
   id,
   lang,
+  cd,
   onDone,
   screened,
   initial,
   onSaved,
 }: StepProps & { screened: boolean; initial: { chars: number; lang: string | null }; onSaved: (chars: number, lang: string | null) => void }) {
   const [text, setText] = useState("");
+  const [title, setTitle] = useState(cd.text.title ?? "");
+  const [author, setAuthor] = useState(cd.text.author ?? cd.text.credit_name ?? "");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -241,6 +251,8 @@ export function StoryStep({
     setError("");
     const form = new FormData();
     form.set("story", text);
+    form.set("title", title);
+    form.set("author", author);
     if (file) form.set("file", file);
     const res = await submitStory(id, form);
     setBusy(false);
@@ -252,6 +264,17 @@ export function StoryStep({
 
   return (
     <form onSubmit={save} className={`${h.ideaForm} ${c.form}`}>
+      <div className={h.fieldRow}>
+        <label className={h.field}>
+          {w("storyTitle", lang)}
+          <input value={title} maxLength={200} required onChange={(e) => setTitle(e.target.value)} lang={lang} />
+        </label>
+        <label className={h.field}>
+          {w("storyAuthor", lang)}
+          <input value={author} maxLength={200} required onChange={(e) => setAuthor(e.target.value)} lang={lang} />
+        </label>
+      </div>
+      <p className={c.formNote}>{w("titleNote", lang)}</p>
       <label className={h.field}>
         {w("paste", lang)} ({w("chars", lang, { n: text.length.toLocaleString("en-IN") })})
         <textarea rows={12} value={text} onChange={(e) => setText(e.target.value)} lang={lang} />
@@ -268,7 +291,7 @@ export function StoryStep({
         </p>
       )}
       <div className={c.nav}>
-        <button type="submit" className={h.ideaSend} disabled={busy || (!file && text.trim().length < 200)}>
+        <button type="submit" className={h.ideaSend} disabled={busy || !title.trim() || !author.trim() || (!file && text.trim().length < 200)}>
           {busy ? w("saving", lang) : w("saveStory", lang)}
         </button>
       </div>

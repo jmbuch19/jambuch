@@ -318,6 +318,10 @@ export async function submitStory(id: string, form: FormData): Promise<StoryResu
     raw = got.text;
   }
   const { text, flagged } = cleanStory(raw);
+  const title = cleanText(form.get("title"), 200);
+  const author = cleanText(form.get("author"), 200);
+  if (!title.text) return { ok: false, error: "Please give the story’s title." };
+  if (!author.text) return { ok: false, error: "Please give the author’s name." };
   if (text.length < STORY_MIN) return { ok: false, error: "Please add at least a few paragraphs of the story." };
   if (text.length > STORY_MAX) {
     return { ok: false, error: `Stories up to ${STORY_MAX.toLocaleString("en-IN")} characters can be made here. For a longer work, choose Assisted and write to us.` };
@@ -331,9 +335,12 @@ export async function submitStory(id: string, form: FormData): Promise<StoryResu
     console.error("creators: story not stored for", id, e instanceof Error ? e.message : e);
     return { ok: false, error: "We couldn’t save the story just now. Please try again." };
   }
-  if (flagged) {
+  {
+    // Title and author: separate fields (Jaydeep, 25 Nov 2026), read as the sample's opening.
     const d = await readDraft(id);
-    d.flagged = true;
+    d.text.title = title.text;
+    d.text.author = author.text;
+    d.flagged ||= flagged || title.flagged || author.flagged;
     await saveDraft(id, d);
   }
   await update(id, {
