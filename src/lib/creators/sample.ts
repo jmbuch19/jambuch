@@ -6,7 +6,8 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import ffmpegPath from "ffmpeg-static";
 import { adminClient } from "@/lib/supabase-admin";
-import { deleteForever, uploadPrivate } from "@/lib/r2";
+import { deleteForever, readPrivate, uploadPrivate } from "@/lib/r2";
+import { logUsage, pickEffect, pickMusic } from "./library";
 import { soundPlan, type SoundPlan } from "./claude";
 import { creditsKey, readStory, sampleKey } from "./files";
 
@@ -93,7 +94,16 @@ const SOUND_QUERY: Record<string, string> = {
   "children-playing": "children playing",
 };
 
-export type Credit = { kind: "music" | "effect"; source: "freesound"; id: number; name: string; author: string; licence: string; url: string };
+export type Credit = {
+  kind: "music" | "effect";
+  source: "library" | "freesound";
+  id: number | string;
+  name: string;
+  author: string;
+  licence: string;
+  url: string;
+  attribution?: string | null; // CC BY: shown wherever the sound is credited
+};
 export type QualityCheck = { pass: boolean; seconds: number; lufs: number | null; words_matched: number | null; problems: string[] };
 export type SampleResult = { key: string; credits: Credit[]; cost: Record<string, number | string>; plan: SoundPlan; qc: QualityCheck };
 
@@ -153,12 +163,35 @@ export async function listVoices(): Promise<Voice[]> {
 
 type FreesoundHit = { id: number; name: string; username: string; license: string; duration: number; url: string; previews: Record<string, string> };
 
+// The licence of a Freesound result: CC0, or CC BY with its version; null for anything else
+// (NonCommercial, Sampling+, unknown).
+function freesoundLicence(url: string): { cc0: boolean; label: string } | null {
+  if (/by-nc|noncommercial|sampling/i.test(url)) return null;
+  if (/publicdomain\/zero|Creative Commons 0/i.test(url)) return { cc0: true, label: "CC0 1.0" };
+  const by = /licenses\/by\/(\d\.\d)/i.exec(url);
+  return by ? { cc0: false, label: `CC BY ${by[1]}` } : null;
+}
+
+function freesoundCredit(kind: Credit["kind"], hit: FreesoundHit): Credit {
+  const lic = freesoundLicence(hit.license)!;
+  return {
+    kind,
+    source: "freesound",
+    id: hit.id,
+    name: hit.name,
+    author: hit.username,
+    licence: lic.label,
+    url: hit.url,
+    attribution: lic.cc0 ? null : `“${hit.name}” by ${hit.username} (${hit.url}), licensed under ${lic.label}`,
+  };
+}
+
 async function freesound(query: string, minSec: number, maxSec: number): Promise<FreesoundHit | null> {
   const token = process.env.FREESOUND_API_KEY;
   if (!token) return null;
   const params = new URLSearchParams({
     query,
-    filter: `license:"Creative Commons 0" duration:[${minSec} TO ${maxSec}]`,
+    filter: `license:("Creative Commons 0" OR "Attribution") duration:[${minSec} TO ${maxSec}]`,
     fields: "id,name,username,license,duration,url,previews",
     sort: "rating_desc",
     page_size: "5",
@@ -170,8 +203,9 @@ async function freesound(query: string, minSec: number, maxSec: number): Promise
     return null;
   }
   const data = (await res.json()) as { results?: FreesoundHit[] };
-  // Double-check the licence on our side too: CC0 only.
-  return (data.results ?? []).find((r) => /publicdomain\/zero|Creative Commons 0/i.test(r.license)) ?? null;
+  // Double-check the licence on our side too: CC0 first, then CC BY; NonCommercial never.
+  const ok = (data.results ?? []).filter((r) => freesoundLicence(r.license) !== null);
+  return ok.find((r) => freesoundLicence(r.license)?.cc0) ?? ok[0] ?? null;
 }
 
 async function download(url: string, path: string) {
@@ -285,7 +319,7 @@ export async function makeSample(req: { id: string; language: string; style_tags
   try {
     // Voice: the passage and the spoken tag.
     const lang = req.language in TAG_TEXT ? req.language : "en";
-    const [voiceAudio, tagAudio] = await step(req.id, "voice (ElevenLabs)", () => Promise.all([speak(passage, s), speak(TAG_TEXT[lang], s)]));
+    const [voiceAudio, tagAudio] = await step(req.id, "voice (ElevenLabs)", () => Promise.all([speak(passage, s), spokenTag(lang, s)]));
     const voicePath = join(dir, "voice.mp3");
     const tagPath = join(dir, "tag.mp3");
     await writeFile(voicePath, voiceAudio);
@@ -297,17 +331,31 @@ export async function makeSample(req: { id: string; language: string; style_tags
     const total = tagEndAt + tagSec + 1.5;
 
     const credits: Credit[] = [];
+    const used: { order_id: string; asset_id: string; asset_kind: "music" | "sfx"; role: string }[] = [];
+    const usedIds = new Set<string>();
     // Music: the first music word, else the mood. None if the plan says "none".
     let musicPath: string | null = null;
     if (!plan.music.includes("none")) {
       const q = MUSIC_QUERY[plan.music[0] ?? ""] ?? MOOD_QUERY[plan.mood] ?? "calm ambient pad";
-      const hit = await optional(req.id, "music search (Freesound)", () => freesound(q, 30, 600));
-      const url = hit?.previews["preview-hq-mp3"];
-      if (hit && url) {
+      const card = await optional(req.id, "music from library", () => pickMusic(plan.music, plan.mood, req.id));
+      if (card) {
         const path = join(dir, "music.mp3");
-        if ((await optional(req.id, "music download (Freesound)", () => download(url, path))) !== null) {
+        if ((await optional(req.id, `music ${card.id} (library)`, async () => writeFile(path, await readPrivate(card.file)))) !== null) {
           musicPath = path;
-          credits.push({ kind: "music", source: "freesound", id: hit.id, name: hit.name, author: hit.username, licence: "CC0 1.0", url: hit.url });
+          credits.push({ kind: "music", source: "library", id: card.id, name: card.id, author: card.source, licence: card.licence, url: "", attribution: card.attribution });
+          used.push({ order_id: req.id, asset_id: card.id, asset_kind: "music", role: "sample-bed" });
+        }
+      }
+      if (!musicPath) {
+        const hit = await optional(req.id, "music search (Freesound)", () => freesound(q, 30, 600));
+        const url = hit?.previews["preview-hq-mp3"];
+        if (hit && url) {
+          const path = join(dir, "music.mp3");
+          if ((await optional(req.id, "music download (Freesound)", () => download(url, path))) !== null) {
+            musicPath = path;
+            credits.push(freesoundCredit("music", hit));
+            used.push({ order_id: req.id, asset_id: `freesound-${hit.id}`, asset_kind: "music", role: "sample-bed" });
+          }
         }
       }
     }
@@ -323,13 +371,22 @@ export async function makeSample(req: { id: string; language: string; style_tags
     for (const [i, cue] of plan.cues.entries()) {
       const q = SOUND_QUERY[cue.sound];
       if (!q) continue;
+      const path = join(dir, `fx${i}.mp3`);
+      const card = await optional(req.id, `effect ${cue.sound} from library`, () => pickEffect(cue.sound, `${req.id}-${i}`, usedIds));
+      if (card && (await optional(req.id, `effect ${card.id} (library)`, async () => writeFile(path, await readPrivate(card.file)))) !== null) {
+        usedIds.add(card.id);
+        effects.push({ path, at: voiceStart + ends[cue.after - 1] * voiceSec + 0.1 });
+        credits.push({ kind: "effect", source: "library", id: card.id, name: card.id, author: card.source, licence: card.licence, url: "", attribution: card.attribution });
+        used.push({ order_id: req.id, asset_id: card.id, asset_kind: "sfx", role: "sample-cue" });
+        continue;
+      }
       const hit = await optional(req.id, `effect search ${cue.sound} (Freesound)`, () => freesound(q, 0.5, 8));
       const url = hit?.previews["preview-hq-mp3"];
       if (!hit || !url) continue;
-      const path = join(dir, `fx${i}.mp3`);
       if ((await optional(req.id, `effect download ${cue.sound} (Freesound)`, () => download(url, path))) === null) continue;
       effects.push({ path, at: voiceStart + ends[cue.after - 1] * voiceSec + 0.1 });
-      credits.push({ kind: "effect", source: "freesound", id: hit.id, name: hit.name, author: hit.username, licence: "CC0 1.0", url: hit.url });
+      credits.push(freesoundCredit("effect", hit));
+      used.push({ order_id: req.id, asset_id: `freesound-${hit.id}`, asset_kind: "sfx", role: "sample-cue" });
     }
 
     const out = await step(req.id, "mix (FFmpeg)", () => mix({ dir, tag: tagPath, voice: voicePath, music: musicPath, effects, voiceStart, total, tagEndAt }));
@@ -338,6 +395,7 @@ export async function makeSample(req: { id: string; language: string; style_tags
 
     const key = sampleKey(req.id, n);
     await uploadPrivate(key, bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer, "audio/mpeg");
+    await logUsage(used);
     const creditsJson = new TextEncoder().encode(JSON.stringify({ credits, plan }, null, 2));
     await uploadPrivate(creditsKey(req.id, n), creditsJson.buffer as ArrayBuffer, "application/json");
 
@@ -357,6 +415,23 @@ export async function makeSample(req: { id: string; language: string; style_tags
     };
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+}
+
+// ---------------------------------------------------------------- the spoken sample tag (cached)
+
+// "Creator's Space sample. jambuch.in" in the chosen voice: made once per voice, model and
+// language, kept in private storage, and reused for every sample after that.
+const tagKey = (s: SampleSettings, lang: string) => `creators-shared/sample-tags/${s.voice_id}/${s.model_id}/${lang}.mp3`;
+
+async function spokenTag(lang: string, s: SampleSettings): Promise<Buffer> {
+  const key = tagKey(s, lang);
+  try {
+    return Buffer.from(await readPrivate(key));
+  } catch {
+    const audio = await speak(TAG_TEXT[lang], s);
+    await uploadPrivate(key, audio.buffer.slice(audio.byteOffset, audio.byteOffset + audio.byteLength) as ArrayBuffer, "audio/mpeg").catch(() => {});
+    return audio;
   }
 }
 

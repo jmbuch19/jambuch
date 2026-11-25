@@ -39,7 +39,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     listVoices().catch(() => [] as Voice[]),
     r.sample_key ? sampleLink(id, r.sample_key).catch(() => null) : Promise.resolve(null),
   ]);
-  const credits = (r.sample_credits ?? []) as { kind: string; name: string; author: string; licence: string; url: string }[];
+  const credits = (r.sample_credits ?? []) as { kind: string; name: string; author: string; licence: string; url: string; source?: string; attribution?: string | null }[];
   const cost = (r.sample_cost ?? {}) as Record<string, string | number>;
   const answers = (r.answers ?? {}) as Record<string, string | string[]>;
   const quote = r.quote as Quote | null;
@@ -275,12 +275,18 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
               </p>
               {!!credits.length && (
                 <ul className={a.mutedSmall}>
-                  {credits.map((c) => (
-                    <li key={c.url}>
-                      {c.kind}: “{c.name}” by {c.author}, {c.licence} ·{" "}
-                      <a href={c.url} target="_blank" rel="noopener noreferrer">
-                        source
-                      </a>
+                  {credits.map((c, i) => (
+                    <li key={`${c.name}-${i}`}>
+                      {c.kind} ({c.source === "library" ? "our library" : "Freesound"}): “{c.name}” · {c.author} · {c.licence}
+                      {c.attribution ? ` · credit: ${c.attribution}` : ""}
+                      {c.url && (
+                        <>
+                          {" · "}
+                          <a href={c.url} target="_blank" rel="noopener noreferrer">
+                            source
+                          </a>
+                        </>
+                      )}
                     </li>
                   ))}
                 </ul>

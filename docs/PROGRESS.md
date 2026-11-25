@@ -270,3 +270,34 @@ Jaydeep changed the sample to paid (₹499) and asked for step 1 of the hands-of
 
 Before merge (Jaydeep): run `20261125200000_creator_sample_fee.sql` (state `sample_due`,
 payment kind `sample`, columns `sample_qc`, `rechecks`). Check the new Gujarati/Hindi lines.
+
+## 25 Nov 2026 — shared sound library (site side built; waits for the home PC's export)
+
+Jaydeep: one shared library = the engine's asset cards (private engine repo, home PC owns
+it; this PC reads its clone at D:\jambuch-audio-pilot read-only and never commits there; the
+card docs are never copied into this public repo).
+
+**Handover the site expects (home PC, step 1):** in the private R2 bucket,
+`media/assets/catalog.json` = `{ "exported_at": "...", "cards": [ ...cards ] }` holding ONLY
+music and sfx cards with status `client-ready` and client_use `yes` or `yes-online`, same
+fields as the card files (id, kind, file, source, licence, client_use, attribution, status,
+mood_tags, instruments, energy, type, setting, use, length_s, prompt), with each audio file at
+`card.file` (media/assets/<kind>/<id>.mp3) in the same bucket. The site re-checks the
+licence rules on its side (NonCommercial never; CC BY only with an attribution line).
+
+Built (`src/lib/creators/library.ts`, used by the sample):
+- Picks music by the site's style words → card instruments and mood_tags; effects by words in
+  the card id, type, setting and prompt. Order: match, not used by the last 20 orders, score
+  (`asset_scores`), then a seed per request. Every placed sound is logged in `asset_usage`
+  (source `order`, role `sample-bed` / `sample-cue`).
+- Freesound only when the library has nothing for a word: CC0 first, CC BY with an automatic
+  credit line (shown to the writer under the sample and in admin), NonCommercial or
+  Sampling+ never.
+- The spoken "Creator's Space sample" tag is made once per voice, model and language
+  (`creators-shared/sample-tags/...` in private R2) and reused.
+- Admin shows the library size and the style words with no client-safe sound.
+
+Coverage check against the cards on engine-split (4ade09a): today 0 client-safe (the 22
+Freesound CC0 cards are still `trial`); once the ElevenLabs cards are `yes-online`, 129 sounds
+cover every music word and mood and every effect word except **door, market, train** → step 2
+is 2 CC0 Freesound sounds each for those three (6 for Jaydeep's approval), after the export.

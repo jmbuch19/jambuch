@@ -48,7 +48,7 @@ export default async function StartPage() {
   const { data: requests } = user
     ? await db
         .from("creator_requests")
-        .select("id, state, created_at, story_chars, sample_state, sample_key, files_delete_at, quote")
+        .select("id, state, created_at, story_chars, sample_state, sample_key, files_delete_at, quote, sample_credits")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(10)
@@ -112,6 +112,14 @@ export default async function StartPage() {
                   <span>{r.story_chars.toLocaleString("en-IN")} characters</span>
                   <b>{r.sample_state === "sent" && r.sample_key ? "Your sample is ready" : (STATE_LABEL[r.state] ?? r.state)}</b>
                   {r.sample_state === "sent" && r.sample_key && <ListenButton id={r.id} />}
+                  {r.sample_state === "sent" &&
+                    ((r.sample_credits ?? []) as { attribution?: string | null }[])
+                      .filter((x) => x.attribution)
+                      .map((x) => (
+                        <span key={x.attribution!} className={c.small}>
+                          Sound: {x.attribution}
+                        </span>
+                      ))}
                   {payments && r.state === "submitted" && r.sample_state === "sent" && !!(r.quote as { advance?: number } | null)?.advance && (
                     <PayButton id={r.id} kind="advance" amount={(r.quote as { advance: number }).advance} />
                   )}

@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/admin";
 import { saveJsonSetting, setRequestState } from "./actions";
 import { flowSettings, pricingSettings, storedPricingSettings } from "@/lib/creators/flow";
 import { fixedPerMonth, overheadPerOrder } from "@/lib/creators/pricing";
+import { emptyTags } from "@/lib/creators/library";
 import a from "../../admin.module.css";
 
 // Creator's Space sample requests (docs/CREATORS_SPACE_BRIEF.md §6A "Safeguards").
@@ -29,6 +30,7 @@ export default async function CreatorRequestsPage() {
     .limit(200);
   const [pricing, flow, live] = await Promise.all([storedPricingSettings(), flowSettings(), pricingSettings()]);
   const fx = live.fx;
+  const lib = await emptyTags();
   // Which ticks each request was sent with (brief §7), and under which terms version.
   const { data: consents } = rows?.length
     ? await db.from("creator_consents").select("request_id, kind, terms_version, language").in("request_id", rows.map((r) => r.id))
@@ -165,6 +167,19 @@ export default async function CreatorRequestsPage() {
           </table>
         </div>
       )}
+
+      <h2 className={a.gapTop}>Sound library</h2>
+      <p className={a.intro}>
+        {lib.cards ? (
+          <>
+            <b>{lib.cards} client-safe sounds</b> in the shared library (the engine’s export, media/assets/catalog.json).
+          </>
+        ) : (
+          <b>No library export yet: samples use Freesound (CC0, or CC BY with a credit line) until the home PC exports it.</b>
+        )}{" "}
+        Style words with no client-safe sound yet: music {lib.music.join(", ") || "none"}; moods {lib.moods.join(", ") || "none"};
+        effects {lib.sounds.join(", ") || "none"}.
+      </p>
 
       <h2 className={a.gapTop}>Pricing settings (brief §5)</h2>
       <p className={a.intro}>
