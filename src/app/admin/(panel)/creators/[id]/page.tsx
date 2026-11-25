@@ -215,9 +215,9 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           ))}
         </>
       )}
-      {claudeCost && (
+      {typeof claudeCost?.usd === "number" && (
         <p className={a.mutedSmall}>
-          Claude so far: ${claudeCost.usd.toFixed(3)} · {claudeCost.calls.map((x) => `${x.step} ${x.usd.toFixed(3)}`).join(" · ")}
+          Claude so far: ${claudeCost!.usd.toFixed(3)} · {(claudeCost!.calls ?? []).map((x) => `${x.step} ${Number(x.usd ?? 0).toFixed(3)}`).join(" · ")}
         </p>
       )}
       {r.state === "submitted" && r.sample_state === "sent" && r.plan_version > 0 && (
@@ -379,17 +379,24 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       )}
 
       {["draft", "screening", "questions", "plan", "sample_due", "submitted", "needs_human"].includes(r.state) && (
-        <form action={setRequestState} className={a.actions}>
-          <input type="hidden" name="id" value={id} />
-          <button type="submit" name="state" value="closed" className={a.secondary}>
-            Close request
-          </button>
-          {r.state === "needs_human" && (
-            <button type="submit" name="state" value="refused" className={a.secondary}>
-              Refuse
+        <div className={a.actions}>
+          <form action={setRequestState}>
+            <input type="hidden" name="id" value={id} />
+            <input type="hidden" name="state" value="closed" />
+            <button type="submit" className={a.secondary}>
+              Close request
             </button>
+          </form>
+          {r.state === "needs_human" && (
+            <form action={setRequestState}>
+              <input type="hidden" name="id" value={id} />
+              <input type="hidden" name="state" value="refused" />
+              <button type="submit" className={a.secondary}>
+                Refuse
+              </button>
+            </form>
           )}
-        </form>
+        </div>
       )}
 
       <h2 className={a.gapTop}>Sample settings</h2>

@@ -16,10 +16,14 @@ export async function setRequestState(form: FormData) {
   await requireAdmin();
   const state = String(form.get("state") ?? "");
   const id = String(form.get("id") ?? "");
+  console.log("admin: set request", id, "to", state || "(no state sent)");
   if (!["closed", "refused"].includes(state)) return;
   const db = adminClient();
   const { data: row } = await db.from("creator_requests").select("id, story_key, sample_key, sample_state").eq("id", id).maybeSingle();
-  if (!row) return;
+  if (!row) {
+    console.error("admin: request not found", id);
+    return;
+  }
   // A sample already sent stays for the writer until its 7 days are up (the daily job).
   const keepForWriter = row.sample_state === "sent";
   if (!keepForWriter && (row.story_key || row.sample_key)) {
@@ -30,10 +34,11 @@ export async function setRequestState(form: FormData) {
       console.error("creators: files not deleted for", id, e instanceof Error ? e.message : e);
     }
   }
-  await db
+  const { error } = await db
     .from("creator_requests")
     .update({ state, updated_at: now(), ...(keepForWriter ? {} : { story_key: null, sample_key: null, files_delete_at: now(), files_purged_at: now() }) })
     .eq("id", id);
+  if (error) console.error("admin: request not updated", id, error.message);
   revalidatePath("/admin/creators");
   revalidatePath(`/admin/creators/${id}`);
 }

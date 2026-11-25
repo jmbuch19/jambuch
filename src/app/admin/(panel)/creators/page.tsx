@@ -100,7 +100,7 @@ export default async function CreatorRequestsPage() {
                         <span className={a.mutedSmall}>quote ₹{Number((r.quote as { total: number }).total).toLocaleString("en-IN")}</span>
                       </>
                     )}
-                    {!!(r.claude_cost as { usd?: number } | null)?.usd && (
+                    {typeof (r.claude_cost as { usd?: number } | null)?.usd === "number" && (r.claude_cost as { usd: number }).usd > 0 && (
                       <>
                         <br />
                         <span className={a.mutedSmall}>Claude ${(r.claude_cost as { usd: number }).usd.toFixed(2)}</span>
@@ -148,17 +148,24 @@ export default async function CreatorRequestsPage() {
                   <td className={a.mutedSmall}>{r.style_tags?.join(", ") || "—"}</td>
                   <td>
                     {OPEN.includes(r.state) && (
-                      <form action={setRequestState}>
-                        <input type="hidden" name="id" value={r.id} />
-                        <button type="submit" name="state" value="closed" className={a.linkButton}>
-                          Close
-                        </button>{" "}
-                        {r.state === "needs_human" && (
-                          <button type="submit" name="state" value="refused" className={a.linkButton}>
-                            Refuse
+                      <>
+                        <form action={setRequestState}>
+                          <input type="hidden" name="id" value={r.id} />
+                          <input type="hidden" name="state" value="closed" />
+                          <button type="submit" className={a.linkButton}>
+                            Close
                           </button>
+                        </form>
+                        {r.state === "needs_human" && (
+                          <form action={setRequestState}>
+                            <input type="hidden" name="id" value={r.id} />
+                            <input type="hidden" name="state" value="refused" />
+                            <button type="submit" className={a.linkButton}>
+                              Refuse
+                            </button>
+                          </form>
                         )}
-                      </form>
+                      </>
                     )}
                   </td>
                 </tr>
