@@ -441,3 +441,15 @@ Added when the spec was filed; nothing above was changed. Decide these first.
    `src/lib/creators/vocabulary.ts` (`music:flute`, `sound:rain`,
    `style:soft-watercolour`…). One vocabulary, ideally from the real asset
    catalog (open item in `docs/PROGRESS.md`).
+
+### Decisions (Jaydeep, 25 Nov 2026)
+
+1. **Sample stays free.** Every "₹499 sample" above reads as "free sample"; no
+   payment before the sample. Razorpay is needed only for the 50% advance (step 11).
+2. Accepted as written: the new flow replaces the form; 18+ moves to sign-in.
+3. **Build everything**, including the pricing engine and .docx/.pdf extraction.
+   Anything with a running cost (Razorpay account, speech-to-text provider for
+   voice notes) is asked before it is switched on.
+4. Paths stay `creators/<request id>/…` (Claude Code's default; the pack follows).
+5. **2.1c Yes → stop: `needs_human`**, no automatic sample until Jaydeep approves.
+6. Tags use `src/lib/creators/vocabulary.ts` until the real asset catalog exists.
