@@ -2,6 +2,7 @@ import Link from "next/link";
 import Anthropic from "@anthropic-ai/sdk";
 import { requireAdmin } from "@/lib/admin";
 import { flowSettings } from "@/lib/creators/flow";
+import { deleteEngineTest, engineTestView, startEngineTest } from "./engine-test";
 import a from "../../../admin.module.css";
 
 // The production agent on Anthropic Managed Agents (brief §6F), read-only. Uses the site's
@@ -57,6 +58,7 @@ export default async function ProductionAgentPage() {
   const agentId = flow.agent_id || DEFAULT_AGENT_ID;
   const ready = !!process.env.ANTHROPIC_API_KEY;
   const d = ready ? await load(agentId) : null;
+  const test = ready ? await engineTestView() : null;
   const ag = d?.agent;
 
   return (
@@ -64,9 +66,9 @@ export default async function ProductionAgentPage() {
       <p className={a.crumb}>
         <Link href="/admin/creators">← Creator’s Space requests</Link>
       </p>
-      <h1 className={a.title}>Production agent (read-only)</h1>
+      <h1 className={a.title}>Production agent</h1>
       <p className={a.intro}>
-        The Managed Agent that will make paid orders (brief §6F). This page only reads; it never starts a run. If the agent
+        The Managed Agent that will make paid orders (brief §6F). The settings below are read-only; only the test button starts a run. If the agent
         shows below, it is in the same Anthropic account as the site’s key, so the site can start runs for it.
       </p>
 
@@ -76,6 +78,44 @@ export default async function ProductionAgentPage() {
           Couldn’t read {agentId}: {d.agentError}. If it says “not found”, the agent is in a different Anthropic account or
           workspace than the site’s key.
         </p>
+      )}
+
+      <h2 className={a.gapTop}>One-day test, part 1: render only</h2>
+      <p className={a.intro}>
+        Runs once in the test container with a hard <b>$5</b> limit (Claude and running time; it pauses at the limit).
+        No client story, no ElevenLabs, no image service: the agent makes test pictures and sound itself, renders a
+        12-minute 1080p moving-pictures video the Ramayana way, reports how long each part took, then deletes its files.
+        Your agent is not changed: this run alone gets its own instructions and runs commands without asking.
+      </p>
+      {!test ? (
+        <form action={startEngineTest}>
+          <button type="submit" className={a.primary}>
+            Run the render-only test ($5 limit)
+          </button>
+        </form>
+      ) : (
+        <>
+          <p>
+            Session {test.id} · <b>{test.status}</b> · cost so far {test.cost}
+            {test.active_seconds !== null ? ` · ${Math.round(test.active_seconds / 60)} min running` : ""} · started{" "}
+            {test.started_at ? new Date(test.started_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "—"}
+          </p>
+          {test.error && <p className={a.error}>{test.error}</p>}
+          <p className={a.mutedSmall}>Reload this page to see progress.</p>
+          <div style={{ maxHeight: 520, overflowY: "auto", border: "1px solid #ddd", padding: 12, borderRadius: 6 }}>
+            {test.lines.map((l, i) => (
+              <pre key={i} style={{ ...pre, margin: "0 0 8px", opacity: l.kind === "tool" ? 0.65 : 1, fontWeight: l.kind === "agent" ? 500 : 400 }}>
+                {l.kind === "agent" ? "Agent: " : l.kind === "tool" ? "› " : l.kind === "error" ? "ERROR: " : "· "}
+                {l.text}
+              </pre>
+            ))}
+          </div>
+          <form action={deleteEngineTest} style={{ marginTop: 12 }}>
+            <button type="submit" className={a.secondary}>
+              Delete this test session (transcript and container)
+            </button>
+          </form>
+        </>
       )}
 
       {ag && (
