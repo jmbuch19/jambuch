@@ -101,9 +101,11 @@ export default function TermsPage() {
             </li>
             <li>A cancelled or refused order is deleted at once.</li>
             <li>
-              Before your request is accepted, your story is read by an automatic checker and by the studio; it is not
-              kept on this site.
+              Until then your story is kept in private storage that only the studio can open; it is read by an automatic
+              checker and, when needed, by the studio. It is never kept anywhere else on this site.
             </li>
+            <li>General sounds and music created by the studio (such as rain or temple bells) may be reused in other works. Your story, narration, paintings and anything made only for you are never reused and are deleted as promised.</li>
+            <li>Counts of which sounds and pairings were used and how they were rated (no content) may be kept.</li>
           </ul>
 
           <h2 id="licence">5. Where you may use the finished work</h2>

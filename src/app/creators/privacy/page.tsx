@@ -65,6 +65,9 @@ export default async function PrivacyPage() {
               length. Your story is never sent by email; the studio reads it in its private admin pages.
             </li>
             <li>
+              <b>Sounds made for the studio’s library:</b> General sounds and music created by the studio (such as rain or temple bells) may be reused in other works. Your story, narration, paintings and anything made only for you are never reused and are deleted as promised.
+            </li>
+            <li>
               <b>Records without story content</b> (your choices, the check result, style tags, consents, payments,
               invoices): kept as long as the law requires or as needed to settle a dispute.
             </li>

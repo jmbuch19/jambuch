@@ -528,6 +528,23 @@ order's tool cap, the per-day spending guard). **Log which source each asset cam
 follows this for music and effects: library first, Freesound (CC0, or CC BY with a credit
 line) only when the library has nothing, every sound and its source recorded with the sample.
 
+### Labels on generated assets (rule; Jaydeep, 25 Nov 2026)
+
+Every asset generated for an order gets a label **when it is created**:
+
+- **`generic`**: made from library tags only, with no story text, and not part of an
+  exclusive add-on (e.g. "rain on a tin roof", "temple bells at dusk"). Offered to the shared
+  library as `trial`, pending Jaydeep's approval; **it survives the order's deletion**.
+- **`story`**: narration, paintings, and anything derived from the writer's text or
+  characters, or from an exclusive add-on (exclusive narrator voice, own voice). **Never
+  reused; deleted with the order.**
+- **When unsure: `story`.**
+
+Scores and pairing statistics (no content) may be kept. The terms and privacy policy say
+so (terms version 2026-11-25.2): "General sounds and music created by the studio (such as
+rain or temple bells) may be reused in other works. Your story, narration, paintings and
+anything made only for you are never reused and are deleted as promised."
+
 **Watermarks on all previews and samples:** visible "jambuch.in · preview" in a
 corner; audio gets a soft spoken "preview" tag every 60 s. Clean files only after
 full payment.
@@ -934,6 +951,12 @@ working, and the clock starts when the next delivery happens.
 Order ID (no title), writer's name and email, package, prices, payments, invoices, terms
 acceptance with version and time, download log, deletion record. Needed for
 accounts, tax and any dispute. Show this list in the terms.
+
+Also kept: assets labelled **`generic`** at creation (section 6, "Labels on generated
+assets"), which move to the shared library as `trial` and are not part of the order's
+files; and usage scores and pairing statistics (ids and counts only). Everything labelled
+**`story`** is deleted with the order, and the deletion certificate lists it. When unsure,
+an asset is `story`.
 
 ### Warnings to the writer (email + WhatsApp-ready message + on the order page)
 1. **Before any payment:** required tick: "I understand all my files are

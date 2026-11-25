@@ -8,7 +8,9 @@
 // 2026-11-24.3: privacy policy — stories are kept in private storage, never emailed.
 // 2026-11-25.1: the sample is paid (₹499, deducted from the full price; not refunded if
 // the writer stops after it) — Jaydeep, 25 Nov 2026.
-export const TERMS_VERSION = "2026-11-25.1";
+// 2026-11-25.2: general (non-story) sounds and music made by the studio may be reused;
+// story-derived and exclusive material is never reused and is deleted as promised.
+export const TERMS_VERSION = "2026-11-25.2";
 
 export const CONSENT_LANGS = { en: "English", gu: "ગુજરાતી", hi: "हिन्दी" } as const;
 export type ConsentLang = keyof typeof CONSENT_LANGS;
