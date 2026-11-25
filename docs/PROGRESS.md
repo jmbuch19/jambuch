@@ -127,3 +127,36 @@ merge `creators-space` into main.
   shows /vartavishva when a visit arrives for vartavishva.in. After buying it: add the
   domain to the Vercel project, set DNS, then add the redirect
   jambuch.in/vartavishva → https://vartavishva.in and set the page's canonical URL.
+
+## 24 Nov 2026 — Phase 2a: automatic audio samples (brief §6H)
+
+- Story and brief now stored in private R2 at submission; the studio email carries
+  only a link to /admin/creators/<id>. Resolves the "story copy in the studio email"
+  open note for new requests (older emails: delete by hand). Privacy policy updated,
+  TERMS_VERSION 2026-11-24.3.
+- /admin/creators/<id>: story, answers, screening, sample settings (voice picker from
+  the ElevenLabs account, model, daily cap 5, on/off), "Make sample", player, credits,
+  "Approve and send". Writer listens at /creators/start (15-minute link + download).
+- Pipeline (src/lib/creators/sample.ts): opening passage → Claude sound plan
+  (vocabulary only) → ElevenLabs → Freesound CC0 → FFmpeg mix (watermark tag, ducked
+  music, cues, -16 LUFS) → private R2. Mix tested locally (27.3 s, -16.1 LUFS).
+- Daily job deletes request files when due.
+- Jaydeep: run `20261124500000_creator_samples.sql`; then on a request page pick
+  the narrator voice and make the first sample. Jyot's request (sent before stories
+  were stored) has no stored story: ask him to send it again, or test with a new one.
+
+## For tomorrow (office PC), 25 Nov 2026
+
+1. Run `20261124500000_creator_samples.sql` in Supabase (adds the sample columns and
+   the `creators.sample` setting). Tell Claude; it verifies, then merges
+   `creators-space` into main (Phase 2a goes live only after this, since the live
+   pages read the new columns).
+2. Run `20261124400000_site_text_vartavishva.sql` if not done (Vartavishva links).
+3. Cloudflare: add the 3 DNS records for vartavishva.in (A @ 216.198.79.1,
+   A @ 64.29.17.1, CNAME www → 3151a032b51d0fea.vercel-dns-017.com, all DNS only).
+   Then Claude checks, adds the jambuch.in/vartavishva → vartavishva.in redirect.
+4. First automatic sample: open a submitted request in /admin/creators, pick the
+   narrator voice in "Sample settings", press "Make sample", listen. Jyot's request
+   has no stored story (sent earlier): ask him to send again, or test with your own.
+5. New spec filed: `docs/CREATORS_QUESTION_FLOW.md`. Its section 14 lists six
+   open points to decide before building it (first: ₹499 vs free sample).

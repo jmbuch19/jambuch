@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
     // browser first, so this only needs headroom (Vercel's own cap is 4.5 MB).
     serverActions: { bodySizeLimit: "4.5mb" },
   },
+  // Creator's Space samples are mixed with FFmpeg inside the admin request page's
+  // function: keep the package unbundled (it finds its binary next to itself) and ship
+  // the binary with that route only.
+  serverExternalPackages: ["ffmpeg-static"],
+  outputFileTracingIncludes: {
+    "/admin/creators/[id]": ["./node_modules/ffmpeg-static/ffmpeg"],
+  },
   async rewrites() {
     return {
       beforeFiles: VARTAVISHVA_HOSTS.map((host) => ({

@@ -1,13 +1,40 @@
 import { sendGatheringNotes } from "@/lib/gathering-notes";
 import { adminClient } from "@/lib/supabase-admin";
 import { expired, purge, trash } from "@/lib/trash";
+import { deleteRequestFiles } from "@/lib/creators/files";
+import { deleteSample } from "@/lib/creators/sample";
+
+// Creator's Space: stored stories and samples whose time is up (brief §6B): 7 days after
+// the sample was sent, or at once for withdrawn, refused or closed requests without a
+// sent sample. The row stays, without file keys.
+async function purgeCreatorFiles(db: ReturnType<typeof adminClient>, now: string) {
+  const { data: rows, error } = await db
+    .from("creator_requests")
+    .select("id, state, story_key, sample_key, sample_state, files_delete_at")
+    .or("story_key.not.is.null,sample_key.not.is.null")
+    .limit(200);
+  if (error) throw new Error(error.message);
+  let n = 0;
+  for (const r of rows ?? []) {
+    const due =
+      (r.files_delete_at && r.files_delete_at <= now) ||
+      (["withdrawn", "refused", "closed"].includes(r.state) && r.sample_state !== "sent");
+    if (!due) continue;
+    await deleteRequestFiles(r.id);
+    if (r.sample_key) await deleteSample(r.sample_key);
+    await db.from("creator_requests").update({ story_key: null, sample_key: null, updated_at: now }).eq("id", r.id);
+    console.log("daily: creator files deleted for", r.id);
+    n++;
+  }
+  return n;
+}
 
 // Called once a day by Vercel Cron (see vercel.json) with CRON_SECRET as a
 // bearer token. It keeps the free Supabase project awake, expires old
 // Courtyard invites, removes unconfirmed submissions, and permanently deletes
 // items (rows and R2 files) that have been in the Trash for 30 days.
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -80,6 +107,13 @@ export async function GET(request: Request) {
         .eq("series_id", s.id);
       if (!count) await db.from("courtyard_series").delete().eq("id", s.id);
     }
+  }
+
+  try {
+    purged.creator_files = await purgeCreatorFiles(db, now);
+  } catch (err) {
+    failed.creator_files = err instanceof Error ? err.message : String(err);
+    console.error("daily: creator files purge failed:", failed.creator_files);
   }
 
   // One table at a time, so a failure (say, a file R2 won't delete) leaves

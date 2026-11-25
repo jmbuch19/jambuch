@@ -69,10 +69,10 @@ made from your work here"). Never mix the two in copy, data or navigation.
    - **ElevenLabs "Improve the models for everyone" switched OFF** in the client
      account (Terms and Privacy, then Data use) **before the first real order**. Its
      terms still give ElevenLabs a wide licence over content; the policy says so.
-   - **The studio's request emails** (which carry the story) are deleted from
-     Jaydeep's inbox when the request closes or the order's files are deleted. This
-     stays manual until the story moves out of email (open note in
-     `docs/PROGRESS.md`). Resend itself keeps sent emails for 30 days.
+   - ~~The studio's request emails are deleted from Jaydeep's inbox~~: no longer
+     needed. Since 24 Nov 2026 the story is stored privately and the email carries
+     only a link (section 6H). Older request emails (sent before that) should
+     still be deleted by hand.
 7. **Provider data retention.** For each AI provider, record in `/docs/licences.md`
    how long it keeps inputs/outputs and whether its API can delete them. The
    deletion certificate and privacy policy must state this honestly. **Anthropic
@@ -599,6 +599,49 @@ Built into the engine from day one, not learned again per job:
 2. **Direction prototype** (`scripts/direct.mjs` in the audio repo): story in, draft
    mood map + engine direction out; measured against Ramayana ch53's hand-made one.
 3. Studio Saathi on /creators with the free-sample flow, then cloud production + payment.
+
+---
+
+## 6H. Phase 2a: automatic audio samples (built 24 Nov 2026)
+
+Jaydeep, 24 Nov 2026: start Phase 2 with **audio-only free samples**, made on
+**Vercel Pro** (no separate worker), with **Jaydeep's own ElevenLabs account**,
+a **daily cap of 5 samples**, and music and effects from our library **and free
+libraries** (Freesound, **Creative Commons 0 only**), the library to keep growing.
+Full productions (long videos) come later, on Managed Agents or Cloud Run.
+
+### Where the story lives
+At submission the story and the brief (note, questions, answers) go to the private
+R2 bucket (`creators/<request id>/story.txt`, `brief.json`); the row keeps only
+the key. **The studio email carries a link to the admin page, never the story**
+(so no copy sits in an inbox or at Resend). Deleted 7 days after the sample is
+sent, or within a day when a request is withdrawn, refused or closed (daily job).
+
+### How a sample is made (admin, `/admin/creators/<id>` → "Make sample")
+1. **Passage:** the story's opening, word for word, up to `max_chars` (900),
+   cut at a sentence end (code, not AI).
+2. **Sound plan:** Claude (Opus 5.5, low effort) picks a mood, up to 2 music words
+   and up to 3 effect cues, only from the vocabulary; the writer's style tags guide.
+3. **Voice:** ElevenLabs reads the passage; voice and model are admin settings
+   (`creators.sample`; default model `eleven_v3`).
+4. **Sounds:** Freesound searches with **fixed words per vocabulary tag** (never
+   the writer's text), Creative Commons 0 only, checked twice; every sound used is
+   listed in `credits-N.json` and on the admin page.
+5. **Mix (FFmpeg on Vercel):** a spoken "Creator's Space sample · jambuch.in" tag
+   at the start and end (the watermark), music ducked under the voice, cues after
+   their sentences, loudness −16 LUFS, MP3 192 kbps.
+6. **Review:** Jaydeep listens on the admin page; "Make it again" or **"Approve and
+   send"**. The writer gets an email (no file attached) and listens signed in at
+   `/creators/start` through a 15-minute link, with a download link. The 7-day
+   deletion clock starts at sending.
+
+Cost per sample (24 Nov 2026 prices): about ₹20–30 (voice about ₹10, Claude
+₹8–17, Vercel and storage under ₹1). Settings: `creators.sample` (voice, model,
+daily cap, on/off), editable on the admin request page.
+
+Not yet: our own music library on R2 (add a manifest and prefer it over
+Freesound), pictures in samples, automatic sending without Jaydeep (after the
+first 10), the writer approving or flagging the sample, the order and payment.
 
 ---
 

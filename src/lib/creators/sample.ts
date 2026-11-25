@@ -1,0 +1,337 @@
+import "server-only";
+import { execFile } from "node:child_process";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
+import ffmpegPath from "ffmpeg-static";
+import { adminClient } from "@/lib/supabase-admin";
+import { deleteForever, uploadPrivate } from "@/lib/r2";
+import { soundPlan, type SoundPlan } from "./claude";
+import { creditsKey, readStory, sampleKey } from "./files";
+
+// Phase 2a: the free 30–60 second AUDIO sample (docs/CREATORS_SPACE_BRIEF.md §6H).
+//   1. passage   the story's opening, word for word, cut at a sentence end (code, not AI)
+//   2. plan      Claude picks mood, music words and up to 3 sound cues from the vocabulary
+//   3. voice     ElevenLabs reads the passage (voice and model from settings)
+//   4. sounds    Freesound, Creative Commons 0 only, searched with fixed words per tag
+//   5. mix       FFmpeg: a spoken "sample" tag, music ducked under the voice, cues,
+//                loudness -16 LUFS
+//   6. store     private R2: creators/<id>/sample/sample-N.mp3 and credits-N.json
+// Runs inside an admin action (Vercel Pro, up to 300 s). Jaydeep listens before it is sent.
+
+const run = promisify(execFile);
+
+export type SampleSettings = { enabled: boolean; daily_cap: number; voice_id: string; model_id: string; max_chars: number };
+export const SAMPLE_DEFAULTS: SampleSettings = { enabled: true, daily_cap: 5, voice_id: "", model_id: "eleven_v3", max_chars: 900 };
+
+export async function sampleSettings(): Promise<SampleSettings> {
+  const { data } = await adminClient().from("settings").select("value").eq("key", "creators.sample").maybeSingle();
+  return { ...SAMPLE_DEFAULTS, ...((data?.value as Partial<SampleSettings>) ?? {}) };
+}
+
+// The spoken watermark at the start and end (brief §6: samples are watermarked).
+const TAG_TEXT: Record<string, string> = {
+  gu: "Creator's Space નમૂનો. jambuch.in",
+  hi: "Creator's Space नमूना. jambuch.in",
+  en: "Creator's Space sample. jambuch.in",
+};
+
+// Fixed search words per vocabulary tag. Only these words reach Freesound; the writer's
+// own text never does (brief §6A, Safeguards 3).
+const MUSIC_QUERY: Record<string, string> = {
+  sparse: "ambient pad soft",
+  flute: "flute melody",
+  bansuri: "bansuri flute",
+  sitar: "sitar",
+  santoor: "santoor",
+  sarangi: "sarangi",
+  shehnai: "shehnai",
+  tabla: "tabla loop",
+  dholak: "dholak",
+  harmonium: "harmonium",
+  "tanpura-drone": "tanpura drone",
+  strings: "strings ambient",
+  piano: "piano soft",
+  "folk-gujarati": "indian folk music",
+  "devotional-bhajan": "indian devotional music",
+  lullaby: "lullaby music box",
+  "no-music-in-sad-parts": "ambient pad soft",
+};
+const MOOD_QUERY: Record<string, string> = {
+  warm: "ambient warm",
+  devotional: "tanpura drone",
+  suspenseful: "suspense ambient",
+  funny: "playful music",
+  sad: "sad ambient",
+  inspiring: "inspiring ambient",
+  nostalgic: "nostalgic ambient",
+  mysterious: "mysterious ambient",
+  calm: "calm ambient pad",
+  dramatic: "dramatic ambient",
+};
+const SOUND_QUERY: Record<string, string> = {
+  rain: "rain",
+  "monsoon-storm": "heavy rain storm",
+  thunder: "thunder",
+  wind: "wind",
+  river: "river stream",
+  sea: "sea waves",
+  "birds-morning": "birds morning",
+  "crickets-night": "crickets night",
+  "temple-bells": "temple bell",
+  conch: "conch shell",
+  footsteps: "footsteps",
+  door: "door open",
+  "bullock-cart": "cart wheels",
+  horse: "horse gallop",
+  "village-crowd": "crowd murmur",
+  market: "market crowd",
+  train: "train",
+  fire: "fire crackling",
+  cooking: "cooking kitchen",
+  "children-playing": "children playing",
+};
+
+export type Credit = { kind: "music" | "effect"; source: "freesound"; id: number; name: string; author: string; licence: string; url: string };
+export type SampleResult = { key: string; credits: Credit[]; cost: Record<string, number | string>; plan: SoundPlan };
+
+// ---------------------------------------------------------------- 1. passage
+
+// Sentences of the story's opening, word for word, up to maxChars (never cut mid-sentence;
+// if the first sentence alone is longer, it is cut at a word boundary).
+export function openingSentences(story: string, maxChars: number): string[] {
+  const parts = story
+    .replace(/\r/g, "")
+    .split(/(?<=[.!?।॥])\s+|\n{2,}/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const out: string[] = [];
+  let total = 0;
+  for (const p of parts) {
+    if (total + p.length > maxChars && out.length) break;
+    if (p.length > maxChars) {
+      out.push(p.slice(0, p.lastIndexOf(" ", maxChars) > 0 ? p.lastIndexOf(" ", maxChars) : maxChars) + "…");
+      break;
+    }
+    out.push(p);
+    total += p.length + 1;
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------- 3. voice
+
+async function speak(text: string, s: SampleSettings): Promise<Buffer> {
+  const key = process.env.ELEVENLABS_API_KEY;
+  if (!key) throw new Error("ELEVENLABS_API_KEY is not set.");
+  if (!s.voice_id) throw new Error("No voice chosen: pick one in admin (Creator's Space → Sample settings).");
+  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(s.voice_id)}?output_format=mp3_44100_128`, {
+    method: "POST",
+    headers: { "xi-api-key": key, "Content-Type": "application/json", Accept: "audio/mpeg" },
+    body: JSON.stringify({ text, model_id: s.model_id }),
+    signal: AbortSignal.timeout(120_000),
+  });
+  if (!res.ok) throw new Error(`ElevenLabs answered ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
+export type Voice = { voice_id: string; name: string; category?: string; labels?: Record<string, string> };
+
+// The account's voices, for the admin's voice picker.
+export async function listVoices(): Promise<Voice[]> {
+  const key = process.env.ELEVENLABS_API_KEY;
+  if (!key) return [];
+  const res = await fetch("https://api.elevenlabs.io/v1/voices", { headers: { "xi-api-key": key }, signal: AbortSignal.timeout(20_000) });
+  if (!res.ok) throw new Error(`ElevenLabs answered ${res.status}`);
+  const data = (await res.json()) as { voices?: Voice[] };
+  return (data.voices ?? []).map((v) => ({ voice_id: v.voice_id, name: v.name, category: v.category, labels: v.labels }));
+}
+
+// ---------------------------------------------------------------- 4. sounds (Freesound, CC0 only)
+
+type FreesoundHit = { id: number; name: string; username: string; license: string; duration: number; url: string; previews: Record<string, string> };
+
+async function freesound(query: string, minSec: number, maxSec: number): Promise<FreesoundHit | null> {
+  const token = process.env.FREESOUND_API_KEY;
+  if (!token) return null;
+  const params = new URLSearchParams({
+    query,
+    filter: `license:"Creative Commons 0" duration:[${minSec} TO ${maxSec}]`,
+    fields: "id,name,username,license,duration,url,previews",
+    sort: "rating_desc",
+    page_size: "5",
+    token,
+  });
+  const res = await fetch(`https://freesound.org/apiv2/search/text/?${params}`, { signal: AbortSignal.timeout(20_000) });
+  if (!res.ok) {
+    console.warn("freesound search failed:", res.status, query);
+    return null;
+  }
+  const data = (await res.json()) as { results?: FreesoundHit[] };
+  // Double-check the licence on our side too: CC0 only.
+  return (data.results ?? []).find((r) => /publicdomain\/zero|Creative Commons 0/i.test(r.license)) ?? null;
+}
+
+async function download(url: string, path: string) {
+  const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+  if (!res.ok) throw new Error(`download failed (${res.status})`);
+  await writeFile(path, Buffer.from(await res.arrayBuffer()));
+}
+
+// ---------------------------------------------------------------- 5. mix
+
+function ffmpeg() {
+  if (!ffmpegPath) throw new Error("FFmpeg is not available on this server.");
+  return ffmpegPath;
+}
+
+async function duration(path: string): Promise<number> {
+  // ffmpeg prints "Duration: 00:00:41.23" and exits non-zero without an output file.
+  const out = await run(ffmpeg(), ["-hide_banner", "-i", path], { timeout: 30_000 }).catch((e: { stderr?: string }) => ({
+    stderr: e.stderr ?? "",
+  }));
+  const m = /Duration: (\d+):(\d+):(\d+(?:\.\d+)?)/.exec(String(out.stderr));
+  if (!m) throw new Error("Couldn't read the audio length.");
+  return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+}
+
+export async function mix(o: {
+  dir: string;
+  tag: string;
+  voice: string;
+  music: string | null;
+  effects: { path: string; at: number }[];
+  voiceStart: number;
+  total: number;
+  tagEndAt: number;
+}) {
+  const inputs = [o.tag, o.voice, o.tag, ...(o.music ? [o.music] : []), ...o.effects.map((e) => e.path)];
+  const args: string[] = ["-hide_banner", "-y"];
+  for (const i of inputs) args.push("-i", i);
+
+  const ms = (s: number) => Math.max(0, Math.round(s * 1000));
+  const f: string[] = [];
+  // Voice track: tag at 0, narration at voiceStart, tag again at the end.
+  f.push(`[0:a]aresample=44100,volume=0.9[t1]`);
+  f.push(`[1:a]aresample=44100,adelay=${ms(o.voiceStart)}|${ms(o.voiceStart)}[nv]`);
+  f.push(`[2:a]aresample=44100,volume=0.9,adelay=${ms(o.tagEndAt)}|${ms(o.tagEndAt)}[t2]`);
+  f.push(`[t1][nv][t2]amix=inputs=3:duration=longest:normalize=0,apad=whole_dur=${o.total.toFixed(2)}[vo]`);
+  f.push(`[vo]asplit=2[vmix][vkey]`);
+  const mixIn = ["[vmix]"];
+  let idx = 3;
+  if (o.music) {
+    f.push(
+      `[${idx}:a]aresample=44100,aloop=loop=-1:size=2000000000,atrim=0:${o.total.toFixed(2)},volume=0.22,` +
+        `afade=t=in:d=1.5,afade=t=out:st=${Math.max(0, o.total - 2.5).toFixed(2)}:d=2.5[mbed]`,
+    );
+    f.push(`[mbed][vkey]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=500[mduck]`);
+    mixIn.push("[mduck]");
+    idx++;
+  } else {
+    f.push(`[vkey]anullsink`);
+  }
+  o.effects.forEach((e, n) => {
+    f.push(`[${idx + n}:a]aresample=44100,atrim=0:5,afade=t=out:st=4:d=1,volume=0.5,adelay=${ms(e.at)}|${ms(e.at)}[fx${n}]`);
+    mixIn.push(`[fx${n}]`);
+  });
+  f.push(`${mixIn.join("")}amix=inputs=${mixIn.length}:duration=first:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=11[out]`);
+
+  const out = join(o.dir, "sample.mp3");
+  args.push("-filter_complex", f.join(";"), "-map", "[out]", "-ac", "2", "-ar", "44100", "-c:a", "libmp3lame", "-b:a", "192k", out);
+  await run(ffmpeg(), args, { timeout: 180_000, maxBuffer: 16 * 1024 * 1024 });
+  return out;
+}
+
+// ---------------------------------------------------------------- the whole sample
+
+export async function makeSample(req: { id: string; language: string; style_tags: string[] }, n: number): Promise<SampleResult> {
+  const s = await sampleSettings();
+  const story = await readStory(req.id);
+  const sentences = openingSentences(story, s.max_chars);
+  if (!sentences.length) throw new Error("The story has no text to read.");
+  const passage = sentences.join(" ");
+
+  const planned = await soundPlan(sentences, req.style_tags);
+  const plan: SoundPlan = planned?.plan ?? { mood: "calm", music: [], cues: [] };
+
+  const dir = await mkdtemp(join(tmpdir(), "sample-"));
+  try {
+    // Voice: the passage and the spoken tag.
+    const lang = req.language in TAG_TEXT ? req.language : "en";
+    const [voiceAudio, tagAudio] = await Promise.all([speak(passage, s), speak(TAG_TEXT[lang], s)]);
+    const voicePath = join(dir, "voice.mp3");
+    const tagPath = join(dir, "tag.mp3");
+    await writeFile(voicePath, voiceAudio);
+    await writeFile(tagPath, tagAudio);
+    const [voiceSec, tagSec] = await Promise.all([duration(voicePath), duration(tagPath)]);
+
+    const voiceStart = tagSec + 0.6;
+    const tagEndAt = voiceStart + voiceSec + 1.2;
+    const total = tagEndAt + tagSec + 1.5;
+
+    const credits: Credit[] = [];
+    // Music: the first music word, else the mood. None if the plan says "none".
+    let musicPath: string | null = null;
+    if (!plan.music.includes("none")) {
+      const q = MUSIC_QUERY[plan.music[0] ?? ""] ?? MOOD_QUERY[plan.mood] ?? "calm ambient pad";
+      const hit = await freesound(q, 30, 600);
+      if (hit?.previews["preview-hq-mp3"]) {
+        musicPath = join(dir, "music.mp3");
+        await download(hit.previews["preview-hq-mp3"], musicPath);
+        credits.push({ kind: "music", source: "freesound", id: hit.id, name: hit.name, author: hit.username, licence: "CC0 1.0", url: hit.url });
+      }
+    }
+
+    // Effects: placed after their sentence, in proportion to the characters read so far.
+    const effects: { path: string; at: number }[] = [];
+    const ends: number[] = [];
+    let acc = 0;
+    for (const t of sentences) {
+      acc += t.length + 1;
+      ends.push(acc / (passage.length + 1));
+    }
+    for (const [i, cue] of plan.cues.entries()) {
+      const q = SOUND_QUERY[cue.sound];
+      if (!q) continue;
+      const hit = await freesound(q, 0.5, 8);
+      const url = hit?.previews["preview-hq-mp3"];
+      if (!hit || !url) continue;
+      const path = join(dir, `fx${i}.mp3`);
+      await download(url, path);
+      effects.push({ path, at: voiceStart + ends[cue.after - 1] * voiceSec + 0.1 });
+      credits.push({ kind: "effect", source: "freesound", id: hit.id, name: hit.name, author: hit.username, licence: "CC0 1.0", url: hit.url });
+    }
+
+    const out = await mix({ dir, tag: tagPath, voice: voicePath, music: musicPath, effects, voiceStart, total, tagEndAt });
+    const bytes = await readFile(out);
+
+    const key = sampleKey(req.id, n);
+    await uploadPrivate(key, bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer, "audio/mpeg");
+    const creditsJson = new TextEncoder().encode(JSON.stringify({ credits, plan }, null, 2));
+    await uploadPrivate(creditsKey(req.id, n), creditsJson.buffer as ArrayBuffer, "application/json");
+
+    return {
+      key,
+      credits,
+      plan,
+      cost: {
+        elevenlabs_chars: passage.length + TAG_TEXT[lang].length,
+        claude_input_tokens: planned?.usage.input ?? 0,
+        claude_output_tokens: planned?.usage.output ?? 0,
+        seconds: Math.round(total),
+        voice_id: s.voice_id,
+        model_id: s.model_id,
+      },
+    };
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+// Removes an older sample and its credits (when a new one replaces it).
+export async function deleteSample(key: string) {
+  await deleteForever({ url: `r2-private:${key}`, bucket: "private", key });
+  const credits = key.replace(/sample-(\d+)\.mp3$/, "credits-$1.json");
+  if (credits !== key) await deleteForever({ url: `r2-private:${credits}`, bucket: "private", key: credits });
+}

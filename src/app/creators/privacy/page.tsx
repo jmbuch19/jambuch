@@ -59,12 +59,10 @@ export default async function PrivacyPage() {
           <h2>3. What jambuch.in keeps, and for how long</h2>
           <ul className={c.text}>
             <li>
-              <b>Your story and files:</b> deleted from our storage 7 days after delivery (at once if an order is
-              cancelled or refused). Our database holds no story text, only a fingerprint and its length.
-            </li>
-            <li>
-              <b>The studio’s copy:</b> so that a person can read your request, it is emailed to the studio. That email
-              is deleted from the studio’s inbox when your request is closed or your order’s files are deleted.
+              <b>Your story and files</b> (your story, your answers, your sample): kept in private storage that only
+              the studio can open, and deleted 7 days after your sample or order is delivered, or within a day if a
+              request is withdrawn, refused or closed. Our database holds no story text, only a fingerprint and its
+              length. Your story is never sent by email; the studio reads it in its private admin pages.
             </li>
             <li>
               <b>Records without story content</b> (your choices, the check result, style tags, consents, payments,
@@ -97,8 +95,8 @@ export default async function PrivacyPage() {
               days of delivery.
             </li>
             <li>
-              <b>Resend (email):</b> sends our emails, including the studio’s copy of your request. It keeps sent emails
-              and their logs for 30 days.
+              <b>Resend (email):</b> sends our emails (sign-in codes, notices, replies; never your story). It keeps
+              sent emails and their logs for 30 days.
             </li>
             <li>
               <b>Supabase (database and sign-in):</b> holds your account and the records above (no story text). On our

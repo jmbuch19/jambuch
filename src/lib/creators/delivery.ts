@@ -57,3 +57,17 @@ export async function deliveryLink(orderId: string, key: string, kind: DeliveryK
   if (!url) throw new Error("Can't deliver: R2_PRIVATE_BUCKET is not set.");
   return url;
 }
+
+// The free sample (Phase 2a): a watermarked mixed MP3 in creators/<id>/sample/. Same rules:
+// a 15-minute link, only that exact kind of file, never a part.
+const SAMPLE_NAME = /^sample-\d+\.mp3$/;
+
+export async function sampleLink(requestId: string, key: string): Promise<string> {
+  const prefix = `creators/${requestId}/sample/`;
+  if (!ORDER_ID.test(requestId) || !key.startsWith(prefix) || !SAMPLE_NAME.test(key.slice(prefix.length))) {
+    throw new Error(`Refused to deliver ${key}: not this request's sample.`);
+  }
+  const url = await signedPrivateUrl({ url: `r2-private:${key}`, bucket: "private", key }, LINK_SECONDS);
+  if (!url) throw new Error("Can't deliver: R2_PRIVATE_BUCKET is not set.");
+  return url;
+}

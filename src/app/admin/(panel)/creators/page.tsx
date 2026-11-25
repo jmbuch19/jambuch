@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAdmin } from "@/lib/admin";
 import { setRequestState } from "./actions";
 import a from "../../admin.module.css";
@@ -15,7 +16,7 @@ export default async function CreatorRequestsPage() {
   const { db } = await requireAdmin();
   const { data: rows, error } = await db
     .from("creator_requests")
-    .select("id, created_at, name, email, language, make, story_chars, state, screening_result, screening_categories, screening_reason, style_tags, big_screen, music_replacement")
+    .select("id, created_at, name, email, language, make, story_chars, state, screening_result, screening_categories, screening_reason, style_tags, big_screen, music_replacement, sample_state")
     .order("created_at", { ascending: false })
     .limit(200);
   // Which ticks each request was sent with (brief §7), and under which terms version.
@@ -61,7 +62,7 @@ export default async function CreatorRequestsPage() {
                 <tr key={r.id}>
                   <td>{when(r.created_at)}</td>
                   <td>
-                    {r.name}
+                    <Link href={`/admin/creators/${r.id}`}>{r.name}</Link>
                     <br />
                     <span className={a.mutedSmall}>{r.email}</span>
                   </td>
@@ -72,6 +73,12 @@ export default async function CreatorRequestsPage() {
                   </td>
                   <td>
                     {r.state === "needs_human" ? <b>Needs your eye</b> : r.state}
+                    {r.sample_state && (
+                      <>
+                        <br />
+                        <span className={a.mutedSmall}>sample: {r.sample_state}</span>
+                      </>
+                    )}
                     {r.music_replacement && (
                       <>
                         <br />
