@@ -17,8 +17,9 @@ export type FlowSettings = {
   max_plan_rounds: number;
   max_followup_rounds: number;
   examples: Record<string, string>;
+  payments_enabled: boolean; // off until the before-launch list (brief §2) is done
 };
-export const FLOW_DEFAULTS: FlowSettings = { claude_cap_usd: 2, voice_notes: false, max_plan_rounds: 3, max_followup_rounds: 2, examples: {} };
+export const FLOW_DEFAULTS: FlowSettings = { claude_cap_usd: 2, voice_notes: false, max_plan_rounds: 3, max_followup_rounds: 2, examples: {}, payments_enabled: false };
 
 export const STORY_MAX = 120_000; // six episodes; longer stories go to Assisted by email
 export const STORY_MIN = 200;

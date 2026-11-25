@@ -180,7 +180,8 @@ export default async function CreatorRequestsPage() {
       <p className={a.intro}>
         <b>claude_cap_usd</b>: the most Claude may cost per request before it waits for you. <b>voice_notes</b>: off until you
         approve the cost (ElevenLabs speech-to-text, credits per note). <b>examples</b>: links to the 15-second example
-        clips, when made.
+        clips, when made. <b>payments_enabled</b>: the Razorpay advance button for writers (LIVE key: real money). Keep it{" "}
+        false until Vercel Pro, the GST answer, Razorpay KYC and one full test order are done (brief §2).
       </p>
       <form action={saveJsonSetting} className={a.form}>
         <input type="hidden" name="key" value="creators.flow" />

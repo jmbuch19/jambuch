@@ -44,6 +44,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const answers = (r.answers ?? {}) as Record<string, string | string[]>;
   const quote = r.quote as Quote | null;
   const claudeCost = r.claude_cost as CostLog | null;
+  const { data: payments } = await db.from("creator_payments").select("kind, amount_paise, status, razorpay_order_id, razorpay_payment_id, created_at, paid_at, failure_reason").eq("request_id", id).order("created_at");
   const pictures = draft
     ? await Promise.all(draft.pictures.map(async (key) => ({ key, url: await signedPrivateUrl({ url: `r2-private:${key}`, bucket: "private", key }, 900) })))
     : [];
@@ -207,6 +208,17 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         </form>
       )}
       {r.order_pack_key && <p className={a.mutedSmall}>Order pack: {r.order_pack_key}</p>}
+      {!!payments?.length && (
+        <ul className={a.mutedSmall}>
+          {payments.map((p) => (
+            <li key={p.razorpay_order_id}>
+              {p.kind} ₹{(p.amount_paise / 100).toLocaleString("en-IN")} · <b>{p.status}</b> · order {p.razorpay_order_id}
+              {p.razorpay_payment_id ? ` · payment ${p.razorpay_payment_id}` : ""} · {when(p.paid_at ?? p.created_at)}
+              {p.failure_reason ? ` · ${p.failure_reason}` : ""}
+            </li>
+          ))}
+        </ul>
+      )}
 
       <h2 className={a.gapTop}>Screening</h2>
       <p>

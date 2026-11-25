@@ -80,26 +80,13 @@ export async function letContinue(form: FormData) {
   revalidatePath("/admin/creators");
 }
 
-// The 50% advance has arrived (by hand until Razorpay is set up, brief §2 item 5): the
-// order pack is built and stored privately, and the request becomes an order.
+// The 50% advance arrived outside Razorpay (bank transfer, or before payments are switched
+// on): the order pack is built and the request becomes an order, as after a Razorpay payment.
 export async function advanceReceived(form: FormData) {
   await requireAdmin();
   const id = String(form.get("id") ?? "");
-  const db = adminClient();
-  const { data: r } = await db.from("creator_requests").select("id, state, language, answers, style_tags, quote, plan_version, sample_state").eq("id", id).maybeSingle();
-  if (!r || r.state !== "submitted" || r.sample_state !== "sent" || !r.plan_version) return;
-  const { data: consents } = await db.from("creator_consents").select("kind, terms_version").eq("request_id", id);
-  const version = (k: string) => consents?.find((c) => c.kind === k)?.terms_version ?? "";
-  const { readDraft, savePack } = await import("@/lib/creators/files");
-  const { orderPack } = await import("@/lib/creators/flow");
-  const pack = orderPack(r, await readDraft(id), {
-    terms_version: version("terms_refund"),
-    data_consent_version: version("data_processing"),
-    own_voice: !!consents?.some((c) => c.kind === "own_voice"),
-  });
-  const key = await savePack(id, pack);
-  // The 7-day sample clock stops: the files are now needed for production.
-  await db.from("creator_requests").update({ state: "ordered", order_pack_key: key, files_delete_at: null, updated_at: now() }).eq("id", id);
+  const { buildOrder } = await import("@/lib/creators/orders");
+  await buildOrder(id);
   revalidatePath(`/admin/creators/${id}`);
   revalidatePath("/admin/creators");
 }
@@ -191,6 +178,8 @@ export async function sendSampleAction(form: FormData) {
   const deleteAt = new Date(Date.now() + 7 * DAY);
   const when = deleteAt.toLocaleDateString("en-IN", { day: "numeric", month: "long", timeZone: "Asia/Kolkata" });
   const gu = row.language === "gu";
+  const { flowSettings } = await import("@/lib/creators/flow");
+  const payOnline = (await flowSettings()).payments_enabled && !!process.env.RAZORPAY_KEY_ID;
   const sent = await sendEmail({
     to: row.email,
     subject: gu ? "તમારી વાર્તાનો નમૂનો તૈયાર છે · Your sample is ready" : "Your Creator's Space sample is ready",
@@ -205,7 +194,9 @@ export async function sendSampleAction(form: FormData) {
       "",
       `The sample and your story are deleted on ${when}, 7 days from today. Please download a copy if you want to keep it.`,
       "",
-      "If you'd like the full story made, reply to this email.",
+      payOnline
+        ? "To go ahead, sign in at the same page and pay the 50% advance online. If you have questions first, reply to this email."
+        : "If you'd like the full story made, reply to this email.",
       "",
       "Jaydeep Buch",
       "Creator's Space · jambuch.in/creators",

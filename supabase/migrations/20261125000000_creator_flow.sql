@@ -101,3 +101,34 @@ values (
   now()
 )
 on conflict (key) do nothing;
+
+-- Payments through Razorpay (brief §1: 50% advance after the sample, 50% before the clean
+-- download). One row per Razorpay order. The amount always comes from the request's quote
+-- on the server, never from the browser. Written only by the server (service role).
+create table public.creator_payments (
+  id                   bigint generated always as identity primary key,
+  request_id           uuid not null references public.creator_requests (id) on delete cascade,
+  user_id              uuid not null references auth.users (id) on delete cascade,
+  kind                 text not null check (kind in ('advance', 'final')),
+  amount_paise         integer not null check (amount_paise > 0),
+  razorpay_order_id    text not null unique,
+  razorpay_payment_id  text,
+  status               text not null default 'created' check (status in ('created', 'paid', 'failed')),
+  failure_reason       text,
+  created_at           timestamptz not null default now(),
+  paid_at              timestamptz
+);
+
+create index creator_payments_request on public.creator_payments (request_id, created_at desc);
+
+alter table public.creator_payments enable row level security;
+
+create policy "creator payments: own or admin" on public.creator_payments
+  for select to authenticated
+  using (user_id = (select auth.uid()) or (select private.is_admin()));
+
+-- Payments stay OFF until the before-launch list is done (brief §2: Vercel Pro, GST answer,
+-- Razorpay KYC, one end-to-end test). Jaydeep switches payments_enabled on in admin.
+update public.settings
+   set value = value || '{"payments_enabled": false}'::jsonb
+ where key = 'creators.flow';

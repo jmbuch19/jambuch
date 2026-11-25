@@ -5,6 +5,7 @@ import { adminClient } from "@/lib/supabase-admin";
 import LibraryHeader from "../../library/header";
 import Flow, { type FlowInitial } from "./flow";
 import ListenButton from "./listen-button";
+import PayAdvance from "./pay-button";
 import { signOutWriter, withdrawRequest } from "./actions";
 import { clientDraft } from "./flow-actions";
 import { flowSettings } from "@/lib/creators/flow";
@@ -46,7 +47,7 @@ export default async function StartPage() {
   const { data: requests } = user
     ? await db
         .from("creator_requests")
-        .select("id, state, created_at, story_chars, sample_state, sample_key, files_delete_at")
+        .select("id, state, created_at, story_chars, sample_state, sample_key, files_delete_at, quote")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(10)
@@ -77,6 +78,8 @@ export default async function StartPage() {
     }
   }
   const settings = await flowSettings();
+  // Payments open only when switched on in admin and the keys are set (brief §2).
+  const payments = settings.payments_enabled && !!process.env.RAZORPAY_KEY_ID && !!process.env.RAZORPAY_KEY_SECRET;
   const others = (requests ?? []).filter((r) => r.id !== open?.id);
 
   return (
@@ -108,6 +111,10 @@ export default async function StartPage() {
                   <span>{r.story_chars.toLocaleString("en-IN")} characters</span>
                   <b>{r.sample_state === "sent" && r.sample_key ? "Your sample is ready" : (STATE_LABEL[r.state] ?? r.state)}</b>
                   {r.sample_state === "sent" && r.sample_key && <ListenButton id={r.id} />}
+                  {payments && r.state === "submitted" && r.sample_state === "sent" && !!(r.quote as { advance?: number } | null)?.advance && (
+                    <PayAdvance id={r.id} advance={(r.quote as { advance: number }).advance} />
+                  )}
+                  {r.state === "ordered" && <span className={c.small}>advance paid · in production</span>}
                   {r.sample_state === "sent" && r.files_delete_at && (
                     <span className={c.small}>
                       deleted after{" "}

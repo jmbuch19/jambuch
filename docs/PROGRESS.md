@@ -185,8 +185,18 @@ Before it can go live (Jaydeep):
 4. Voice notes are built but OFF (`creators.flow.voice_notes`): each note costs ElevenLabs
    credits. Switch on only when you agree to the cost.
 
-Not built (needs a decision or something outside the code): Razorpay payment of the advance
-(by hand for now); the 15-second example clips (slot: `creators.flow.examples`); own-voice
+Razorpay (added the same day; LIVE keys RAZORPAY_KEY_ID / _KEY_SECRET / _WEBHOOK_SECRET are
+in Vercel, Production): after the free sample is sent, the writer sees "Approve the sample and
+pay the 50% advance" on /creators/start → Razorpay checkout → signature checked → Razorpay
+asked that the full amount was paid → order pack built, request `ordered`, emails to writer and
+studio. Webhook /api/razorpay/webhook (order.paid, payment.captured, payment.failed) does the
+same if the page was closed; repeats are harmless. Table `creator_payments` (in the same
+migration). **Switched OFF** (`creators.flow.payments_enabled` false) until brief §2 is done:
+Vercel Pro, GST answer from the CA, Razorpay KYC as an individual seller, one full test order.
+"50% advance received" in admin stays for payments outside Razorpay.
+
+Not built (needs a decision or something outside the code): the final 50% payment (needs the
+production preview and clean download, Phase 2+); GST invoices (GST_ENABLED); the 15-second example clips (slot: `creators.flow.examples`); own-voice
 recording upload (the add-on is asked; the recording is requested after the sample); test
 pictures with the sample (the sample is audio only, Phase 2a).
 
