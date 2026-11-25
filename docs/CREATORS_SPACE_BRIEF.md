@@ -492,7 +492,7 @@ IMAGE COST RULES, audio rules, FFmpeg assembly). Order of work:
    language). This
    approved script, with the approved creative plan and shot list, is the baseline for deciding
    whose mistake an error is (section 6E).
-2. **Sample** (free; after the script is approved): the opening 30–60 s (or a passage
+2. **Sample** (paid, ₹499, after the plan is approved; counted toward the advance): the opening 30–60 s (or a passage
    the writer picks), in the primary language only: narration, 3–4 stills, music,
    captions. Watermarked.
 3. **Sample gate:** in `jaydeep_reviews` mode admin approves / redoes / refuses
@@ -507,6 +507,26 @@ IMAGE COST RULES, audio rules, FFmpeg assembly). Order of work:
    `jaydeep_reviews` mode.
 6. **Preview** (watermarked, lower resolution) → flagged corrections (6E) → final render.
 7. **Delivery** after final payment: clean MP4/MP3/SRT/thumbnail files.
+
+### Where every asset comes from (rule; Jaydeep, 25 Nov 2026)
+
+For every order the engine uses three sources, **in this order**:
+
+1. **Reuse:** client-ready, client-cleared library assets (music, sound effects,
+   ambience, fonts, grading presets), used as they are.
+2. **Reference:** our past work as **patterns only**: style reference images, prompt
+   templates, proven pairings, mood-map and shot-plan patterns. **Never** reuse Ramayana
+   characters, faces or signature paintings in client output.
+3. **Generate via API:** narration, story-specific paintings, and any sound or music the
+   library lacks. New generated assets are offered to the library as **`trial`**, pending
+   Jaydeep's approval before any later order may reuse them.
+
+**Library first; generate only if nothing fits; always within the budget gate** (the
+order's tool cap, the per-day spending guard). **Log which source each asset came from**
+(`reuse` / `reference` / `generate`, with the asset or card id) in the order's recipe record
+(the order pack's recipe, and `asset_usage` for library assets). The paid sample already
+follows this for music and effects: library first, Freesound (CC0, or CC BY with a credit
+line) only when the library has nothing, every sound and its source recorded with the sample.
 
 **Watermarks on all previews and samples:** visible "jambuch.in · preview" in a
 corner; audio gets a soft spoken "preview" tag every 60 s. Clean files only after
