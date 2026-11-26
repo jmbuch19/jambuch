@@ -163,7 +163,7 @@ function LetterForm({
   if (state.status === "sent" && !changing) {
     return (
       <p className={li.done} role="status">
-        Thank you. I’ve sent a confirmation to <strong>{state.email ?? "your email"}</strong>: open the link in it, and
+        Thank you. We’ve sent a confirmation to <strong>{state.email ?? "your email"}</strong>: open the link in it, and
         the letter comes after each gathering. Not there in a few minutes? Look in Spam or Promotions.{" "}
         <button
           type="button"

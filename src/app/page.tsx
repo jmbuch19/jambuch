@@ -86,7 +86,7 @@ export default async function Home() {
             <p className={s.heroIntro}>{inline(t("hero.intro"))}</p>
             <div className={s.buttons}>
               <a href="#projects" className={s.btnDark}>
-                See what I build
+                See what we build
               </a>
               <a href="#advising" className={s.btnOutline}>
                 Study-abroad advising
@@ -97,7 +97,7 @@ export default async function Home() {
           <div className={s.desks}>
             {c.desk.length > 0 && (
               <aside className={s.desk}>
-                <p className={s.eyebrow}>{t("desk.title") || "On my desk now"}</p>
+                <p className={s.eyebrow}>{t("desk.title") || "On our desk now"}</p>
                 <ul className={s.deskList}>
                   {c.desk.map((d) => (
                     <li key={d.id}>
@@ -211,7 +211,7 @@ function buildSections(c: HomeContent, t: (key: string) => string): (Section | n
             <>
               {mine.length > 0 && (
                 <>
-                  <h3 className={s.subhead}>My platforms</h3>
+                  <h3 className={s.subhead}>Our platforms</h3>
                   <div className={s.gridMine}>
                     {mine.map((p) => (
                       <article key={p.id} className={`${s.card} ${s.cardMine} ${s.branded}`} style={brand(p)}>
@@ -280,7 +280,7 @@ function buildSections(c: HomeContent, t: (key: string) => string): (Section | n
               )}
               {recs.length > 0 && (
                 <div className={s.recs}>
-                  <p className={s.subhead}>I recommend</p>
+                  <p className={s.subhead}>We recommend</p>
                   {recs.map((r) => (
                     <div key={r.id} className={s.rec}>
                       <span className={s.kind}>{r.type === "article" ? "Article" : "Book"}</span>

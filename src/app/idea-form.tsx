@@ -30,7 +30,7 @@ export default function IdeaForm() {
     return (
       <div className={s.ideaSent} role="status">
         <p>Thank you — it’s in the notebook.</p>
-        <span>I read every idea myself.</span>
+        <span>We read every idea ourselves.</span>
       </div>
     );
   }
