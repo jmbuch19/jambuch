@@ -296,6 +296,8 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       <p className={a.mutedSmall}>
         Pauses {narr.source ? `from the engine (${narr.source})` : "(engine rules not exported yet)"}:{" "}
         {Object.entries(narr.pauses).map(([k, v]) => `${k.replace(/_/g, " ")} ${v} s${narr.standIn.includes(k as never) ? " (stand-in)" : ""}`).join(" · ")}
+        <br />
+        Levels: {Object.entries(narr.levels).map(([k, v]) => `${k.replace(/_/g, " ")} ${v} dB${narr.standIn.includes(k as never) ? " (stand-in)" : ""}`).join(" · ")}
       </p>
       {r.state === "sample_due" && (
         <form action={sampleFeeReceivedAction} className={a.actions}>
@@ -322,6 +324,13 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
               {(r.sample_qc as { words_matched: number | null }).words_matched === null
                 ? "?"
                 : `${Math.round(((r.sample_qc as { words_matched: number }).words_matched) * 100)}%`}
+              {" · voice above music and sounds "}
+              {(() => {
+                const d = (r.sample_qc as { voice_clear_db?: number | null }).voice_clear_db;
+                return d === undefined ? "not measured (older sample)" : d === null ? "nothing under the words" : `${d} dB`;
+              })()}
+              {Number(cost.background_lowered_db ?? 0) < 0 ? ` (background lowered ${String(cost.background_lowered_db)} dB to get there)` : ""}
+              {cost.effects_after !== undefined ? ` · effects: ${String(cost.effects_after)} after a line, ${String(cost.effects_under)} under the words` : ""}
             </p>
           )}
           {listen && (

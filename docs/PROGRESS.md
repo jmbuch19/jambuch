@@ -355,3 +355,22 @@ Bug (Jaydeep): the title was read as part of the story with no pause.
   (0.3–0.5 s), end before the closing card (2.0 s). Present: join 0.3 s (narration.md),
   paragraph 0.6–0.8 s (sound-guide.md "action runs tight"; quiet scenes 1.2–2 s).
 - Later, camera and colour rules for videos come from the engine the same way.
+
+### 26 Nov 2026: the sample follows the engine's sound guide §0 ("Sounds are the Souls of the Story")
+- **Voice clear of the background:** the mix also writes two measuring stems (voice and
+  music+effects, both masked to the moments the narration speaks; pauses may rise) and measures
+  them with volumedetect. Under the `voice_clear` level (stand-in 10 dB) the background comes down
+  by the shortfall + 1 dB and it is mixed once more (free); still short → the automatic check
+  fails ("voice only N dB above the music and sounds"). Admin shows the value, the lowering and the
+  effect counts.
+- **Fades and levels on every effect:** each effect's gain comes from its own measured mean
+  (target `cue_present`, stand-in −32 dB); soft sounds in 0.6 s / out 1.2 s, sharp ones (door)
+  in 0.05 s / out 0.3 s. An effect after a line ends 0.25 s before the next line starts, and the
+  pause after that line is at least `cue_hold` (stand-in 1.5 s), so the words wait for it.
+- **Similes under the words:** the sound plan (Claude) marks a cue `place: "under"` with the
+  likened sound's `word` when a sentence likens a voice or sound to a sound (any language; no
+  word list is copied from the engine). The sound rises from that word (in 0.5 s), plays under the
+  rest of the line at `simile_under` (stand-in −33 dB), not ducked, and fades out over 2 s after
+  the line. No word found in the sentence → the cue plays after the line instead.
+- **For the home PC's `media/rules/narration.json`:** also `"pauses": { "cue_hold": ... }` and
+  `"levels": { "cue_present": -32, "simile_under": -33, "voice_clear": 10 }`.

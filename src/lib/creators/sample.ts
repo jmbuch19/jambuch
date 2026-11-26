@@ -138,6 +138,7 @@ export type QualityCheck = {
   words_matched: number | null;
   heard_language?: string | null;
   language_probability?: number | null;
+  voice_clear_db?: number | null; // how far the music and sounds sit below the voice while it speaks
   problems: string[];
 };
 export type SampleResult = { key: string; credits: Credit[]; cost: Record<string, number | string>; plan: SoundPlan; qc: QualityCheck };
@@ -295,6 +296,23 @@ function musicVolume(swell: { from: number; to: number } | null) {
   return `volume='0.22+0.28*min(1,max(0,(t-${a})/0.6))*min(1,max(0,(${b}-t)/0.6))':eval=frame`;
 }
 
+// Mean level (dB) from FFmpeg's volumedetect; about -91 for silence.
+async function meanVolume(path: string): Promise<number | null> {
+  const out = await run(ffmpeg(), ["-hide_banner", "-nostats", "-i", path, "-af", "volumedetect", "-f", "null", "-"], {
+    timeout: 60_000,
+    maxBuffer: 16 * 1024 * 1024,
+  }).catch((e: { stderr?: string }) => ({ stderr: e.stderr ?? "" }));
+  const m = /mean_volume:\s*(-?\d+(?:\.\d+)?) dB/.exec(String(out.stderr));
+  return m ? Number(m[1]) : null;
+}
+
+// One effect as it goes into the mix: where it starts, how long it plays, its fades, its gain.
+export type PlacedEffect = { path: string; at: number; len: number; fin: number; fout: number; gainDb: number; under: boolean };
+
+// Effects that keep a sharp attack (the engine's SHARP_CUES idea); every other sound swells in
+// and dies away (engine: in 0.6 s, out 1.2 s), so nothing pops in or cuts off.
+const SHARP_SOUNDS = new Set(["door"]);
+
 // Joins voiced segments with real silences between them (the engine's rule: pauses go in at
 // the joins, never inside the voice). Returns the joined file and each segment's start time.
 async function joinSegments(dir: string, files: string[], gaps: number[]) {
@@ -319,13 +337,15 @@ export async function mix(o: {
   tag: string;
   voice: string;
   music: string | null;
-  effects: { path: string; at: number }[];
   voiceStart: number;
   total: number;
   tagEndAt: number;
   swell?: { from: number; to: number } | null;
   lufs?: number;
-}) {
+  effects: PlacedEffect[];
+  speech: [number, number][]; // when the narration is speaking (seconds in the mix)
+  bgDb?: number; // extra gain on all music and effects (lowered when the voice isn't clear enough)
+}): Promise<{ path: string; voiceClear: number | null }> {
   const inputs = [o.tag, o.voice, o.tag, ...(o.music ? [o.music] : []), ...o.effects.map((e) => e.path)];
   const args: string[] = ["-hide_banner", "-y"];
   for (const i of inputs) args.push("-i", i);
@@ -337,8 +357,8 @@ export async function mix(o: {
   f.push(`[1:a]aresample=44100,adelay=${ms(o.voiceStart)}|${ms(o.voiceStart)}[nv]`);
   f.push(`[2:a]aresample=44100,volume=0.9,adelay=${ms(o.tagEndAt)}|${ms(o.tagEndAt)}[t2]`);
   f.push(`[t1][nv][t2]amix=inputs=3:duration=longest:normalize=0,apad=whole_dur=${o.total.toFixed(2)}[vo]`);
-  f.push(`[vo]asplit=2[vmix][vkey]`);
-  const mixIn = ["[vmix]"];
+  f.push(`[vo]asplit=3[vmix][vkey][vmeas]`);
+  const bgIn: string[] = [];
   let idx = 3;
   if (o.music) {
     f.push(
@@ -346,21 +366,50 @@ export async function mix(o: {
         `afade=t=in:d=1.5,afade=t=out:st=${Math.max(0, o.total - 2.5).toFixed(2)}:d=2.5[mbed]`,
     );
     f.push(`[mbed][vkey]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=500[mduck]`);
-    mixIn.push("[mduck]");
+    bgIn.push("[mduck]");
     idx++;
   } else {
     f.push(`[vkey]anullsink`);
   }
+  // Effects: each faded in and out and set to its own level (gain from its measured mean). They
+  // are not ducked: a cue after a line ends before the next line starts; a simile ("under") is
+  // meant to be heard with the words, softly.
   o.effects.forEach((e, n) => {
-    f.push(`[${idx + n}:a]aresample=44100,atrim=0:5,afade=t=out:st=4:d=1,volume=0.5,adelay=${ms(e.at)}|${ms(e.at)}[fx${n}]`);
-    mixIn.push(`[fx${n}]`);
+    const st = Math.max(0, e.len - e.fout).toFixed(2);
+    f.push(
+      `[${idx + n}:a]aresample=44100,atrim=0:${e.len.toFixed(2)},asetpts=PTS-STARTPTS,afade=t=in:d=${e.fin.toFixed(2)},` +
+        `afade=t=out:st=${st}:d=${e.fout.toFixed(2)},volume=${e.gainDb.toFixed(1)}dB,adelay=${ms(e.at)}|${ms(e.at)}[fx${n}]`,
+    );
+    bgIn.push(`[fx${n}]`);
   });
-  f.push(`${mixIn.join("")}amix=inputs=${mixIn.length}:duration=first:normalize=0,loudnorm=I=${o.lufs ?? -16}:TP=-1.5:LRA=11[out]`);
+  const T = o.total.toFixed(2);
+  // The voice is measured only while it speaks: the pauses may rise (engine sound guide §0.7).
+  const mask = o.speech.length
+    ? `volume='${o.speech.map(([a, b]) => `between(t,${a.toFixed(2)},${b.toFixed(2)})`).join("+")}':eval=frame`
+    : "volume=0";
+  const outs: string[] = [];
+  if (bgIn.length) {
+    f.push(
+      `${bgIn.join("")}amix=inputs=${bgIn.length}:duration=longest:normalize=0,volume=${(o.bgDb ?? 0).toFixed(1)}dB,` +
+        `apad=whole_dur=${T},atrim=0:${T},asplit=2[bgmix][bgmeas]`,
+    );
+    f.push(`[vmix][bgmix]amix=inputs=2:duration=first:normalize=0,loudnorm=I=${o.lufs ?? -16}:TP=-1.5:LRA=11[out]`);
+    f.push(`[vmeas]aformat=channel_layouts=mono,${mask}[vm]`, `[bgmeas]aformat=channel_layouts=mono,${mask}[bm]`);
+    outs.push("vm", "bm");
+  } else {
+    f.push(`[vmix]loudnorm=I=${o.lufs ?? -16}:TP=-1.5:LRA=11[out]`, `[vmeas]anullsink`);
+  }
 
   const out = join(o.dir, "sample.mp3");
   args.push("-filter_complex", f.join(";"), "-map", "[out]", "-ac", "2", "-ar", "44100", "-c:a", "libmp3lame", "-b:a", "192k", out);
+  // Two measuring stems (before the final normalising, which moves voice and background alike).
+  for (const name of outs) args.push("-map", `[${name}]`, "-c:a", "pcm_s16le", join(o.dir, `${name}.wav`));
   await run(ffmpeg(), args, { timeout: 180_000, maxBuffer: 16 * 1024 * 1024 });
-  return out;
+  if (!outs.length) return { path: out, voiceClear: null };
+  const [v, b] = await Promise.all([meanVolume(join(o.dir, "vm.wav")), meanVolume(join(o.dir, "bm.wav"))]);
+  // Nothing under the words at all: nothing to be clear of.
+  if (v === null || b === null || b <= -90) return { path: out, voiceClear: null };
+  return { path: out, voiceClear: Math.round((v - b) * 10) / 10 };
 }
 
 // ---------------------------------------------------------------- the whole sample
@@ -552,7 +601,7 @@ export async function makeSample(
         }
       }
     }
-    const cueFiles: { path: string; after: number }[] = [];
+    const cueFiles: { path: string; after: number; sound: string; under: boolean; word: string }[] = [];
     for (const [i, cue] of plan.cues.entries()) {
       const q = SOUND_QUERY[cue.sound];
       if (!q) continue;
@@ -560,7 +609,7 @@ export async function makeSample(
       const card = await optional(req.id, `effect ${cue.sound} from library`, () => pickEffect(cue.sound, `${req.id}-${i}`, usedIds));
       if (card && (await optional(req.id, `effect ${card.id} (library)`, async () => writeFile(path, await readPrivate(card.file)))) !== null) {
         usedIds.add(card.id);
-        cueFiles.push({ path, after: cue.after });
+        cueFiles.push({ path, after: cue.after, sound: cue.sound, under: cue.place === "under", word: cue.word ?? "" });
         credits.push({ kind: "effect", source: "library", id: card.id, name: card.id, author: card.source, licence: card.licence, url: "", attribution: card.attribution });
         used.push({ order_id: req.id, asset_id: card.id, asset_kind: "sfx", role: "sample-cue" });
         continue;
@@ -569,7 +618,7 @@ export async function makeSample(
       const url = hit?.previews["preview-hq-mp3"];
       if (!hit || !url) continue;
       if ((await optional(req.id, `effect download ${cue.sound} (Freesound)`, () => download(url, path))) === null) continue;
-      cueFiles.push({ path, after: cue.after });
+      cueFiles.push({ path, after: cue.after, sound: cue.sound, under: cue.place === "under", word: cue.word ?? "" });
       credits.push(freesoundCredit("effect", hit));
       used.push({ order_id: req.id, asset_id: `freesound-${hit.id}`, asset_kind: "sfx", role: "sample-cue" });
     }
@@ -578,6 +627,12 @@ export async function makeSample(
     // 3. The paid voice, once: stored as soon as it arrives (or recovered after a timeout).
     // Each segment separately, three at a time, with its neighbours as context for intonation.
     const segs = script.segments;
+    const segOf = (n: number) => segs.findIndex((x) => x.sentences.includes(n));
+    // A sound after a line: the next line waits for it (engine: the words wait about 1 s).
+    for (const c of cueFiles) {
+      const k = segOf(c.after);
+      if (!c.under && k >= 0 && k < segs.length - 1 && segs[k].gapAfter < rules.pauses.cue_hold) segs[k].gapAfter = rules.pauses.cue_hold;
+    }
     const force = !!(opts.forceVoice || opts.fresh);
     const voiced: { audio: Buffer; paid: boolean }[] = new Array(segs.length);
     const tagAudio = await step(req.id, "voice (ElevenLabs)", async () => {
@@ -615,22 +670,65 @@ export async function makeSample(
         ? { from: voiceStart + joined.starts[lastOpening] + joined.durs[lastOpening], to: voiceStart + joined.starts[lastOpening] + joined.durs[lastOpening] + segs[lastOpening].gapAfter }
         : null;
 
-    // Effects: just after the segment that holds their sentence.
-    const segOf = (n: number) => segs.findIndex((x) => x.sentences.includes(n));
-    const effects = cueFiles.flatMap((c) => {
+    // Effects (engine sound guide §0): every one faded, set to its level from its own measured
+    // mean, and timed to the words.
+    //  - after a line: starts 0.1 s after it and fades out 0.25 s before the next line begins;
+    //  - a simile ("under"): rises from its word (in 0.5 s), runs under the rest of the line, and
+    //    fades out over 2 s after it.
+    const segStart = (k: number) => voiceStart + joined.starts[k];
+    const segEnd = (k: number) => segStart(k) + joined.durs[k];
+    const effects: PlacedEffect[] = [];
+    for (const c of cueFiles) {
       const k = segOf(c.after);
-      return k < 0 ? [] : [{ path: c.path, at: voiceStart + joined.starts[k] + joined.durs[k] + 0.1 }];
-    });
+      if (k < 0) continue;
+      const [fileSec, mean] = await Promise.all([duration(c.path).catch(() => 0), meanVolume(c.path)]);
+      if (fileSec < 0.2 || mean === null || mean < -80) continue;
+      const target = c.under ? rules.levels.simile_under : rules.levels.cue_present;
+      const gainDb = Math.max(-30, Math.min(20, target - mean));
+      if (c.under) {
+        const pos = Math.max(0, segs[k].text.indexOf(c.word));
+        const at = segStart(k) + (pos / Math.max(1, segs[k].text.length)) * joined.durs[k];
+        const len = Math.min(fileSec, segEnd(k) - at + 2, 8);
+        if (len < 0.5) continue;
+        effects.push({ path: c.path, at, len, fin: Math.min(0.5, len / 3), fout: Math.min(2, len / 2), gainDb, under: true });
+      } else {
+        const at = segEnd(k) + 0.1;
+        const nextLine = k < segs.length - 1 ? segStart(k + 1) : tagEndAt;
+        const room = nextLine - 0.25 - at;
+        if (room < 0.3) continue;
+        const len = Math.min(fileSec, 5, room);
+        const sharp = SHARP_SOUNDS.has(c.sound);
+        const base = sharp ? 0.3 : 1.2;
+        const fout = Math.min(len / 2, len < fileSec ? Math.max(base, 0.6) : base);
+        effects.push({ path: c.path, at, len, fin: sharp ? 0.05 : Math.min(0.6, len / 3), fout, gainDb, under: false });
+      }
+    }
+    const speech = segs.map((_, k): [number, number] => [segStart(k), segEnd(k)]);
     const paidChars = voiced.reduce((sum, v, i) => sum + (v.paid ? segs[i].text.length : 0), 0);
     const voice = { paid: voiced.some((v) => v.paid) };
 
     await checkStop(req.id);
     // 4. Mix (free), then the check (its speech-to-text result is kept per voice too).
-    const out = await step(req.id, "mix (FFmpeg)", () =>
-      mix({ dir, tag: tagPath, voice: voicePath, music: musicPath, effects, voiceStart, total, tagEndAt, swell: musicPath ? swell : null, lufs: rules.videoLufs }),
-    );
+    const mixWith = (bgDb: number) =>
+      step(req.id, bgDb ? `mix again, background ${bgDb.toFixed(1)} dB (FFmpeg)` : "mix (FFmpeg)", () =>
+        mix({ dir, tag: tagPath, voice: voicePath, music: musicPath, effects, voiceStart, total, tagEndAt, swell: musicPath ? swell : null, lufs: rules.videoLufs, speech, bgDb }),
+      );
+    // The voice always clear of the background (engine §0.7): at least voice_clear dB while it
+    // speaks. If the first mix falls short, the music and sounds come down by the shortfall and
+    // 1 dB more, and it is mixed once more (free).
+    const need = rules.levels.voice_clear;
+    let mixed = await mixWith(0);
+    let bgDb = 0;
+    if (mixed.voiceClear !== null && mixed.voiceClear < need) {
+      bgDb = -(need - mixed.voiceClear + 1);
+      mixed = await mixWith(bgDb);
+    }
+    const out = mixed.path;
     const qc = await step(req.id, "quality check", () =>
-      qualityCheck(out, voicePath, passage, lang, workKey(req.id, `stt-${hashOf(`${s.voice_id}|${s.model_id}|${passage}`)}.json`), !!(opts.forceVoice || opts.fresh)),
+      qualityCheck(out, voicePath, passage, lang, workKey(req.id, `stt-${hashOf(`${s.voice_id}|${s.model_id}|${passage}`)}.json`), !!(opts.forceVoice || opts.fresh), {
+        voiceClear: mixed.voiceClear,
+        need,
+      }),
     );
     const bytes = await readFile(out);
 
@@ -649,6 +747,9 @@ export async function makeSample(
         // Only what this attempt actually paid for.
         elevenlabs_chars: paidChars,
         segments: segs.length,
+        effects_after: effects.filter((e) => !e.under).length,
+        effects_under: effects.filter((e) => e.under).length,
+        background_lowered_db: bgDb,
         pauses_from_engine: rules.fromEngine.join(",") || "none",
         pauses_stand_in: rules.standIn.join(",") || "none",
         voice_paid: voice.paid ? 1 : 0,
@@ -734,8 +835,17 @@ const LANG_CODES: Record<string, string[]> = { gu: ["gu", "guj"], hi: ["hi", "hi
 // Limits for an automatic pass. Below them the sample is made again once, then a person looks.
 export const QC_LIMITS = { minSeconds: 20, maxSeconds: 90, minLufs: -19, maxLufs: -13, minWords: 0.6 };
 
-export async function qualityCheck(mixPath: string, voicePath: string, passage: string, lang: string, sttKey?: string, fresh = false): Promise<QualityCheck> {
+export async function qualityCheck(
+  mixPath: string,
+  voicePath: string,
+  passage: string,
+  lang: string,
+  sttKey?: string,
+  fresh = false,
+  clear: { voiceClear: number | null; need: number } = { voiceClear: null, need: 10 },
+): Promise<QualityCheck> {
   const problems: string[] = [];
+  if (clear.voiceClear !== null && clear.voiceClear < clear.need) problems.push(`voice only ${clear.voiceClear} dB above the music and sounds (needs ${clear.need})`);
   const seconds = await duration(mixPath);
   if (seconds < QC_LIMITS.minSeconds || seconds > QC_LIMITS.maxSeconds) problems.push(`length ${Math.round(seconds)} s`);
   const lufs = await loudness(mixPath);
@@ -764,7 +874,7 @@ export async function qualityCheck(mixPath: string, voicePath: string, passage: 
   }
   if (matched === null) problems.push("words not checked");
   else if (matched < QC_LIMITS.minWords) problems.push(`only ${Math.round(matched * 100)}% of the words heard`);
-  return { pass: !problems.length, seconds: Math.round(seconds * 10) / 10, lufs, words_matched: matched, heard_language: heardLang, language_probability: langProb, problems };
+  return { pass: !problems.length, seconds: Math.round(seconds * 10) / 10, lufs, words_matched: matched, heard_language: heardLang, language_probability: langProb, voice_clear_db: clear.voiceClear, problems };
 }
 
 // Removes an older sample and its credits (when a new one replaces it).
