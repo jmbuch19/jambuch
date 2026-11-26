@@ -1,14 +1,14 @@
 import "server-only";
 import { readPrivate } from "@/lib/r2";
 
-// Narration rules come from the ENGINE's rule files, not from this site (Jaydeep, 25 Nov 2026).
+// Narration rules come from the ENGINE's rule files, not from this site (owner's decision, 25 Nov 2026).
 // The engine repo is private (home PC), so it exports them to the private R2 bucket as
 //   media/rules/narration.json
 //   { "source": "docs/narration.md + docs/sound-guide.md @ <commit>", "exported_at": "...",
 //     "pauses": { "<name>": seconds | [min, max] }, "loudness": { "video_lufs": -16 },
 //     "levels": { "<name>": dB } }
 // The sample reads that file every time. Values the export doesn't have yet come from STANDIN
-// below, which is NOT a rule copy: it is the stand-in Jaydeep set on 25 Nov until the engine's
+// below, which is NOT a rule copy: it is the stand-in the owner set on 25 Nov until the engine's
 // narration.md has them; admin shows which values are stand-ins.
 
 export type PauseName = "join" | "paragraph" | "scene_break" | "dialogue_change" | "title" | "author" | "title_swell" | "end" | "cue_hold";
@@ -21,7 +21,7 @@ export type LevelName = "cue_present" | "simile_under" | "voice_clear";
 
 // Stand-ins until media/rules/narration.json has each value. "join" and "paragraph" match the
 // engine's docs today (narration.md 0.3 s; sound-guide.md 0.6–0.8 s); the rest were missing
-// from them on 25 Nov 2026 and are Jaydeep's starting values.
+// from them on 25 Nov 2026 and are the owner's starting values.
 const STANDIN: Record<PauseName, number | [number, number]> = {
   join: 0.3,
   paragraph: [0.6, 0.8],

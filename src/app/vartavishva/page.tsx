@@ -209,7 +209,7 @@ export default async function VartavishvaPage() {
       </main>
 
       <footer className={v.foot}>
-        A <a href="https://jambuch.in">jambuch.in</a> project by Jaydeep Buch
+        A <a href="https://jambuch.in">jambuch.in</a> project
       </footer>
     </div>
   );

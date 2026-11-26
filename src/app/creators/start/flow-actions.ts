@@ -39,7 +39,6 @@ import {
   EPISODE_CHARS,
   STORY_MAX,
   STORY_MIN,
-  assistedFull,
   charactersText,
   choiceTags,
   choicesText,
@@ -53,7 +52,7 @@ import {
   pricingSettings,
   type CostLog,
 } from "@/lib/creators/flow";
-import { priceOne, inputFrom, priceRange, type Quote } from "@/lib/creators/pricing";
+import { priceOne, inputFrom, isDirected, priceRange, type Quote } from "@/lib/creators/pricing";
 import {
   BY_ID,
   CHOICE_IDS,
@@ -69,12 +68,13 @@ import {
 } from "@/lib/creators/questions";
 import { CONSENT_LANGS, TERMS_VERSION, type ConsentLang } from "@/lib/creators/terms";
 import { LIMITS, OPEN_STATES } from "./limits";
+import { STUDIO_FROM, STUDIO_SIGNATURE, studioReplyTo, alertTo, directedStart } from "@/lib/creators/team";
 
 // The guided question flow's server side (docs/CREATORS_QUESTION_FLOW.md). Rules kept here:
 //  · no Claude call before sign-in (stage 0 uses only the pricing engine)
 //  · every choice is checked against questions.ts; anything else is dropped
 //  · free text and the story go to private R2 through the firewall, never into a table
-//  · every Claude call is metered; over the per-draft cap the draft waits for Jaydeep
+//  · every Claude call is metered; over the per-draft cap the draft waits for the reviewer
 
 const now = () => new Date().toISOString();
 const sha256 = (s: string) => createHash("sha256").update(s, "utf8").digest("hex");
@@ -130,12 +130,12 @@ async function update(id: string, patch: Record<string, unknown>) {
 }
 
 async function mailStudio(m: { subject: string; lines: string[]; replyTo: string }) {
-  const to = process.env.ADMIN_EMAIL;
+  const to = await alertTo("reviewer");
   return !!to && (await sendEmail({ to, subject: m.subject, text: m.lines.join("\n"), replyTo: m.replyTo }));
 }
 const adminLink = (id: string) => `https://jambuch.in/admin/creators/${id}`;
 
-// A draft that must wait for Jaydeep (big screen, over the Claude cap, plan to discuss).
+// A draft that must wait for the reviewer (big screen, over the Claude cap, plan to discuss).
 async function toHuman(r: Row, why: string, lines: string[]) {
   await update(r.id, { state: "needs_human", needs_human_why: why });
   await mailStudio({
@@ -235,7 +235,8 @@ export async function saveAnswers(id: string, patch: Record<string, unknown>, st
     if (l.look_colour) a.look_colour = l.look_colour;
     else delete a.look_colour;
   }
-  if (a.level === "premium") a.service = "assisted";
+  // Premium is always Varta Vishva Directors; "assisted" is the old name of that service.
+  if (a.level === "premium" || a.service === "assisted") a.service = "directed";
 
   // A change after the plan was written makes the plan and quote stale: the next visit to
   // the plan step writes a new one.
@@ -324,7 +325,7 @@ export async function submitStory(id: string, form: FormData): Promise<StoryResu
   if (!author.text) return { ok: false, error: "Please give the author’s name." };
   if (text.length < STORY_MIN) return { ok: false, error: "Please add at least a few paragraphs of the story." };
   if (text.length > STORY_MAX) {
-    return { ok: false, error: `Stories up to ${STORY_MAX.toLocaleString("en-IN")} characters can be made here. For a longer work, choose Assisted and write to us.` };
+    return { ok: false, error: `Stories up to ${STORY_MAX.toLocaleString("en-IN")} characters can be made here. For a longer work, choose Varta Vishva Directors and write to us.` };
   }
   const detected = detectLanguage(text);
   const override = String(form.get("story_lang") ?? "");
@@ -336,7 +337,7 @@ export async function submitStory(id: string, form: FormData): Promise<StoryResu
     return { ok: false, error: "We couldn’t save the story just now. Please try again." };
   }
   {
-    // Title and author: separate fields (Jaydeep, 25 Nov 2026), read as the sample's opening.
+    // Title and author: separate fields (owner's decision, 25 Nov 2026), read as the sample's opening.
     const d = await readDraft(id);
     d.text.title = title.text;
     d.text.author = author.text;
@@ -414,7 +415,7 @@ export async function consentAndScreen(id: string, form: FormData): Promise<Scre
 
 const MAX_RECHECKS = 3;
 
-// The writer's words when a story can't be made (Gujarati and Hindi: drafts for Jaydeep).
+// The writer's words when a story can't be made (Gujarati and Hindi: drafts for the admin to check).
 const FRESH_IDEA: Record<ConsentLang, string> = {
   en: "We’re sorry: we can’t make this story as it is. You’re very welcome to come back with a fresh idea or a different story; we’d love to hear it. If you’d like to talk it over, reply to our email.",
   gu: "માફ કરશો: આ વાર્તા જેમ છે તેમ અમે બનાવી શકતા નથી. નવા વિચાર કે બીજી વાર્તા સાથે ફરી આવજો; અમને સાંભળવું ગમશે. વાત કરવી હોય તો અમારા ઇમેલનો જવાબ આપજો.",
@@ -429,7 +430,7 @@ type ScreenInput = Row & {
   origin: string;
 };
 
-// Screening and what follows it (Jaydeep, 25 Nov 2026):
+// Screening and what follows it (owner's decision, 25 Nov 2026):
 //   clear                          → continue (characters and setting are listed once)
 //   a problem the writer can fix   → a gentle page with suggestions that genuinely remove it;
 //                                    the writer edits and re-checks, at most 3 times
@@ -512,10 +513,10 @@ async function screenAndRoute(x: ScreenInput): Promise<ScreenResult> {
           "Before we can make your story, one part of it needs a small change. Our suggestions are waiting for you, with the story ready to edit:",
           "https://jambuch.in/creators/start",
           "",
-          "Jaydeep Buch",
-          "Creator's Space · jambuch.in/creators",
+          ...STUDIO_SIGNATURE,
         ].join("\n"),
-        replyTo: process.env.ADMIN_EMAIL,
+        replyTo: studioReplyTo(),
+      from: STUDIO_FROM,
       });
     }
     return { status: "fix", message: screening.reason, fix: { suggestions, story, left: MAX_RECHECKS - (cur?.rechecks ?? 0) } };
@@ -581,7 +582,7 @@ export async function recheckStory(id: string, text: string): Promise<ScreenResu
 
 // ---------------------------------------------------------------- stage 3: prices per level
 
-export async function levelPrices(id: string): Promise<{ prices: Record<string, number>; assistedFrom: string | null } | null> {
+export async function levelPrices(id: string): Promise<{ prices: Record<string, number>; directedFrom: string | null } | null> {
   const r = await own(id);
   if (!r) return null;
   const [s, cp, d] = await Promise.all([pricingSettings(), claudePrices(), readDraft(id)]);
@@ -591,7 +592,7 @@ export async function levelPrices(id: string): Promise<{ prices: Record<string, 
     const n = Math.min(d.characters.length || 2, LEVEL_LIMITS[level].characters);
     out[level] = priceOne(inputFrom(a, r.story_chars || 8000, r.language, a.voices === "characters" ? n : 0), s, cp).price;
   }
-  return { prices: out, assistedFrom: await assistedFull() };
+  return { prices: out, directedFrom: await directedStart() };
 }
 
 // ---------------------------------------------------------------- stage 5: look suggestions
@@ -845,12 +846,14 @@ export type PlanResult = {
   plan?: string;
   version?: number;
   roundsLeft?: number;
-  quote?: { total: number; sample: number; advance: number; final: number; episodes: number; minutes: number; days: number };
+  quote?: { total: number; sample: number; advance: number; final: number; episodes: number; minutes: number; days: number; directed: boolean };
   error?: string;
   stopped?: boolean;
 };
 
 const DELIVERY_DAYS: Record<string, number> = { basic: 5, standard: 10, premium: 21 };
+// Varta Vishva Directors (26 Nov 2026): a director's own pace (audio about a week, video two).
+const DIRECTED_DAYS: Record<string, number> = { basic: 7, standard: 14, premium: 28 };
 
 function quoteSummary(q: Quote, level: string) {
   const minutes = q.episodes.reduce((a, e) => a + e.breakdown.minutes, 0);
@@ -861,8 +864,12 @@ function quoteSummary(q: Quote, level: string) {
     final: q.final,
     episodes: q.episodes.length,
     minutes: Math.round(minutes),
-    // Worst case: the level's days, plus 3 per extra episode.
-    days: (DELIVERY_DAYS[level] ?? 10) + 3 * (q.episodes.length - 1),
+    // Worst case: the level's days, plus 3 per extra episode (5 when directed).
+    days:
+      q.input.service === "directed"
+        ? (DIRECTED_DAYS[level] ?? 14) + 5 * (q.episodes.length - 1)
+        : (DELIVERY_DAYS[level] ?? 10) + 3 * (q.episodes.length - 1),
+    directed: q.input.service === "directed",
   };
 }
 
@@ -961,13 +968,23 @@ export async function discussPlan(id: string): Promise<{ ok: boolean }> {
   return { ok: true };
 }
 
-// Approve plan → the baseline (brief §6E) → 'sample_due': the writer pays ₹499, then the
-// sample is made, checked and sent automatically (Jaydeep, 25 Nov 2026).
+// Approve plan → the baseline (brief §6E) → 'sample_due': the writer pays the sample fee, then
+// the sample is made, checked and sent automatically (owner's decision, 25 Nov 2026). A
+// Varta Vishva Directors order is approved only when a director has room this week (team.ts);
+// its sample is made by the assigned director.
 export async function approvePlan(id: string, form: FormData): Promise<{ ok: boolean; error?: string; pay?: { amount: number; online: boolean } }> {
   const r = await own(id, ["plan"]);
   if (!r) return { ok: false, error: "This request can’t be changed any more." };
   if (String(form.get("consent_plan_baseline") ?? "") !== "yes") return { ok: false, error: "Please tick the box to approve the plan." };
   if (String(form.get("version") ?? "") !== String(r.plan_version)) return { ok: false, error: "Your plan has changed. Please read the latest version and approve again." };
+  const directed = isDirected(r.answers);
+  if (directed) {
+    const from = await directedStart();
+    if (from) {
+      const when = new Date(`${from}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+      return { ok: false, error: `Our directors can start new stories from ${when}. Please approve your plan again then, or choose Studio-made.` };
+    }
+  }
   const lang = uiLang(r.answers);
   const db = adminClient();
   await db.from("creator_consents").insert({ user_id: r.user_id, request_id: id, kind: "plan_baseline", terms_version: TERMS_VERSION, language: lang });
@@ -990,7 +1007,7 @@ export async function approvePlan(id: string, form: FormData): Promise<{ ok: boo
   await update(id, { state: "sample_due", plan_approved_at: now(), current_step: null });
   const q = r.quote;
   await mailStudio({
-    subject: `Creator's Space: plan approved by ${r.name}${r.answers.service === "assisted" || r.answers.level === "premium" ? " (Assisted)" : ""}${d.flagged ? " [firewall flag]" : ""}`,
+    subject: `Creator's Space: plan approved by ${r.name}${directed ? " (Varta Vishva Directors)" : ""}${d.flagged ? " [firewall flag]" : ""}`,
     lines: [
       `${r.name} <${r.email}> approved plan version ${r.plan_version}.`,
       r.whatsapp ? `WhatsApp: ${r.whatsapp}` : "",
@@ -998,7 +1015,9 @@ export async function approvePlan(id: string, form: FormData): Promise<{ ok: boo
       q ? `Quote: ₹${q.total.toLocaleString("en-IN")} (sample ₹${q.sample}, advance ₹${q.advance.toLocaleString("en-IN")}, final ₹${q.final.toLocaleString("en-IN")}, ${q.episodes.length} part(s))` : "",
       d.flagged ? "The firewall flagged instruction-like text in this request: read it before making anything." : "",
       "",
-      "Next: the writer pays the ₹499 sample fee; the sample is then made, checked and sent automatically.",
+      directed
+        ? `Next: the writer pays the ₹${q?.sample ?? 999} sample fee; a director is assigned and calls the writer within 2 days, then makes the sample.`
+        : `Next: the writer pays the ₹${q?.sample ?? 499} sample fee; the sample is then made, checked and sent automatically.`,
       `Request: ${adminLink(id)}`,
     ].filter(Boolean),
     replyTo: r.email,
@@ -1011,7 +1030,7 @@ export async function approvePlan(id: string, form: FormData): Promise<{ ok: boo
 // ---------------------------------------------------------------- voice notes (principle 4)
 
 // Speech to text through ElevenLabs (already a provider in the data tick). Off until
-// Jaydeep switches it on in the flow settings: each note costs credits. The recording is
+// The admin switches it on in the flow settings: each note costs credits. The recording is
 // sent straight through and never stored.
 export async function transcribe(id: string, form: FormData): Promise<{ text?: string; error?: string }> {
   const r = await own(id);

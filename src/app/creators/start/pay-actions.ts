@@ -8,7 +8,7 @@ import { createOrder, paymentSignatureValid, razorpayKeyId, razorpayReady } from
 import { paymentPaid } from "@/lib/creators/orders";
 import type { Quote } from "@/lib/creators/pricing";
 
-// Payments a writer makes (brief §1, §4; Jaydeep, 25 Nov 2026):
+// Payments a writer makes (brief §1, §4; owner's decision, 25 Nov 2026):
 //   sample   ₹499 after the plan is approved → the sample is made automatically
 //   advance  after the writer has heard the sample (the ₹499 is already counted in it)
 // The amount always comes from the quote saved with the approved plan; nothing from the browser.

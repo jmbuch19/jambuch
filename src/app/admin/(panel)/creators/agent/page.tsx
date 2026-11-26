@@ -10,7 +10,7 @@ import a from "../../../admin.module.css";
 // for it. Nothing here creates, changes, runs or deletes anything.
 export const dynamic = "force-dynamic";
 
-// Jaydeep's agent (25 Nov 2026). Can be overridden with "agent_id" in the flow settings.
+// The studio's agent (25 Nov 2026). Can be overridden with "agent_id" in the flow settings.
 const DEFAULT_AGENT_ID = "agent_01CGNoo1zESuPHn573PPoD3F";
 
 const pretty = (v: unknown) => JSON.stringify(v, null, 2);

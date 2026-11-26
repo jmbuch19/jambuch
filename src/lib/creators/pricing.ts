@@ -2,18 +2,21 @@
 // rates come from the settings rows `creators.pricing` and `creators.claude_prices`
 // (editable in admin). Everything we pay for in dollars (ElevenLabs credits, Claude, cloud
 // render time, storage) is kept in dollars and converted with the day's USD→INR rate plus
-// the card's forex markup (src/lib/fx.ts); never a fixed rupee rate (Jaydeep, 25 Nov 2026).
-// Only Jaydeep's own prices (hourly rate, minimum, add-ons) are in rupees. The writer sees
+// the card's forex markup (src/lib/fx.ts); never a fixed rupee rate (owner's decision, 25 Nov 2026).
+// Only the studio's own prices (hourly rate, minimum, add-ons) are in rupees. The writer sees
 // one fixed price; admin sees the breakdown and the rate it was made with.
 //
 //   tool_cost = narration + paintings (own retake factors) + (Claude + render + music
 //               + effects + other) × retry buffer
 //   overhead  = fixed monthly costs (Vercel, the Claude plan's share…) ÷ expected orders a month
-//   price     = 2 × tool_cost + review hours × ₹/hour + add-ons + overhead
+//   price     = 2 × tool_cost + review (or director) hours × ₹/hour + add-ons + overhead
 //             ÷ (1 − gateway fee), at least the minimum, rounded UP to ₹99
 //   sample    = ₹499 (setting), paid after the plan is approved, counted toward the advance:
 //   advance   = 50% − sample fee, final = the rest; sample + advance + final = price
-//   (Jaydeep, 25 Nov 2026: paid sample, deducted from the full price).
+//   (owner's decision, 25 Nov 2026: paid sample, deducted from the full price).
+//   Varta Vishva Directors (26 Nov 2026): a director's hours instead of review hours (2.5 h
+//   audio, 4 h video, 5 h Premium video, scaled by length), the director's extra retakes
+//   (voice 1.5×, paintings 1.3× per still), and a ₹999 sample.
 
 import type { Answers } from "./questions";
 import { LEVEL_PRESETS } from "./questions";
@@ -45,14 +48,18 @@ export type PricingSettings = {
   render_usd_per_minute: number; // cloud running time per narration minute
   other_flat_usd: number; // storage and bandwidth for the 7-day window
   retry_buffer: number;
-  review_hours: Record<string, { self_serve: number; assisted: number }>;
+  review_hours: Record<string, { self_serve: number }>;
+  // Varta Vishva Directors: hours per order (at review_minutes_base minutes of narration).
+  directed_hours: { audio: number; video: number; premium_video: number };
+  // A director polishes: more voice retakes and more paintings per still than the studio.
+  directed_retake: { voice: number; paintings_per_still: number };
+  directed_sample_fee_inr: number;
   review_minutes_base: number;
   hourly_inr: number;
   gateway_fee_rate: number;
   minimum_inr: number;
   round_to: number;
   addons_inr: { exclusive_voice: number; own_voice: number };
-  assisted_weekly_cap: number;
   sample_fee_inr: number; // one sample per order (a series has one sample), deducted from the price
   // Fixed running costs carried by Creator's Space, spread over the orders expected a month.
   // Costs already priced per order (ElevenLabs credits, Claude API tokens) do not belong here.
@@ -89,18 +96,20 @@ export const PRICING_DEFAULTS: Omit<PricingSettings, "fx"> = {
   other_flat_usd: 0.25,
   retry_buffer: 1.4,
   review_hours: {
-    basic: { self_serve: 0.5, assisted: 1.5 },
-    standard: { self_serve: 1.5, assisted: 3 },
-    premium: { self_serve: 4, assisted: 4 },
+    basic: { self_serve: 0.5 },
+    standard: { self_serve: 1.5 },
+    premium: { self_serve: 4 }, // Premium is always directed; kept for completeness
   },
+  directed_hours: { audio: 2.5, video: 4, premium_video: 5 },
+  directed_retake: { voice: 1.5, paintings_per_still: 1.3 },
+  directed_sample_fee_inr: 999,
   review_minutes_base: 12,
   hourly_inr: 1000,
   gateway_fee_rate: 0.0236,
   minimum_inr: 999,
   round_to: 99,
   addons_inr: { exclusive_voice: 1500, own_voice: 500 },
-  assisted_weekly_cap: 3,
-  // Jaydeep, 25 Nov 2026: Vercel Pro (needed for paid service), half of his Claude Pro plan
+  // Owner's decision, 25 Nov 2026: Vercel Pro (needed for paid service), half of the Claude Pro plan
   // (shared with his other projects); 5 orders a month to start. ElevenLabs is prepaid for a
   // year and already priced per credit, so it is not listed.
   fixed_costs: [
@@ -115,7 +124,7 @@ export const PRICING_DEFAULTS: Omit<PricingSettings, "fx"> = {
 export type ClaudePrices = { models: Record<string, { input: number; output: number }> };
 
 // Old keys that held fixed rupee conversions; dropped so they can never come back into use.
-const RETIRED = ["inr_per_usd", "credit_inr_per_1000", "render_inr_per_minute", "other_flat_inr", "fx", "usd_inr"];
+const RETIRED = ["inr_per_usd", "credit_inr_per_1000", "render_inr_per_minute", "other_flat_inr", "fx", "usd_inr", "assisted_weekly_cap"];
 
 // The stored settings without the run-time rate (what admin edits).
 export function storedPricing(v: unknown): Omit<PricingSettings, "fx"> {
@@ -127,6 +136,8 @@ export function storedPricing(v: unknown): Omit<PricingSettings, "fx"> {
     ...y,
     claude_steps: { ...PRICING_DEFAULTS.claude_steps, ...(y.claude_steps ?? {}) },
     review_hours: { ...PRICING_DEFAULTS.review_hours, ...(y.review_hours ?? {}) },
+    directed_hours: { ...PRICING_DEFAULTS.directed_hours, ...(y.directed_hours ?? {}) },
+    directed_retake: { ...PRICING_DEFAULTS.directed_retake, ...(y.directed_retake ?? {}) },
   };
 }
 
@@ -139,7 +150,7 @@ export type PriceInput = {
   chars: number;
   lang: string;
   level: "basic" | "standard" | "premium";
-  service: "self_serve" | "assisted";
+  service: "self_serve" | "directed";
   visual: "moving_stills" | "single_image" | "audio_only";
   shorts: number;
   sound: "narration" | "music" | "music_sfx";
@@ -179,10 +190,11 @@ export function priceOne(i: PriceInput, s: PricingSettings, cp: ClaudePrices | n
   const minutes = i.chars / (s.chars_per_minute[i.lang] ?? 700);
   const video = i.visual !== "audio_only";
   const extraVoices = i.voices === "characters" ? Math.max(0, i.characterVoices) : 0;
+  const directed = i.service === "directed";
 
-  // Narration (its own retake factor, so no retry buffer).
-  const narration =
-    i.chars * langs * s.credits_per_char[i.delivery] * (1 + s.voice_factor_per_extra * extraVoices) * s.retake[i.delivery];
+  // Narration (its own retake factor, so no retry buffer). A director retakes more.
+  const retake = directed ? Math.max(s.retake[i.delivery], s.directed_retake.voice) : s.retake[i.delivery];
+  const narration = i.chars * langs * s.credits_per_char[i.delivery] * (1 + s.voice_factor_per_extra * extraVoices) * retake;
 
   // Paintings: stills at the level's pace + cover + reference sheets; paintings-per-still
   // is their own retake factor.
@@ -194,7 +206,8 @@ export function priceOne(i: PriceInput, s: PricingSettings, cp: ClaudePrices | n
     stills = Math.ceil((minutes * 60) / pace) + 1 + sheets;
   }
   if (video && i.level !== "basic") stills += 1; // YouTube thumbnail (Standard and Premium)
-  const paintings = stills * s.paintings_per_still * s.credits_per_painting;
+  const perStill = directed ? Math.max(s.paintings_per_still, s.directed_retake.paintings_per_still) : s.paintings_per_still;
+  const paintings = stills * perStill * s.credits_per_painting;
   const motion = i.level === "premium" && i.visual === "moving_stills" ? s.hero_shots_premium * s.credits_per_motion_clip : 0;
 
   const music = i.sound !== "narration" ? s.music_credits_per_minute * minutes * langs : 0;
@@ -232,7 +245,15 @@ export function priceOne(i: PriceInput, s: PricingSettings, cp: ClaudePrices | n
   const imagesInr = creditInr(paintings + motion);
   const toolCost = narrationInr + imagesInr + buffered;
 
-  const hours = (s.review_hours[i.level]?.[i.service] ?? 1.5) * Math.max(1, minutes / s.review_minutes_base);
+  // Studio-made: review hours. Directed: the director's hours (audio, video, Premium video).
+  const baseHours = directed
+    ? !video
+      ? s.directed_hours.audio
+      : i.level === "premium"
+        ? s.directed_hours.premium_video
+        : s.directed_hours.video
+    : (s.review_hours[i.level]?.self_serve ?? 1.5);
+  const hours = baseHours * Math.max(1, minutes / s.review_minutes_base);
   const overhead = overheadPerOrder(s);
   const addons = i.addons.reduce((sum, a) => sum + (s.addons_inr[a as keyof PricingSettings["addons_inr"]] ?? 0), 0);
 
@@ -266,8 +287,8 @@ export function priceOne(i: PriceInput, s: PricingSettings, cp: ClaudePrices | n
         addons,
         overhead: r2(overhead),
         gateway_fee: r2(price * s.gateway_fee_rate),
-        // What remains after tools, the gateway fee and the fixed-cost share: Jaydeep's review
-        // time plus margin, before GST and income tax.
+        // What remains after tools, the gateway fee and the fixed-cost share: the reviewer's or
+        // director's time plus margin, before GST and income tax.
         left_for_you: r2(price * (1 - s.gateway_fee_rate) - toolCost - overhead),
       },
       claude_usd: r2(claudeUsd),
@@ -287,10 +308,14 @@ export function quote(i: PriceInput, episodeChars: number[], s: PricingSettings,
   const episodes = parts.map((chars, n) => priceOne({ ...i, chars, shorts: n === 0 ? i.shorts : 0 }, s, cp));
   const total = episodes.reduce((a, p) => a + p.price, 0);
   const half = Math.round(total / 2);
-  const sample = Math.min(Math.max(0, Math.round(s.sample_fee_inr)), half);
+  const fee = i.service === "directed" ? s.directed_sample_fee_inr : s.sample_fee_inr;
+  const sample = Math.min(Math.max(0, Math.round(fee)), half);
   const advance = half - sample;
   return { total, sample, advance, final: total - half, episodes, input: i, made_at: new Date().toISOString() };
 }
+
+// Varta Vishva Directors: chosen, or Premium (always directed). "assisted" is the old name.
+export const isDirected = (a: Answers) => a.level === "premium" || a.service === "directed" || a.service === "assisted";
 
 // The answers → the engine's input (choices the writer did not make fall back to the
 // level's preset, then to Standard).
@@ -304,7 +329,7 @@ export function inputFrom(a: Answers, chars: number, storyLang: string | null, c
     chars,
     lang: storyLang ?? String(a.lang ?? "gu"),
     level,
-    service: level === "premium" || a.service === "assisted" ? "assisted" : "self_serve",
+    service: isDirected(a) ? "directed" : "self_serve",
     visual: visual as PriceInput["visual"],
     shorts: visual === "audio_only" ? 0 : Number(val("shorts")) || 0,
     sound: (["narration", "music", "music_sfx"].includes(val("sound")) ? val("sound") : "music") as PriceInput["sound"],

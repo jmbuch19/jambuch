@@ -22,13 +22,13 @@ import { creditsKey, readDraft, readStory, sampleKey } from "./files";
 //   5. mix       FFmpeg: a spoken "sample" tag, music ducked under the voice, cues,
 //                loudness -16 LUFS
 //   6. store     private R2: creators/<id>/sample/sample-N.mp3 and credits-N.json
-// Runs inside an admin action (Vercel Pro, up to 300 s). Jaydeep listens before it is sent.
+// Runs inside an admin action (Vercel Pro, up to 300 s). The reviewer listens before it is sent.
 
 const run = promisify(execFile);
 
-// Native voice for native stories (Jaydeep, 25 Nov 2026): one narrator voice and model per
+// Native voice for native stories (owner's decision, 25 Nov 2026): one narrator voice and model per
 // story language. A story is only ever read by its own language's voice; with none chosen,
-// the sample waits for Jaydeep rather than borrow another language's voice.
+// the sample waits for the reviewer rather than borrow another language's voice.
 // (voice_id / model_id are the old single-voice setting, kept only as the English voice.)
 export type SampleLang = "gu" | "hi" | "en";
 export type LangVoice = { voice_id: string; model_id: string };
@@ -441,7 +441,7 @@ async function optional<T>(id: string, name: string, fn: () => Promise<T>): Prom
 
 // ---------------------------------------------------------------- paid results are kept (no double cost)
 
-// Jaydeep, 25 Nov 2026: a timeout must not cost us twice. Every paid result is stored the
+// Owner's decision, 25 Nov 2026: a timeout must not cost us twice. Every paid result is stored the
 // moment it arrives, under the request's own folder (deleted with the request), and a retry
 // reuses it:  creators/<id>/work/plan.json · voice-<hash>.mp3 · stt-<hash>.json
 const workKey = (id: string, name: string) => `creators/${id}/work/${name}`;
@@ -515,7 +515,7 @@ async function savedVoice(
   return { audio, paid: true };
 }
 
-// ---------------------------------------------------------------- stop (Jaydeep, 25 Nov 2026)
+// ---------------------------------------------------------------- stop (owner's decision, 25 Nov 2026)
 
 // A running sample can't be killed from the browser; the Stop button leaves a flag in the
 // request's work folder and the maker checks it before each step (above all before the paid

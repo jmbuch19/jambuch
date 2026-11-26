@@ -2,7 +2,7 @@ import "server-only";
 import { adminClient } from "@/lib/supabase-admin";
 import { readPrivate } from "@/lib/r2";
 
-// The shared sound library (the engine's asset cards; Jaydeep, 25 Nov 2026).
+// The shared sound library (the engine's asset cards; owner's decision, 25 Nov 2026).
 //
 // The engine repo (private, owned by the home PC) keeps one card per sound. Its export
 // writes ONLY the client-safe cards to the private R2 bucket as one file:
@@ -195,7 +195,7 @@ export async function logUsage(rows: { order_id: string; asset_id: string; asset
 }
 
 // Which of the site's sound and music words have no client-safe card yet (for step 2: two
-// CC0 Freesound sounds per empty tag, for Jaydeep's approval).
+// CC0 Freesound sounds per empty tag, for the admin's approval).
 export async function emptyTags() {
   const cards = await catalog();
   const music = Object.keys(INSTRUMENT_TO_CARD).filter((m) => !cards.some((c) => musicMatches(c, [m], null) > 0));

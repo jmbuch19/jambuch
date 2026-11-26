@@ -7,12 +7,15 @@
 // retention is explained in the privacy policy, not promised in the tick).
 // 2026-11-24.3: privacy policy — stories are kept in private storage, never emailed.
 // 2026-11-25.1: the sample is paid (₹499, deducted from the full price; not refunded if
-// the writer stops after it) — Jaydeep, 25 Nov 2026.
+// the writer stops after it) — owner's decision, 25 Nov 2026.
 // 2026-11-25.2: general (non-story) sounds and music made by the studio may be reused;
 // story-derived and exclusive material is never reused and is deleted as promised.
 // 2026-11-25.3: sample refunded automatically if not delivered within 3 days; one free remake
 // if the sample misses the approved plan; duplicate payments refunded automatically.
-export const TERMS_VERSION = "2026-11-25.3";
+// 2026-11-26.1: the legal entity is named ("we" = Varta Vishva); two ways to make a story:
+// Studio-made and Varta Vishva Directors (₹999 sample, a director's PC under safeguards,
+// limited weekly starts); the team's confidentiality and access logging.
+export const TERMS_VERSION = "2026-11-26.1";
 
 export const CONSENT_LANGS = { en: "English", gu: "ગુજરાતી", hi: "हिन्दी" } as const;
 export type ConsentLang = keyof typeof CONSENT_LANGS;
@@ -20,21 +23,21 @@ export type ConsentLang = keyof typeof CONSENT_LANGS;
 // The five-line summary shown above the ticks at story submission.
 export const SUMMARY: Record<ConsentLang, string[]> = {
   en: [
-    "Creator’s Space is a paid studio service. The 30–60 second sample costs ₹499, paid after you approve your plan; it is deducted from the full price if you go ahead, and not refunded if you stop after it.",
+    "Creator’s Space is a paid studio service. The 30–60 second sample costs ₹499 (₹999 with Varta Vishva Directors), paid after you approve your plan; it is deducted from the full price if you go ahead, and not refunded if you stop after it.",
     "After the sample you pay the rest in two parts: about half in advance, the remainder before the clean download. No refund after the download.",
     "All files are permanently deleted 7 days after delivery. Keep your own copies.",
     "The finished work is licensed for online and offline publishing (YouTube, Spotify, websites, social media, personal use). Not for film, TV broadcast, cinema or games unless the music replacement add-on is delivered before release.",
     "Voices and pictures are made with AI tools. Only errors you flag are corrected; our mistakes are fixed free.",
   ],
   gu: [
-    "ક્રિએટર્સ સ્પેસ એક પેઇડ સ્ટુડિયો સેવા છે. 30–60 સેકન્ડના નમૂનાના ₹499, પ્લાન મંજૂર કર્યા પછી; આગળ વધો તો તે પૂરી કિંમતમાંથી બાદ થાય છે, નમૂના પછી અટકો તો પાછા મળતા નથી.",
+    "ક્રિએટર્સ સ્પેસ એક પેઇડ સ્ટુડિયો સેવા છે. 30–60 સેકન્ડના નમૂનાના ₹499 (વાર્તા વિશ્વ દિગ્દર્શકો સાથે ₹999), પ્લાન મંજૂર કર્યા પછી; આગળ વધો તો તે પૂરી કિંમતમાંથી બાદ થાય છે, નમૂના પછી અટકો તો પાછા મળતા નથી.",
     "નમૂના પછી બાકીની રકમ બે ભાગમાં: આશરે અડધી એડવાન્સ, બાકીની અંતિમ ફાઇલો ડાઉનલોડ કરતાં પહેલાં. ડાઉનલોડ પછી રિફંડ નથી.",
     "ડિલિવરીના 7 દિવસ પછી બધી ફાઇલો કાયમ માટે ડિલીટ થાય છે. તમારી નકલ સાચવી રાખજો.",
     "તૈયાર કામ ઑનલાઇન અને ઑફલાઇન પ્રકાશન માટે છે (YouTube, Spotify, વેબસાઇટ, સોશિયલ મીડિયા, અંગત ઉપયોગ). ફિલ્મ, ટીવી પ્રસારણ, સિનેમા કે ગેમ માટે નહીં, સિવાય કે રિલીઝ પહેલાં સંગીત બદલવાનું ઍડ-ઑન મળી ગયું હોય.",
     "અવાજો અને ચિત્રો AI સાધનોથી બને છે. તમે જણાવેલી ભૂલો જ સુધારાય છે; અમારી ભૂલો મફતમાં સુધારાય છે.",
   ],
   hi: [
-    "क्रिएटर्स स्पेस एक सशुल्क स्टूडियो सेवा है। 30–60 सेकंड के नमूने के ₹499, योजना स्वीकार करने के बाद; आगे बढ़ें तो यह पूरी कीमत में से घटता है, नमूने के बाद रुकें तो वापस नहीं मिलता।",
+    "क्रिएटर्स स्पेस एक सशुल्क स्टूडियो सेवा है। 30–60 सेकंड के नमूने के ₹499 (वार्ता विश्व के निर्देशकों के साथ ₹999), योजना स्वीकार करने के बाद; आगे बढ़ें तो यह पूरी कीमत में से घटता है, नमूने के बाद रुकें तो वापस नहीं मिलता।",
     "नमूने के बाद बाकी रकम दो हिस्सों में: लगभग आधी अग्रिम, बाकी अंतिम फ़ाइलें डाउनलोड करने से पहले। डाउनलोड के बाद कोई रिफ़ंड नहीं।",
     "डिलीवरी के 7 दिन बाद सभी फ़ाइलें हमेशा के लिए मिटा दी जाती हैं। अपनी प्रति सँभालकर रखें।",
     "तैयार काम ऑनलाइन और ऑफ़लाइन प्रकाशन के लिए लाइसेंस है (YouTube, Spotify, वेबसाइट, सोशल मीडिया, निजी उपयोग)। फ़िल्म, टीवी प्रसारण, सिनेमा या गेम के लिए नहीं, जब तक रिलीज़ से पहले संगीत बदलने का ऐड-ऑन न मिल जाए।",

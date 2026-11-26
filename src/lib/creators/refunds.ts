@@ -2,8 +2,9 @@ import "server-only";
 import { adminClient } from "@/lib/supabase-admin";
 import { sendEmail } from "@/lib/email";
 import { createRefund } from "./razorpay";
+import { STUDIO_FROM, STUDIO_SIGNATURE, studioReplyTo, alertTo } from "./team";
 
-// Refunds (Jaydeep, 25 Nov 2026): one shared path for the admin's one-click button and the
+// Refunds (owner's decision, 25 Nov 2026): one shared path for the admin's one-click button and the
 // automatic rules (duplicate payment; sample not delivered within 3 days).
 // Order of work, so money can never go back twice:
 //   1. check the amount against what was paid and already refunded
@@ -87,14 +88,15 @@ export async function refund(o: {
         "",
         `We have refunded ${rupees} because ${REASON_TEXT[o.reason]}. It goes back to the card, UPI or bank account you paid with; banks usually take 5–7 working days to show it.`,
         "",
-        "Jaydeep Buch",
-        "Creator's Space · jambuch.in/creators",
+        ...STUDIO_SIGNATURE,
       ].join("\n"),
-      replyTo: process.env.ADMIN_EMAIL,
+      replyTo: studioReplyTo(),
+      from: STUDIO_FROM,
     });
-    if (o.by.startsWith("auto") && process.env.ADMIN_EMAIL) {
+    const admin = await alertTo("admin");
+    if (o.by.startsWith("auto") && admin) {
       await sendEmail({
-        to: process.env.ADMIN_EMAIL,
+        to: admin,
         subject: `Creator's Space: automatic refund ${rupees} (${o.reason.replace(/_/g, " ")})`,
         text: [`${req.name} <${req.email}>: ${rupees} refunded automatically (${o.by}).`, "", `https://jambuch.in/admin/creators/${req.id}`].join("\n"),
       });

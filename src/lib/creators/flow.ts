@@ -3,7 +3,7 @@ import { adminClient } from "@/lib/supabase-admin";
 import type { Usage } from "./claude";
 import type { Character, Draft, Episode } from "./files";
 import { BY_ID, LEVEL_LIMITS, LEVEL_PRESETS, STYLE_LABELS, COLOUR_LABELS, narrationMinutes, type Answers, type Ctx, type Lang, t } from "./questions";
-import { inputFrom, mergePricing, quote, storedPricing, type ClaudePrices, type PricingSettings, type Quote } from "./pricing";
+import { inputFrom, isDirected, mergePricing, quote, storedPricing, type ClaudePrices, type PricingSettings, type Quote } from "./pricing";
 import { usdInr } from "@/lib/fx";
 import { onlyVocabulary } from "./vocabulary";
 import { TERMS_VERSION } from "./terms";
@@ -19,8 +19,8 @@ export type FlowSettings = {
   max_followup_rounds: number;
   examples: Record<string, string>;
   payments_enabled: boolean; // off until the before-launch list (brief §2) is done
-  // Jaydeep, 25 Nov 2026: first 10 orders and every Premium order reviewed by him; then 1 in 5
-  // audited. Review hours leave the price only after 10 clean orders and a month of audits.
+  // Owner's decision, 25 Nov 2026: the reviewer checks the first 10 orders and every Premium
+  // order; then 1 in 5 is audited. Review hours leave the price only after 10 clean orders and a month of audits.
   review: { first_orders_reviewed: number; premium_always: boolean; audit_every: number };
 };
 export const FLOW_DEFAULTS: FlowSettings = {
@@ -33,7 +33,7 @@ export const FLOW_DEFAULTS: FlowSettings = {
   review: { first_orders_reviewed: 10, premium_always: true, audit_every: 5 },
 };
 
-export const STORY_MAX = 120_000; // six episodes; longer stories go to Assisted by email
+export const STORY_MAX = 120_000; // six episodes; longer stories go to Varta Vishva Directors by email
 export const STORY_MIN = 200;
 export const EPISODE_CHARS = 20_000;
 
@@ -112,7 +112,7 @@ export function choicesText(a: Answers, ctx: Ctx) {
     a.monetise ? `Monetised on YouTube: ${lab("monetise", v("monetise"))}` : "",
     a.age_group ? `Children's age group: ${lab("age_group", v("age_group"))}` : "",
     `Audience: ${lab("audience", v("audience"))}${a.audience === "elders" ? " (larger captions, slower narration)" : ""}`,
-    `Finish level: ${level}; service: ${level === "premium" ? "assisted" : lab("service", v("service")) || "self-serve"}`,
+    `Finish level: ${level}; service: ${isDirected(a) ? "Varta Vishva Directors" : "Studio-made"}`,
     `Visual: ${a.make === "audio" ? "audio only" : lab("visual", v("visual"))}${Number(v("shorts")) ? `; ${v("shorts")} Shorts` : ""}`,
     `Sound: ${lab("sound", v("sound"))}`,
     `Voices: ${lab("voices", v("voices"))}${(v("voice_addons") as string[] | undefined)?.length ? `; add-ons: ${lab("voice_addons", v("voice_addons"))}` : ""}`,
@@ -185,21 +185,7 @@ export async function makeQuote(a: Answers, d: Draft, chars: number, storyLang: 
   return quote(input, priced === chars ? episodeChars(chars, d.episodes) : [priced], s, cp);
 }
 
-// Is Assisted full this week? (brief §3A capacity cap.) Returns the next Monday if full.
-export async function assistedFull(): Promise<string | null> {
-  const s = await storedPricingSettings();
-  const now = new Date();
-  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ((now.getUTCDay() + 6) % 7)));
-  const { count } = await adminClient()
-    .from("creator_requests")
-    .select("id", { count: "exact", head: true })
-    .in("state", ["submitted", "ordered"])
-    .eq("answers->>service", "assisted")
-    .gte("plan_approved_at", monday.toISOString());
-  if ((count ?? 0) < s.assisted_weekly_cap) return null;
-  const next = new Date(monday.getTime() + 7 * 86400_000);
-  return next.toISOString().slice(0, 10);
-}
+// Capacity for Varta Vishva Directors: see directedStart() in team.ts.
 
 // ---------------------------------------------------------------- style tags
 
@@ -252,7 +238,7 @@ export function orderPack(r: PackRow, d: Draft, consents: { terms_version: strin
     broadcast_use: a.big_screen === "yes",
     audience: { group: v("audience") || "adults", elders_mode: a.audience === "elders", children_age: children },
     level,
-    service: level === "premium" ? "assisted" : v("service") || "self_serve",
+    service: isDirected(a) ? "directed" : "self_serve",
     format: { visual: a.make === "audio" ? "audio_only" : v("visual"), shorts: Number(v("shorts")) || 0 },
     sound: v("sound"),
     voices: {

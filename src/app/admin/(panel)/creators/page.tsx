@@ -47,12 +47,13 @@ export default async function CreatorRequestsPage() {
     <>
       <h1 className={a.title}>Creator’s Space requests</h1>
       <p className={a.mutedSmall}>
-        <Link href="/admin/creators/agent">Production agent and engine test →</Link>
+        <Link href="/admin/creators/agent">Production agent and engine test →</Link> ·{" "}
+        <Link href="/admin/creators/team">Team, roles and legal entity →</Link>
       </p>
       <p className={a.intro}>
         The guided question flow (docs/CREATORS_QUESTION_FLOW.md): sign-in, the limits (3 open per writer, 5 new a day),
-        the story, consents and screening come before any other Claude call. “Needs your eye” requests are emailed to you;
-        open one to let the writer continue, close it or refuse it.
+        the story, consents and screening come before any other Claude call. “Needs your eye” requests are emailed to the on-duty reviewer;
+        open one to let the writer continue, close it or refuse it. They go to the on-duty reviewer (Team).
       </p>
       {error && <p className={a.error}>Couldn’t load requests: {error.message}</p>}
       {!rows?.length ? (

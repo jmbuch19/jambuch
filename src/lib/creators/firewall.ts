@@ -6,7 +6,7 @@
 // Rule 2: a writer's words may reach Claude only as quoted data: cleaned here, wrapped in
 //         a tag (wrap() in claude.ts), with instructions that say it is data.
 // Rule 3: text that looks like instructions to an AI is still passed (it may be innocent
-//         story text), but it is flagged, and a flagged draft is shown to Jaydeep.
+//         story text), but it is flagged, and a flagged draft is shown to the reviewer.
 //
 // This file does rules 2 and 3 for every free-text answer before any Claude call.
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { legalEntity, legalLine } from "@/lib/creators/legal";
 import { CONSENT_LANGS, CONSENT_TEXT, SUBMISSION_CONSENTS, SUMMARY, TERMS_VERSION, type ConsentLang } from "@/lib/creators/terms";
 import LibraryHeader from "../../library/header";
 import h from "../../home.module.css";
@@ -12,8 +13,12 @@ export const metadata: Metadata = {
 
 // The full terms (docs/CREATORS_SPACE_BRIEF.md §7, §7B, §8). English is the binding text; the
 // summary and the consent ticks are also given in Gujarati and Hindi. When the meaning of
-// anything here changes, raise TERMS_VERSION in src/lib/creators/terms.ts.
-export default function TermsPage() {
+// anything here changes, raise TERMS_VERSION in src/lib/creators/terms.ts. "We" means the legal
+// entity in the settings row "creators.legal" (src/lib/creators/legal.ts).
+export const revalidate = 300;
+
+export default async function TermsPage() {
+  const legal = await legalEntity();
   return (
     <>
       <LibraryHeader cta={{ href: "/creators/start", label: "Start your story" }} />
@@ -21,6 +26,10 @@ export default function TermsPage() {
         <section className={c.block}>
           <p className={h.eyebrow}>Creator’s Space · a paid studio service</p>
           <h1 className={c.h2}>Terms and refund policy</h1>
+          <p className={c.small}>
+            Creator’s Space is provided by {legalLine(legal)}. In these terms, “we”, “our” and “us” mean{" "}
+            {legal.entity}.
+          </p>
           <p className={c.small}>
             Version {TERMS_VERSION}. The English text is the binding version. Each request and order is bound by the
             version accepted at the time.
@@ -59,11 +68,21 @@ export default function TermsPage() {
           <ul className={c.text}>
             <li>
               Creator’s Space turns a writer’s story into a narrated audio story or an illustrated video. It is a paid
-              service, separate from the free Courtyard. Billing is in the name of Jaydeep Buch.
+              service, separate from the free Courtyard. Payments and invoices are in the name of {legal.entity}.
             </li>
             <li>
-              Every order starts with a 30–60 second sample (₹499), made after you approve your creative plan:
-              watermarked, in the story’s first language. The minimum order is ₹999.
+              There are two ways to make your story. <b>Studio-made</b>: our automatic studio makes it and our team
+              checks it. <b>Varta Vishva Directors</b>: one of our directors calls you within 2 days of the sample fee,
+              then directs your story scene by scene; Premium is always made this way. Our directors take a limited
+              number of new stories each week, so the start date shown may be later than today.
+            </li>
+            <li>
+              Every order starts with a 30–60 second sample (₹499; ₹999 with Varta Vishva Directors), made after you
+              approve your creative plan: watermarked, in the story’s first language. The minimum order is ₹999.
+            </li>
+            <li>
+              A directed work carries the credit “Directed by (the director’s name), Varta Vishva Directors ·
+              AI-assisted voices and illustrations”.
             </li>
             <li>We may refuse any request or order, with a reason.</li>
           </ul>
@@ -71,9 +90,9 @@ export default function TermsPage() {
           <h2>2. Payment</h2>
           <ul className={c.text}>
             <li>The price is fixed in your quote, which comes with your creative plan.</li>
-            <li>The ₹499 sample fee is paid after you approve the plan, before the sample is made.</li>
+            <li>The sample fee is paid after you approve the plan, before the sample is made.</li>
             <li>
-              If you go ahead after the sample, the ₹499 is deducted from the full price. Of the rest, about half is paid in
+              If you go ahead after the sample, the sample fee is deducted from the full price. Of the rest, about half is paid in
               advance and the remainder before the clean files are unlocked.
             </li>
           </ul>
@@ -81,11 +100,11 @@ export default function TermsPage() {
           <h2 id="refund">3. Refund policy</h2>
           <ul className={c.text}>
             <li>
-              The ₹499 sample fee is not refunded if you decide to stop after hearing or seeing the sample: it paid for the
+              The sample fee is not refunded if you decide to stop after hearing or seeing the sample: it paid for the
               sample.
             </li>
             <li>
-              If your sample is not delivered within 3 days of paying for it, the ₹499 is refunded in full automatically.
+              If your sample is not delivered within 3 days of paying for it, the sample fee is refunded in full automatically.
             </li>
             <li>
               If your sample does not follow your approved plan, we make it again once, free. A new wish that is not in the
@@ -108,8 +127,17 @@ export default function TermsPage() {
             </li>
             <li>A cancelled or refused order is deleted at once.</li>
             <li>
-              Until then your story is kept in private storage that only the studio can open; it is read by an automatic
-              checker and, when needed, by the studio. It is never kept anywhere else on this site.
+              Until then your story is kept in private storage that only our team can open; it is read by an automatic
+              checker and, when needed, by our team. It is never kept anywhere else on this site.
+            </li>
+            <li>
+              With Varta Vishva Directors, your director works on your story on their own computer: in a folder for your
+              order only, on an encrypted drive, never in a shared or backed-up folder, and deleted with everything else
+              7 days after delivery.
+            </li>
+            <li>
+              Everyone on our team signs a confidentiality agreement before they can open any story, and can open only
+              the orders assigned to them. Every opening of your story is logged.
             </li>
             <li>General sounds and music created by the studio (such as rain or temple bells) may be reused in other works. Your story, narration, paintings and anything made only for you are never reused and are deleted as promised.</li>
             <li>Counts of which sounds and pairings were used and how they were rated (no content) may be kept.</li>

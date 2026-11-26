@@ -4,8 +4,9 @@ import { sendEmail } from "@/lib/email";
 import { orderPayments, razorpayReady } from "./razorpay";
 import { paymentPaid } from "./orders";
 import { refund } from "./refunds";
+import { alertTo } from "./team";
 
-// Daily payment safety checks (Jaydeep, 25 Nov 2026):
+// Daily payment safety checks (owner's decision, 25 Nov 2026):
 //   reconcile  — an order Razorpay says is paid but we never recorded (missed confirmation)
 //                is completed now; extra captured payments on one order are refunded
 //   undelivered — a ₹499 sample paid more than 3 days ago and still not delivered is refunded
@@ -70,9 +71,10 @@ export async function refundUndeliveredSamples() {
     if (done?.length) continue;
     const out = await refund({ paymentRowId: p.id, amountPaise: p.amount_paise, reason: "sample_not_delivered", by: `auto:sample-not-delivered-${SAMPLE_REFUND_DAYS}d` });
     if (out.ok) refunded++;
-    else if (process.env.ADMIN_EMAIL) {
-      await sendEmail({
-        to: process.env.ADMIN_EMAIL,
+    else {
+      const admin = await alertTo("admin");
+      if (admin) await sendEmail({
+        to: admin,
         subject: "Creator's Space: automatic sample refund FAILED",
         text: [`${r.name} <${r.email}>: the sample wasn't delivered within ${SAMPLE_REFUND_DAYS} days, but the refund failed: ${out.message}`, "", `https://jambuch.in/admin/creators/${r.id}`].join("\n"),
       });

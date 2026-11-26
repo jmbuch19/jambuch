@@ -374,3 +374,29 @@ Bug (Jaydeep): the title was read as part of the story with no pause.
   the line. No word found in the sentence → the cue plays after the line instead.
 - **For the home PC's `media/rules/narration.json`:** also `"pauses": { "cue_hold": ... }` and
   `"levels": { "cue_present": -32, "simile_under": -33, "voice_clear": 10 }`.
+
+### 26 Nov 2026: Varta Vishva Directors, the team voice, roles and the legal entity
+- **Voice:** Creator's Space pages, emails, terms and privacy say "we / our / us"; no person's
+  name. Writer emails come from "Varta Vishva <creators@jambuch.in>", signed "The Varta Vishva
+  team", replies to STUDIO_EMAIL (falls back to ADMIN_EMAIL). The owner's personal pages
+  (home, translations, library, podcast, Courtyard) are unchanged.
+- **Two choices:** Studio-made (`self_serve`) and Varta Vishva Directors (`directed`, replaces
+  Assisted; Premium always directed; old "assisted" answers migrated). ₹999 directed sample;
+  director's hours 2.5 h audio / 4 h video / 5 h Premium video; retakes 1.5× voice, 1.3×
+  paintings; delivery 7 / 14 / 28 days. Example (12-min Gujarati story, ₹92.24/$): Basic
+  audio ₹1,499 → ₹3,599 directed; Standard video ₹3,299 → ₹5,999; Premium ₹7,799.
+- **Capacity:** per director 1 a week in the first month, then 2; opens 4 Jan 2027
+  (`creators.flow.directed`). A directed plan can't be approved until there's room.
+- **Roles:** `creator_team` (admin, director, reviewer; on-duty reviewer; confidentiality date;
+  hourly rate; directing since). Alerts: needs_human → on-duty reviewer; payments, refunds,
+  disputes, FX → admin; a paid directed order → its director (auto-assigned, fewest open
+  orders). No team rows → ADMIN_EMAIL for every role. Admin: /admin/creators/team.
+- **Directed orders:** no automatic sample; the director exports the sample to
+  `creators/<id>/directed/`, the request page offers "Use as the sample", then the usual
+  "Approve and send". Hours logged per order. Credit line in the order pack.
+- **Story access log:** `creator_story_access` (request page opens, directed sample use).
+- **Legal entity:** settings `creators.legal` (entity, GSTIN, address, contact) on terms and
+  privacy; TERMS_VERSION 2026-11-26.1.
+- **Migration:** `20261126000000_creator_team_directors.sql` (run before deploying main).
+- **Home PC (engine repo):** `client-import` / `client-export` / `client-purge`, spec in brief
+  §6J. Team sign-ins (a `/studio` area, assigned orders only) before the first person joins.

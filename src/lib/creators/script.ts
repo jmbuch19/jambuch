@@ -1,4 +1,4 @@
-// The narration script for a sample (Jaydeep, 25 Nov 2026): an opening announcement of the
+// The narration script for a sample (owner's decision, 25 Nov 2026): an opening announcement of the
 // title and author, then the story's opening, split into segments that are voiced separately.
 // The pauses between segments are real silences put in when the segments are joined (FFmpeg),
 // never left to the voice model; their lengths come from the engine's narration rules

@@ -6,7 +6,10 @@ import { deleteSample } from "@/lib/creators/sample";
 import { sendEmail } from "@/lib/email";
 import { refreshFx } from "@/lib/fx";
 import { triggerSampleJob } from "@/lib/creators/sample-job";
+import { isDirected } from "@/lib/creators/pricing";
+import type { Answers } from "@/lib/creators/questions";
 import { reconcilePayments, refundUndeliveredSamples } from "@/lib/creators/payment-checks";
+import { STUDIO_FROM, STUDIO_SIGNATURE, studioReplyTo, alertTo } from "@/lib/creators/team";
 
 // Creator's Space: request files whose time is up (brief §6B): 7 days after the sample was
 // sent, at once for withdrawn, refused or closed requests without a sent sample, and for
@@ -71,12 +74,12 @@ async function abandonedDrafts(db: ReturnType<typeof adminClient>, now: string) 
         "",
         "Unfinished requests and their stories are deleted 14 days after the last change.",
         "",
-        "Jaydeep Buch",
-        "Creator's Space · jambuch.in/creators",
+        ...STUDIO_SIGNATURE,
       ]
         .filter((l, i, a) => l !== "" || a[i - 1] !== "")
         .join("\n"),
-      replyTo: process.env.ADMIN_EMAIL,
+      replyTo: studioReplyTo(),
+      from: STUDIO_FROM,
     });
     // reminded_at only, so the 14-day clock still counts from the writer's last change.
     if (sent) {
@@ -112,7 +115,7 @@ export async function GET(request: Request) {
   const now = new Date().toISOString();
 
   // Courtyard invites nobody accepted within 14 days: the link dies and the
-  // invite shows as "Link expired" (waiting on Jaydeep).
+  // invite shows as "Link expired" (waiting on the admin).
   const { count: invitesExpired, error: inviteErr } = await db
     .from("courtyard_invites")
     .update({ stage: "expired", token_hash: null }, { count: "exact" })
@@ -178,16 +181,17 @@ export async function GET(request: Request) {
   }
 
   // Paid samples not made yet (the daily cap was reached, or a start was missed): try again.
+  // Not for Varta Vishva Directors orders: their director makes the sample.
   try {
     const { data: due } = await db
       .from("creator_requests")
-      .select("id")
+      .select("id, answers")
       .eq("state", "submitted")
       .is("sample_state", null)
       .is("needs_human_why", null)
       .limit(20);
     let started = 0;
-    for (const r of due ?? []) if (await triggerSampleJob(r.id)) started++;
+    for (const r of due ?? []) if (!isDirected((r.answers ?? {}) as Answers) && (await triggerSampleJob(r.id))) started++;
     purged.creator_samples_started = started;
   } catch (err) {
     failed.creator_samples = err instanceof Error ? err.message : String(err);
@@ -200,7 +204,7 @@ export async function GET(request: Request) {
     purged.fx_usd_inr = fx.fx?.rate ?? 0;
     if (!fx.ok) {
       failed.fx = fx.note ?? "rate not updated";
-      const admin = process.env.ADMIN_EMAIL;
+      const admin = await alertTo("admin");
       if (admin) await sendEmail({ to: admin, subject: "jambuch.in: USD→INR rate not updated today", text: `${fx.note}\n\nPrices keep using ₹${fx.fx?.rate ?? "?"} (${fx.fx?.date ?? "no date"}). Check /admin/creators.` });
     }
   } catch (err) {

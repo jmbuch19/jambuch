@@ -33,7 +33,8 @@ import type { Character } from "@/lib/creators/files";
 import h from "../../home.module.css";
 import c from "../creators.module.css";
 
-// Words on the special screens (Gujarati and Hindi: drafts for Jaydeep to check).
+// Words on the special screens (Gujarati and Hindi: drafts for the admin to check). The team
+// voice: "we / our / us", never a person's name.
 const W: Record<string, L> = {
   storyTitle: { en: "Title of the story", gu: "વાર્તાનું શીર્ષક", hi: "कहानी का शीर्षक" },
   storyAuthor: { en: "Author’s name", gu: "લેખકનું નામ", hi: "लेखक का नाम" },
@@ -62,9 +63,13 @@ const W: Record<string, L> = {
   allThree: { en: "Please tick all three boxes to continue.", gu: "આગળ વધવા માટે ત્રણેય ખાનાં પર ટીક કરો.", hi: "आगे बढ़ने के लिए तीनों बॉक्स पर टिक करें।" },
   levelBasic: { en: "Sharing a story simply: audio or one picture, plain reading", gu: "વાર્તા સાદી રીતે: ઑડિયો કે એક ચિત્ર, સાદું વાચન", hi: "कहानी सरल रूप में: ऑडियो या एक चित्र, सादा वाचन" },
   levelStandard: { en: "YouTube-ready: a painting about every 50 seconds, up to 3 character voices, sound effects", gu: "YouTube માટે તૈયાર: દર ~50 સેકન્ડે ચિત્ર, 3 સુધી પાત્ર-અવાજો, ધ્વનિ અસરો", hi: "YouTube के लिए तैयार: हर ~50 सेकंड एक चित्र, 3 तक पात्र-आवाज़ें, ध्वनि प्रभाव" },
-  levelPremium: { en: "A showpiece: more pictures and close-ups, up to 6 voices, 3 Shorts; always with Jaydeep", gu: "ખાસ રચના: વધુ ચિત્રો, 6 સુધી અવાજો, 3 Shorts; હંમેશાં જયદીપ સાથે", hi: "ख़ास रचना: अधिक चित्र, 6 तक आवाज़ें, 3 Shorts; हमेशा जयदीप के साथ" },
+  levelPremium: { en: "A showpiece: more pictures and close-ups, up to 6 voices, 3 Shorts; always by Varta Vishva Directors", gu: "ખાસ રચના: વધુ ચિત્રો, 6 સુધી અવાજો, 3 Shorts; હંમેશાં વાર્તા વિશ્વ દિગ્દર્શકો દ્વારા", hi: "ख़ास रचना: अधिक चित्र, 6 तक आवाज़ें, 3 Shorts; हमेशा वार्ता विश्व के निर्देशकों द्वारा" },
   forYourStory: { en: "for your story", gu: "તમારી વાર્તા માટે", hi: "आपकी कहानी के लिए" },
-  assistedFull: { en: "Assisted is full this week; the next start date is {d}.", gu: "આ અઠવાડિયે સહાયિત સેવા ભરાઈ ગઈ છે; આગલી શરૂઆત {d}.", hi: "इस सप्ताह सहायता सहित सेवा भरी है; अगली शुरुआत {d}।" },
+  directedFrom: {
+    en: "Varta Vishva Directors: our directors’ next start date is {d}. Studio-made can start now.",
+    gu: "વાર્તા વિશ્વ દિગ્દર્શકો: અમારા દિગ્દર્શકોની આગલી શરૂઆત {d}. સ્ટુડિયો-નિર્મિત હમણાં શરૂ થઈ શકે.",
+    hi: "वार्ता विश्व के निर्देशक: हमारे निर्देशकों की अगली शुरुआत {d}। स्टूडियो-निर्मित अभी शुरू हो सकता है।",
+  },
   lengthIs: {
     en: "Your text will take about {m} minutes to narrate. You chose {t} minutes. What should we do?",
     gu: "તમારું લખાણ વાંચતાં આશરે {m} મિનિટ લાગશે. તમે {t} મિનિટ પસંદ કરી છે. શું કરીએ?",
@@ -117,6 +122,11 @@ const W: Record<string, L> = {
   advance: { en: "{s} now for your sample. If you go ahead after it: {a} in advance (your {s} already counted), then {f} before the final download.", gu: "હમણાં નમૂના માટે {s}. તે પછી આગળ વધો તો: {a} એડવાન્સ (તમારા {s} ગણાઈ ગયા છે), પછી અંતિમ ડાઉનલોડ પહેલાં {f}.", hi: "अभी नमूने के लिए {s}। उसके बाद आगे बढ़ें तो: {a} अग्रिम (आपके {s} गिने जा चुके हैं), फिर अंतिम डाउनलोड से पहले {f}।" },
   episodesPrice: { en: "For {e} episodes, each paid separately.", gu: "{e} એપિસોડ માટે, દરેકની ચુકવણી અલગ.", hi: "{e} एपिसोड के लिए, हर एक का भुगतान अलग।" },
   delivery: { en: "About {m} minutes. Delivery within {d} days of the advance (at the latest).", gu: "આશરે {m} મિનિટ. એડવાન્સ પછી વધુમાં વધુ {d} દિવસમાં ડિલિવરી.", hi: "लगभग {m} मिनट। अग्रिम के बाद अधिकतम {d} दिनों में डिलीवरी।" },
+  directedSample: {
+    en: "Once the {s} is paid, our director calls you within 2 days, then directs your 30–60 second sample and checks it before it reaches you. If you stop after the sample, the {s} is not refunded.",
+    gu: "{s} ચૂકવાય પછી અમારા દિગ્દર્શક 2 દિવસમાં તમને ફોન કરશે, પછી તમારો 30–60 સેકન્ડનો નમૂનો દિગ્દર્શિત કરીને તમને મળે તે પહેલાં ચકાસશે. નમૂના પછી અટકો તો {s} પાછા મળતા નથી.",
+    hi: "{s} चुकाने के बाद हमारे निर्देशक 2 दिनों में आपको फ़ोन करेंगे, फिर आपका 30–60 सेकंड का नमूना निर्देशित करके आप तक पहुँचने से पहले जाँचेंगे। नमूने के बाद रुकें तो {s} वापस नहीं मिलते।",
+  },
   freeSample: { en: "Your 30–60 second sample is made automatically once the {s} is paid, and checked before it reaches you. If you stop after the sample, the {s} is not refunded.", gu: "{s} ચૂકવાય પછી તમારો 30–60 સેકન્ડનો નમૂનો આપમેળે બને છે, અને તમને મળે તે પહેલાં ચકાસાય છે. નમૂના પછી અટકો તો {s} પાછા મળતા નથી.", hi: "{s} चुकाने के बाद आपका 30–60 सेकंड का नमूना अपने आप बनता है, और आप तक पहुँचने से पहले जाँचा जाता है। नमूने के बाद रुकें तो {s} वापस नहीं मिलते।" },
   changeAsk: { en: "Would you like anything changed? ({n} changes left)", gu: "કંઈ બદલવું છે? ({n} ફેરફાર બાકી)", hi: "कुछ बदलना है? ({n} बदलाव बाकी)" },
   changeBtn: { en: "Change the plan", gu: "પ્લાન બદલો", hi: "योजना बदलें" },
@@ -124,7 +134,7 @@ const W: Record<string, L> = {
   approve: { en: "Approve the plan", gu: "પ્લાન મંજૂર કરો", hi: "योजना स्वीकार करें" },
   approved: { en: "Thank you. Your plan is approved. Pay {s} for your sample below; it is made and checked automatically, and we email you when it is ready.", gu: "આભાર. તમારો પ્લાન મંજૂર થયો. નીચે તમારા નમૂના માટે {s} ચૂકવો; તે આપમેળે બને અને ચકાસાય છે, અને તૈયાર થાય ત્યારે ઇમેલ કરીશું.", hi: "धन्यवाद। आपकी योजना स्वीकृत है। नीचे अपने नमूने के लिए {s} चुकाएँ; यह अपने आप बनता और जाँचा जाता है, और तैयार होने पर हम ईमेल करेंगे।" },
   payLater: { en: "Online payment opens soon. We’ll email you as soon as you can pay for your sample.", gu: "ઑનલાઇન ચુકવણી ટૂંક સમયમાં શરૂ થશે. નમૂના માટે ચૂકવી શકો ત્યારે અમે ઇમેલ કરીશું.", hi: "ऑनलाइन भुगतान जल्द शुरू होगा। नमूने के लिए भुगतान कर सकें तब हम ईमेल करेंगे।" },
-  discussed: { en: "Thank you. Jaydeep will write to you to talk the plan through.", gu: "આભાર. પ્લાન વિશે વાત કરવા જયદીપ તમને લખશે.", hi: "धन्यवाद। योजना पर बात करने के लिए जयदीप आपको लिखेंगे।" },
+  discussed: { en: "Thank you. Our team will write to you to talk the plan through.", gu: "આભાર. પ્લાન વિશે વાત કરવા અમારી ટીમ તમને લખશે.", hi: "धन्यवाद। योजना पर बात करने के लिए हमारी टीम आपको लिखेगी।" },
   recording: { en: "Recording… speak now", gu: "રેકોર્ડિંગ… હવે બોલો", hi: "रिकॉर्डिंग… अब बोलिए" },
   tryAgain: { en: "Try again", gu: "ફરી પ્રયત્ન કરો", hi: "फिर कोशिश करें" },
 };
@@ -373,7 +383,7 @@ export function ConsentStep({ id, lang, setCd, onDone, onFinal }: StepProps) {
   );
 }
 
-// ---------------------------------------------------------------- 1.3b fix-it (Jaydeep, 25 Nov 2026)
+// ---------------------------------------------------------------- 1.3b fix-it (owner's decision, 25 Nov 2026)
 
 const FIX_W: Record<string, L> = {
   title: { en: "A small change is needed before we can make your story", gu: "તમારી વાર્તા બનાવતાં પહેલાં નાનો ફેરફાર જરૂરી છે", hi: "आपकी कहानी बनाने से पहले एक छोटा बदलाव ज़रूरी है" },
@@ -463,7 +473,7 @@ export function LevelStep({ id, lang, answers, onDone }: StepProps) {
     if (id)
       levelPrices(id).then((r) => {
         setPrices(r?.prices ?? null);
-        setFull(r?.assistedFrom ?? null);
+        setFull(r?.directedFrom ?? null);
       });
   }, [id]);
   const desc: Record<string, string> = { basic: "levelBasic", standard: "levelStandard", premium: "levelPremium" };
@@ -485,7 +495,7 @@ export function LevelStep({ id, lang, answers, onDone }: StepProps) {
           </button>
         ))}
       </div>
-      {full && <p className={c.formNote}>{w("assistedFull", lang, { d: new Date(full).toLocaleDateString("en-IN", { day: "numeric", month: "long" }) })}</p>}
+      {full && <p className={c.formNote}>{w("directedFrom", lang, { d: new Date(full).toLocaleDateString("en-IN", { day: "numeric", month: "long" }) })}</p>}
       <p className={c.formNote}>{t(UI.rangeNote, lang)}</p>
     </>
   );
@@ -1021,7 +1031,7 @@ export function PlanStep({ id, lang, onFinal }: StepProps) {
         <p>{w("advance", lang, { s: money(q.sample), a: money(q.advance), f: money(q.final) })}</p>
         {q.episodes > 1 && <p>{w("episodesPrice", lang, { e: q.episodes })}</p>}
         <p className={c.small}>{w("delivery", lang, { m: q.minutes, d: q.days })}</p>
-        <p className={c.small}>{w("freeSample", lang, { s: money(q.sample) })}</p>
+        <p className={c.small}>{w(q.directed ? "directedSample" : "freeSample", lang, { s: money(q.sample) })}</p>
       </div>
 
       {(plan.roundsLeft ?? 0) > 0 ? (

@@ -2,7 +2,7 @@ import "server-only";
 import { adminClient } from "@/lib/supabase-admin";
 
 // The day's USD → INR rate, for anything we pay for in dollars (ElevenLabs credits,
-// Claude tokens). Never a fixed number in code or settings (Jaydeep, 25 Nov 2026).
+// Claude tokens). Never a fixed number in code or settings (owner's decision, 25 Nov 2026).
 //
 // Fetched once a day by the daily job and kept in settings row `fx.usd_inr`:
 //   { rate, date, source, fetched_at }

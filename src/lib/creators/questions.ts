@@ -1,5 +1,7 @@
 // Creator's Space question flow (docs/CREATORS_QUESTION_FLOW.md): every question in one
-// place. Jaydeep can change any wording here without touching the logic.
+// place. The admin can change any wording here without touching the logic.
+// Voice (owner's decision, 26 Nov 2026): writer-facing text says "we / our / us" (Gujarati
+// અમે / અમારું, Hindi हम / हमारा), never "I", "me" or a person's name.
 //
 //   id        the answer's key (choices are stored in creator_requests.answers)
 //   stage     0–8, as in the spec; stage 0 runs before sign-in (no Claude, no cost)
@@ -9,8 +11,9 @@
 //   stop      an answer that ends the flow, with the message shown
 //
 // The sample is PAID: ₹499 after the plan is approved, deducted from the full price if the
-// writer goes ahead (Jaydeep, 25 Nov 2026, superseding the free sample). Never "free sample".
-// Gujarati and Hindi are first drafts: Jaydeep checks every line before launch.
+// writer goes ahead (owner's decision, 25 Nov 2026, superseding the free sample); ₹999 with
+// Varta Vishva Directors (26 Nov 2026). Never "free sample".
+// Gujarati and Hindi are first drafts: the admin checks every line before launch.
 
 import { VOCABULARY } from "./vocabulary";
 
@@ -131,9 +134,9 @@ export const QUESTIONS: Question[] = [
           ? {
               kind: "end",
               message: {
-                en: "We work from finished text. If you’d like help writing it, choose Assisted service later: a 30-minute talk with Jaydeep is part of it.",
-                gu: "અમે પૂરી લખાયેલી વાર્તા પરથી કામ કરીએ છીએ. લખવામાં મદદ જોઈતી હોય તો પછી ‘સહાયિત’ સેવા પસંદ કરજો: તેમાં જયદીપ સાથે 30 મિનિટની વાત સામેલ છે.",
-                hi: "हम पूरी लिखी कहानी से काम करते हैं। लिखने में मदद चाहिए तो बाद में ‘सहायता सहित’ सेवा चुनें: उसमें जयदीप के साथ 30 मिनट की बात शामिल है।",
+                en: "We work from finished text. If you’d like help writing it, choose Varta Vishva Directors later: a 30-minute talk with our director is part of it.",
+                gu: "અમે પૂરી લખાયેલી વાર્તા પરથી કામ કરીએ છીએ. લખવામાં મદદ જોઈતી હોય તો પછી ‘વાર્તા વિશ્વ દિગ્દર્શકો દ્વારા’ પસંદ કરજો: તેમાં અમારા દિગ્દર્શક સાથે 30 મિનિટની વાત સામેલ છે.",
+                hi: "हम पूरी लिखी कहानी से काम करते हैं। लिखने में मदद चाहिए तो बाद में ‘वार्ता विश्व के निर्देशकों द्वारा’ चुनें: उसमें हमारे निर्देशक के साथ 30 मिनट की बात शामिल है।",
               },
             }
           : null,
@@ -354,16 +357,16 @@ export const QUESTIONS: Question[] = [
       { id: "yes", label: { en: "Yes", gu: "હા", hi: "हाँ" } },
     ],
     showIf: (a) => has(a, "purpose", "festival"),
-    // Jaydeep, 25 Nov 2026: Yes stops here and waits for him (no automatic sample). When he
-    // lets the writer continue (admin), big_screen_cleared is set and the stop no longer applies.
+    // Owner's decision, 25 Nov 2026: Yes stops here and waits for the reviewer (no automatic
+    // sample). When the reviewer lets the writer continue (admin), big_screen_cleared is set.
     stop: (a) =>
       a.big_screen === "yes" && a.big_screen_cleared !== "yes"
         ? {
             kind: "needs_human",
             message: {
-              en: "Thank you. Because this is for a festival, TV or cinema, the music has to be replaced with a broadcast-licensed track. Jaydeep will look at your request himself and write to you, usually within two working days.",
-              gu: "આભાર. આ ઉત્સવ, ટીવી કે સિનેમા માટે હોવાથી સંગીત પ્રસારણ-લાઇસન્સવાળા સંગીતથી બદલવું પડે. જયદીપ પોતે તમારી વિનંતી જોઈને તમને લખશે, સામાન્ય રીતે બે કામકાજી દિવસમાં.",
-              hi: "धन्यवाद। यह उत्सव, टीवी या सिनेमा के लिए है, इसलिए संगीत प्रसारण-लाइसेंस वाले संगीत से बदलना होगा। जयदीप खुद आपका अनुरोध देखकर आपको लिखेंगे, आमतौर पर दो कार्य-दिवसों में।",
+              en: "Thank you. Because this is for a festival, TV or cinema, the music has to be replaced with a broadcast-licensed track. Our team will look at your request and write to you, usually within two working days.",
+              gu: "આભાર. આ ઉત્સવ, ટીવી કે સિનેમા માટે હોવાથી સંગીત પ્રસારણ-લાઇસન્સવાળા સંગીતથી બદલવું પડે. અમારી ટીમ તમારી વિનંતી જોઈને તમને લખશે, સામાન્ય રીતે બે કામકાજી દિવસમાં.",
+              hi: "धन्यवाद। यह उत्सव, टीवी या सिनेमा के लिए है, इसलिए संगीत प्रसारण-लाइसेंस वाले संगीत से बदलना होगा। हमारी टीम आपका अनुरोध देखकर आपको लिखेगी, आमतौर पर दो कार्य-दिवसों में।",
             },
           }
         : null,
@@ -429,17 +432,25 @@ export const QUESTIONS: Question[] = [
     options: [
       {
         id: "self_serve",
-        label: { en: "Self-serve", gu: "સ્વ-સેવા", hi: "स्व-सेवा" },
-        hint: { en: "Studio Saathi guides you; the studio makes it", gu: "સ્ટુડિયો સાથી માર્ગદર્શન આપે; સ્ટુડિયો બનાવે", hi: "स्टूडियो साथी मार्गदर्शन दे; स्टूडियो बनाए" },
+        label: { en: "Studio-made", gu: "સ્ટુડિયો-નિર્મિત", hi: "स्टूडियो-निर्मित" },
+        hint: {
+          en: "Made by our automatic studio and checked by our team",
+          gu: "અમારો સ્વચાલિત સ્ટુડિયો બનાવે, અમારી ટીમ ચકાસે",
+          hi: "हमारा स्वचालित स्टूडियो बनाए, हमारी टीम जाँचे",
+        },
       },
       {
-        id: "assisted",
-        label: { en: "Assisted", gu: "સહાયિત", hi: "सहायता सहित" },
-        hint: { en: "A 30-minute talk with Jaydeep, who also reviews it personally", gu: "જયદીપ સાથે 30 મિનિટની વાત, અને તેઓ જાતે ચકાસે", hi: "जयदीप के साथ 30 मिनट की बात, और वे खुद जाँचें" },
+        id: "directed",
+        label: { en: "Varta Vishva Directors", gu: "વાર્તા વિશ્વ દિગ્દર્શકો દ્વારા", hi: "वार्ता विश्व के निर्देशकों द्वारा" },
+        hint: {
+          en: "Our director calls you within 2 days, then directs your story scene by scene. The sample is ₹999.",
+          gu: "અમારા દિગ્દર્શક 2 દિવસમાં તમને ફોન કરશે, પછી તમારી વાર્તાને દૃશ્યે દૃશ્યે દિગ્દર્શિત કરશે. નમૂનાના ₹999.",
+          hi: "हमारे निर्देशक 2 दिनों में आपको फ़ोन करेंगे, फिर आपकी कहानी को दृश्य-दर-दृश्य निर्देशित करेंगे। नमूने के ₹999।",
+        },
       },
     ],
     default: "self_serve",
-    // Premium is always Assisted (brief §3A).
+    // Premium is always Varta Vishva Directors (brief §3A).
     showIf: (a) => a.level !== "premium",
   },
   {
@@ -759,7 +770,7 @@ export const CHOICE_IDS = QUESTIONS.filter((q) => q.kind === "single" || q.kind 
 export const LEVEL_PRESETS: Record<string, Answers> = {
   basic: { visual: "single_image", sound: "music", voices: "narrator", delivery: "plain", shorts: "0" },
   standard: { visual: "moving_stills", sound: "music_sfx", voices: "characters", delivery: "dramatised", shorts: "0" },
-  premium: { visual: "moving_stills", sound: "music_sfx", voices: "characters", delivery: "dramatised", shorts: "3", service: "assisted" },
+  premium: { visual: "moving_stills", sound: "music_sfx", voices: "characters", delivery: "dramatised", shorts: "3", service: "directed" },
 };
 export const LEVEL_LIMITS: Record<string, { characters: number }> = {
   basic: { characters: 0 },
@@ -790,9 +801,9 @@ export const UI: Record<string, L> = {
   startOver: { en: "Start again", gu: "ફરી શરૂ કરો", hi: "फिर से शुरू करें" },
   typicalPrice: { en: "Typical price", gu: "સામાન્ય કિંમત", hi: "सामान्य कीमत" },
   rangeNote: {
-    en: "A range only, not a quote. Your fixed price comes with your plan, before anything is made. The 30–60 second sample of your story costs ₹499, taken off the full price if you go ahead.",
-    gu: "ફક્ત અંદાજ, ભાવપત્રક નહીં. તમારી નક્કી કિંમત પ્લાન સાથે આવશે, કંઈ પણ બને તે પહેલાં. તમારી વાર્તાના 30–60 સેકન્ડના નમૂનાના ₹499; આગળ વધો તો પૂરી કિંમતમાંથી બાદ થાય છે.",
-    hi: "केवल अनुमान, कोटेशन नहीं। आपकी तय कीमत योजना के साथ आएगी, कुछ भी बनने से पहले। आपकी कहानी के 30–60 सेकंड के नमूने के ₹499; आगे बढ़ें तो पूरी कीमत में से घटते हैं।",
+    en: "A range only, not a quote. Your fixed price comes with your plan, before anything is made. The 30–60 second sample of your story costs ₹499 (₹999 with Varta Vishva Directors), taken off the full price if you go ahead.",
+    gu: "ફક્ત અંદાજ, ભાવપત્રક નહીં. તમારી નક્કી કિંમત પ્લાન સાથે આવશે, કંઈ પણ બને તે પહેલાં. તમારી વાર્તાના 30–60 સેકન્ડના નમૂનાના ₹499 (વાર્તા વિશ્વ દિગ્દર્શકો સાથે ₹999); આગળ વધો તો પૂરી કિંમતમાંથી બાદ થાય છે.",
+    hi: "केवल अनुमान, कोटेशन नहीं। आपकी तय कीमत योजना के साथ आएगी, कुछ भी बनने से पहले। आपकी कहानी के 30–60 सेकंड के नमूने के ₹499 (वार्ता विश्व के निर्देशकों के साथ ₹999); आगे बढ़ें तो पूरी कीमत में से घटते हैं।",
   },
 };
 

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
 import { adminClient } from "@/lib/supabase-admin";
 
-// The one-day test, part 1: RENDER ONLY (brief §6F "First steps"; Jaydeep, 25 Nov 2026).
+// The one-day test, part 1: RENDER ONLY (brief §6F "First steps"; owner's decision, 25 Nov 2026).
 // One session of the test agent in the test environment, with a hard $5 cap. No client
 // story, no ElevenLabs, no image service: the agent makes synthetic stills and audio itself
 // and renders a 12-minute 1080p moving-stills video the way the Ramayana engine does, then

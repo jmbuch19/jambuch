@@ -1,6 +1,7 @@
 import "server-only";
 import { adminClient } from "@/lib/supabase-admin";
 import { sendEmail } from "@/lib/email";
+import { alertTo } from "./team";
 
 // Bank disputes (chargebacks) reported by Razorpay's payment.dispute.* webhook events. Each one
 // is stored and the studio is emailed a link to the request's evidence page, which collects
@@ -33,7 +34,7 @@ export async function recordDispute(event: string, d: DisputeEntity) {
     },
     { onConflict: "razorpay_dispute_id" },
   );
-  const admin = process.env.ADMIN_EMAIL;
+  const admin = await alertTo("admin");
   if (admin) {
     await sendEmail({
       to: admin,

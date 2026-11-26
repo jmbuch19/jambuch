@@ -10,7 +10,21 @@ import { PlanView } from "@/app/creators/start/steps";
 import { isStyleTopic } from "@/lib/creators/claude";
 import { sampleLink } from "@/lib/creators/delivery";
 import { DEFAULT_MODEL, SAMPLE_LANGS, listVoices, sampleSettings, speaksLanguage, voiceFor, type Voice } from "@/lib/creators/sample";
-import { advanceReceived, letContinue, sampleFeeReceivedAction, saveSampleSettings, saveTitleAuthorAction, sendSampleAction, setRequestState } from "../actions";
+import {
+  advanceReceived,
+  assignDirectorAction,
+  letContinue,
+  logDirectorHours,
+  sampleFeeReceivedAction,
+  saveSampleSettings,
+  saveTitleAuthorAction,
+  sendSampleAction,
+  setRequestState,
+  useDirectedSample,
+} from "../actions";
+import { isDirected } from "@/lib/creators/pricing";
+import { STUDIO_CREDIT, cleared, directedCredit, logStoryAccess, teamMembers } from "@/lib/creators/team";
+import { listPrivate } from "@/lib/r2";
 import { narrationRules } from "@/lib/creators/rules";
 import MakeSampleButton, { StopButton } from "./make-sample";
 import { FreeRemakeButton, RefundForm } from "./refund-form";
@@ -27,7 +41,7 @@ const when = (iso: string | null) =>
 
 export default async function RequestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { db } = await requireAdmin();
+  const { db, user } = await requireAdmin();
   const { data: r } = await db.from("creator_requests").select("*").eq("id", id).maybeSingle();
   if (!r) notFound();
 
@@ -42,6 +56,14 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     listVoices().catch(() => [] as Voice[]),
     r.sample_key ? sampleLink(id, r.sample_key).catch(() => null) : Promise.resolve(null),
   ]);
+  // Every opening of a writer's story is logged (brief §6J).
+  if (story) await logStoryAccess(id, user.email, "admin", "request page");
+  const directed = isDirected((r.answers ?? {}) as Record<string, string>);
+  const team = directed ? await teamMembers() : [];
+  const directors = team.filter((m) => cleared(m) && m.roles.includes("director"));
+  const director = team.find((m) => m.id === r.director_id) ?? null;
+  const directedFiles = directed && !purged ? await listPrivate(`creators/${id}/directed/`).catch(() => [] as string[]) : [];
+  const { data: access } = await db.from("creator_story_access").select("who, role, what, at").eq("request_id", id).order("at", { ascending: false }).limit(15);
   const credits = (r.sample_credits ?? []) as { kind: string; name: string; author: string; licence: string; url: string; source?: string; attribution?: string | null }[];
   const cost = (r.sample_cost ?? {}) as Record<string, string | number>;
   const answers = (r.answers ?? {}) as Record<string, string | string[]>;
@@ -81,6 +103,78 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         {r.whatsapp ? ` · WhatsApp ${r.whatsapp}` : ""} · {r.language} · {r.make} · {r.length} · sent {when(r.created_at)}
         {r.music_replacement ? " · MUSIC REPLACEMENT" : r.big_screen === "unsure" ? " · big screen: not sure" : ""}
       </p>
+
+      {directed && (
+        <>
+          <h2 className={a.gapTop}>Varta Vishva Directors</h2>
+          <form action={assignDirectorAction} className={a.actions}>
+            <input type="hidden" name="id" value={id} />
+            <label>
+              Director{" "}
+              <select name="director_id" defaultValue={r.director_id ?? ""}>
+                <option value="">{directors.length ? "— not assigned —" : "— nobody cleared yet: the admin directs —"}</option>
+                {directors.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="submit" className={a.secondary}>
+              Assign
+            </button>
+            {r.director_assigned_at && <span className={a.mutedSmall}> assigned {when(r.director_assigned_at)}</span>}
+          </form>
+          <p className={a.mutedSmall}>
+            Credit line: <b>{director ? directedCredit(director.name) : "Directed by (director’s name), Varta Vishva Directors · AI-assisted voices and illustrations"}</b>
+            {" · "}
+            <Link href="/admin/creators/team">Team and roles →</Link>
+          </p>
+          <form action={logDirectorHours} className={a.actions}>
+            <input type="hidden" name="id" value={id} />
+            <label>
+              Hours actually spent{" "}
+              <input name="hours" type="number" step="0.25" min={0} max={500} defaultValue={r.director_hours ?? ""} style={{ width: 90 }} />
+            </label>
+            <button type="submit" className={a.secondary}>
+              Log hours
+            </button>
+            <span className={a.mutedSmall}>
+              {" "}
+              in the price: {quote ? quote.episodes.reduce((s, e) => s + e.breakdown.review_hours, 0).toFixed(2) : "?"} h
+            </span>
+          </form>
+          <p className={a.mutedSmall}>
+            The director’s sample: export it from the order folder on their PC to <code>creators/{id}/directed/</code>, then
+            use it here; it is checked and sent with the same button as the studio’s.
+          </p>
+          {directedFiles.filter((k) => k.endsWith(".mp3")).length ? (
+            <ul className={a.mutedSmall}>
+              {directedFiles
+                .filter((k) => k.endsWith(".mp3"))
+                .map((k) => (
+                  <li key={k}>
+                    <form action={useDirectedSample} style={{ display: "inline" }}>
+                      <input type="hidden" name="id" value={id} />
+                      <input type="hidden" name="key" value={k} />
+                      {k.split("/").pop()}{" "}
+                      {r.sample_key === k ? (
+                        <b>(the current sample)</b>
+                      ) : (
+                        <button type="submit" className={a.secondary} disabled={r.sample_state === "sent" || r.sample_state === "making"}>
+                          Use as the sample
+                        </button>
+                      )}
+                    </form>
+                  </li>
+                ))}
+            </ul>
+          ) : (
+            <p className={a.mutedSmall}>No sample exported by the director yet.</p>
+          )}
+        </>
+      )}
+      {!directed && <p className={a.mutedSmall}>Studio-made · credit line: {STUDIO_CREDIT}</p>}
 
       {r.state === "needs_human" && r.needs_human_why && (
         <form action={letContinue} className={a.actions}>
@@ -482,6 +576,18 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         </button>
         {!voices.length && <p className={a.mutedSmall}>No voices loaded (ElevenLabs key missing or unreachable).</p>}
       </form>
+      <h2 className={a.gapTop}>Who opened this story</h2>
+      {!access?.length ? (
+        <p className={a.empty}>Nobody yet.</p>
+      ) : (
+        <ul className={a.mutedSmall}>
+          {access.map((x, i) => (
+            <li key={i}>
+              {when(x.at)} · {x.who} ({x.role}) · {x.what}
+            </li>
+          ))}
+        </ul>
+      )}
     </>
   );
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { adminClient } from "@/lib/supabase-admin";
 import { TERMS_VERSION } from "@/lib/creators/terms";
+import { legalEntity, legalLine } from "@/lib/creators/legal";
 import LibraryHeader from "../../library/header";
 import h from "../../home.module.css";
 import c from "../creators.module.css";
@@ -18,6 +19,7 @@ export const revalidate = 300;
 // line must match docs/licences.md, which quotes each provider's own pages. When this text
 // changes in meaning, raise TERMS_VERSION in src/lib/creators/terms.ts.
 export default async function PrivacyPage() {
+  const legal = await legalEntity();
   const contact = await adminClient()
     .from("site_text")
     .select("en")
@@ -33,8 +35,8 @@ export default async function PrivacyPage() {
           <p className={h.eyebrow}>Creator’s Space · a paid studio service</p>
           <h1 className={c.h2}>Privacy policy</h1>
           <p className={c.small}>
-            Version {TERMS_VERSION}. This policy covers Creator’s Space on jambuch.in, run by Jaydeep Buch. It sits
-            beside the <Link href="/creators/terms">terms</Link>.
+            Version {TERMS_VERSION}. This policy covers Creator’s Space on jambuch.in, provided by {legalLine(legal)}.
+            “We”, “our” and “us” mean {legal.entity}. It sits beside the <Link href="/creators/terms">terms</Link>.
           </p>
 
           <h2>1. What we collect</h2>
@@ -60,9 +62,19 @@ export default async function PrivacyPage() {
           <ul className={c.text}>
             <li>
               <b>Your story and files</b> (your story, your answers, your sample): kept in private storage that only
-              the studio can open, and deleted 7 days after your sample or order is delivered, or within a day if a
+              our team can open, and deleted 7 days after your sample or order is delivered, or within a day if a
               request is withdrawn, refused or closed. Our database holds no story text, only a fingerprint and its
-              length. Your story is never sent by email; the studio reads it in its private admin pages.
+              length. Your story is never sent by email; our team reads it in our private admin pages.
+            </li>
+            <li>
+              <b>With Varta Vishva Directors:</b> your director also works on your story on their own computer, in a
+              folder for your order only, on an encrypted drive, never in a shared, synced or backed-up folder. That
+              folder is deleted by a logged script 7 days after delivery, with everything else, and is covered by the
+              deletion record we keep.
+            </li>
+            <li>
+              <b>Our team:</b> everyone signs a confidentiality agreement before they can open any story, and can open
+              only the orders assigned to them. Every time someone on our team opens your story, it is logged.
             </li>
             <li>
               <b>Sounds made for the studio’s library:</b> General sounds and music created by the studio (such as rain or temple bells) may be reused in other works. Your story, narration, paintings and anything made only for you are never reused and are deleted as promised.
@@ -135,10 +147,10 @@ export default async function PrivacyPage() {
 
           <h2>7. Contact and grievances</h2>
           <p className={c.text}>
-            Write to Jaydeep Buch{" "}
-            {contact ? (
+            Write to us{" "}
+            {legal.contact_email || contact ? (
               <>
-                at <a href={`mailto:${contact}`}>{contact}</a>
+                at <a href={`mailto:${legal.contact_email || contact}`}>{legal.contact_email || contact}</a>
               </>
             ) : (
               "through the contact address on the jambuch.in home page"

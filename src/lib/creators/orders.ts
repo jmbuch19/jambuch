@@ -5,18 +5,22 @@ import { readDraft, savePack } from "./files";
 import { flowSettings, orderPack } from "./flow";
 import { fetchOrder } from "./razorpay";
 import { triggerSampleJob } from "./sample-job";
+import { isDirected } from "./pricing";
+import type { Answers } from "./questions";
+import { STUDIO_CREDIT, STUDIO_FROM, STUDIO_SIGNATURE, alertTo, assignDirector, directedCredit, studioReplyTo, teamMembers } from "./team";
 
 const now = () => new Date().toISOString();
 
-// Who checks an order before delivery (Jaydeep, 25 Nov 2026): he reviews the first 10 orders
-// himself and every Premium order; after that 1 in 5 is audited and the rest pass on the
-// automatic checks. Review hours stay in the price until 10 clean orders and a month of audits.
-export async function reviewFor(level: string): Promise<"jaydeep" | "audit" | "auto"> {
+// Who checks an order before delivery (owner's decision, 25 Nov 2026): the reviewer checks the
+// first 10 orders and every Premium order; after that 1 in 5 is audited and the rest pass on
+// the automatic checks. Review hours stay in the price until 10 clean orders and a month of
+// audits. (Packs made before 26 Nov say "jaydeep" for "reviewer".)
+export async function reviewFor(level: string): Promise<"reviewer" | "audit" | "auto"> {
   const s = await flowSettings();
-  if (level === "premium" && s.review.premium_always) return "jaydeep";
+  if (level === "premium" && s.review.premium_always) return "reviewer";
   const { count } = await adminClient().from("creator_requests").select("id", { count: "exact", head: true }).eq("state", "ordered");
   const n = (count ?? 0) + 1; // this order's number
-  if (n <= s.review.first_orders_reviewed) return "jaydeep";
+  if (n <= s.review.first_orders_reviewed) return "reviewer";
   return s.review.audit_every > 0 && n % s.review.audit_every === 0 ? "audit" : "auto";
 }
 
@@ -26,7 +30,7 @@ export async function buildOrder(requestId: string) {
   const db = adminClient();
   const { data: r } = await db
     .from("creator_requests")
-    .select("id, state, language, answers, style_tags, quote, plan_version, sample_state")
+    .select("id, state, language, answers, style_tags, quote, plan_version, sample_state, director_id")
     .eq("id", requestId)
     .maybeSingle();
   if (!r || r.state !== "submitted" || r.sample_state !== "sent" || !r.plan_version) return false;
@@ -39,6 +43,8 @@ export async function buildOrder(requestId: string) {
       own_voice: !!consents?.some((c) => c.kind === "own_voice"),
     }),
     review: await reviewFor(String((r.answers as Record<string, unknown>)?.level ?? "standard")),
+    // Varta Vishva Directors: who directs it, and the credit line on the finished work.
+    ...(await directorAndCredit(r.answers as Answers, r.director_id)),
   };
   const key = await savePack(requestId, pack);
   await db
@@ -49,16 +55,47 @@ export async function buildOrder(requestId: string) {
   return true;
 }
 
-// The ₹499 is in (Razorpay, or Jaydeep's "received" button): the sample starts by itself.
+async function directorAndCredit(a: Answers, directorId: string | null) {
+  if (!isDirected(a)) return { director: null, credit_line: STUDIO_CREDIT };
+  const m = directorId ? (await teamMembers()).find((x) => x.id === directorId) : undefined;
+  return { director: m ? { id: m.id, name: m.name } : null, credit_line: m ? directedCredit(m.name) : null };
+}
+
+// The sample fee is in (Razorpay, or the admin's "received" button). Studio-made: the sample
+// starts by itself. Varta Vishva Directors: the order goes to a director, who calls the writer
+// within 2 days and makes the sample on their PC (brief §3A); nothing starts automatically.
 export async function sampleFeeReceived(requestId: string) {
   const { data } = await adminClient()
     .from("creator_requests")
     .update({ state: "submitted", updated_at: now() })
     .eq("id", requestId)
     .eq("state", "sample_due")
-    .select("id");
-  if (data?.length) await triggerSampleJob(requestId);
-  return !!data?.length;
+    .select("id, name, email, whatsapp, answers, language");
+  const r = data?.[0];
+  if (!r) return false;
+  if (isDirected(r.answers as Answers)) {
+    const d = await assignDirector(requestId);
+    if (d.email) {
+      await sendEmail({
+        to: d.email,
+        subject: `Varta Vishva Directors: new order from ${r.name || r.email}`,
+        text: [
+          `${d.name ? `${d.name}, this` : "This"} order is yours to direct. The sample fee is paid.`,
+          "",
+          `Writer: ${r.name} <${r.email}>${r.whatsapp ? ` · WhatsApp ${r.whatsapp}` : ""} · story in ${r.language}`,
+          "1. Call the writer within 2 days (we promised that on their page).",
+          `2. On your PC: import the order (client-import ${requestId}); it opens in its own folder outside every repo.`,
+          "3. Make the 30–60 second sample, export it, then check and send it from the request page.",
+          "",
+          `Request: https://jambuch.in/admin/creators/${requestId}`,
+        ].join("\n"),
+        replyTo: r.email,
+      });
+    }
+    return true;
+  }
+  await triggerSampleJob(requestId);
+  return true;
 }
 
 // A payment is confirmed: from the checkout (signature checked) or the webhook (signature
@@ -131,14 +168,14 @@ export async function paymentPaid(razorpayOrderId: string, paymentId: string, so
         "",
         "You can follow your request at https://jambuch.in/creators/start",
         "",
-        "Jaydeep Buch",
-        "Creator's Space · jambuch.in/creators",
+        ...STUDIO_SIGNATURE,
       ]
         .filter((l, i, a) => l !== "" || a[i - 1] !== "")
         .join("\n"),
-      replyTo: process.env.ADMIN_EMAIL,
+      replyTo: studioReplyTo(),
+      from: STUDIO_FROM,
     });
-    const admin = process.env.ADMIN_EMAIL;
+    const admin = await alertTo("admin");
     if (admin) {
       await sendEmail({
         to: admin,

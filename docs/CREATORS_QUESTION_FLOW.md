@@ -5,7 +5,7 @@ Spec for Claude Code. Put this file at `docs/CREATORS_QUESTION_FLOW.md`, next to
 4 and 7C of the brief into one guided flow, and defines the **order pack** that the
 production agent/worker receives.
 
-Gujarati wording below is a first draft. **Jaydeep checks every Gujarati and Hindi
+Gujarati wording below is a first draft. **The admin checks every Gujarati and Hindi
 line before launch.**
 
 ---
@@ -46,7 +46,7 @@ line before launch.**
 - Yes, it's written → continue
 - I'm still writing it → "Come back when it's ready. Save this page." (end)
 - I have an idea, not a written story → "We work from finished text. If you'd like
-  help writing it, use Assisted mode later." (end, link to Assisted info)
+  help writing it, choose Varta Vishva Directors later." (end, link to Varta Vishva Directors info)
 
 **0.3 What would you like to make?** · તમે શું બનાવવા માંગો છો?
 (Cards with a 15-second example each)
@@ -153,11 +153,11 @@ harmful way, origin mismatch (e.g. "I wrote it" but text matches a famous work).
 Three cards with the same demo story at each level, and a typical price:
 - Basic · સરળ
 - Standard · સુંદર (default)
-- Premium · શ્રેષ્ઠ (always Assisted)
+- Premium · શ્રેષ્ઠ (always Varta Vishva Directors)
 → prefills 3.2–3.6; changes later show "Custom".
 
 **3.2 Service** · સેવા
-- Self-serve (default) · Assisted (30-min consultation with Jaydeep; shows next
+- Studio-made (default) · Varta Vishva Directors (our director calls within 2 days; ₹999 sample; shows next
   available start date if this week is full)
 
 **3.3 What they see** (prefilled by level; only if video was chosen in 0.3)
@@ -397,7 +397,7 @@ Rules for the pack:
   story, free text, voice notes and references live in R2).
 - Each question is defined in one config file (`creators/questions.ts`): id,
   label in 3 languages, type, options, default, `showIf` condition, maps-to field.
-  Jaydeep can edit wording without touching logic.
+  The admin can edit wording without touching logic.
 - Claude calls in this flow (all real time, all logged with cost per order):
   screening (cheap model) · character/setting extraction (cheap model) · style
   suggestions · follow-up questions (Opus-class) · creative plan (Opus-class).
@@ -416,12 +416,12 @@ Added when the spec was filed; nothing above was changed. Decide these first.
 
 1. **₹499 sample vs free sample.** This spec charges ₹499 for the sample (1.3,
    5.2, 10.2, 10.4, 11). The brief says the sample is **free** (22 Nov 2026), and
-   Jaydeep confirmed on 24 Nov 2026 to keep it free; the live terms, consent
+   The owner confirmed on 24 Nov 2026 to keep it free; the live terms, consent
    summary, landing page and home band all say free. Which one is right? A paid
    sample also needs Razorpay live (brief §2 item 5) before the sample step.
 2. **What's already live** (/creators/start, brief §6A, §6H) covers 0.5, 1.1
    (paste only), 1.3, the screening, 2.1c (as "big screen"), a short version of
-   stage 7, and an automatic **audio** sample (Phase 2a, made after Jaydeep's
+   stage 7, and an automatic **audio** sample (Phase 2a, made after the reviewer's
    check, from the story's opening). The new flow replaces the form; existing
    requests, consents and the sample pipeline carry over. 18+ moves from the
    submission ticks to sign-in (0.5), as written here.
@@ -435,20 +435,20 @@ Added when the spec was filed; nothing above was changed. Decide these first.
    `creators/<request id>/…`. Pick one before building orders.
 5. **2.1c Yes → `needs_human`:** today "Yes" only flags `music_replacement`; the
    request still gets questions and a sample. Confirm that it should now stop and
-   wait for Jaydeep.
+   wait for the reviewer.
 6. **Vocabulary:** 6.2 and the pack's tag names (`indian_classical`, `nature`,
    `village_life`, `few`, `soft_watercolour`) differ from
    `src/lib/creators/vocabulary.ts` (`music:flute`, `sound:rain`,
    `style:soft-watercolour`…). One vocabulary, ideally from the real asset
    catalog (open item in `docs/PROGRESS.md`).
 
-### Decisions (Jaydeep, 25 Nov 2026)
+### Decisions (owner's decision, 25 Nov 2026)
 
 1. ~~Sample stays free.~~ **Changed the same day: the sample is PAID, ₹499**, as this spec
    says: approve plan → pay ₹499 → automatic sample → automatic quality check → sent. The
    ₹499 is deducted from the full price (counted toward the advance). No page may say
    "free sample".
-1b. **Review time stays in the price**: Jaydeep reviews the first 10 orders and all Premium;
+1b. **Review time stays in the price**: the reviewer checks the first 10 orders and all Premium;
    1 in 5 audited after that. Review hours come out of pricing only after 10 clean orders
    and a month of audits.
 1c. **Fix-it flow** after a screening problem: only suggestions that genuinely remove it
@@ -459,5 +459,5 @@ Added when the spec was filed; nothing above was changed. Decide these first.
    Anything with a running cost (Razorpay account, speech-to-text provider for
    voice notes) is asked before it is switched on.
 4. Paths stay `creators/<request id>/…` (Claude Code's default; the pack follows).
-5. **2.1c Yes → stop: `needs_human`**, no automatic sample until Jaydeep approves.
+5. **2.1c Yes → stop: `needs_human`**, no automatic sample until the reviewer approves.
 6. Tags use `src/lib/creators/vocabulary.ts` until the real asset catalog exists.

@@ -18,7 +18,8 @@ export const metadata: Metadata = {
 export const revalidate = 300;
 
 // Creator's Space, first step (21 Nov 2026): what we make, examples, how it works, and a
-// "Request a sample" form that emails Jaydeep. A paid service, kept apart from the free Courtyard.
+// way into the question flow. A paid service, kept apart from the free Courtyard. The team voice
+// throughout: "we / our / us", never a person's name (owner's decision, 26 Nov 2026).
 // The configurator, quotes and payments come later (docs/CREATORS_SPACE_BRIEF.md).
 export default async function CreatorsPage() {
   const db = adminClient();
@@ -40,7 +41,7 @@ export default async function CreatorsPage() {
             તમારી વાર્તા — સંભળાય અને દેખાય.
           </p>
           <p className={c.lede}>
-            Send me your story in Gujarati, Hindi or English. I turn it into a narrated audio story or an illustrated
+            Send us your story in Gujarati, Hindi or English. We turn it into a narrated audio story or an illustrated
             video, with character voices, music, sound and pauses, made with the same care as the Ramayana audio plays and
             videos on this site.
           </p>
@@ -56,7 +57,7 @@ export default async function CreatorsPage() {
 
         <section className={c.block} aria-labelledby="make">
           <h2 id="make" className={c.h2}>
-            What I make
+            What we make
           </h2>
           <div className={c.cards}>
             <article className={c.card}>
@@ -86,6 +87,32 @@ export default async function CreatorsPage() {
             personal use. Not for film, TV broadcast, cinema or games: for those, a music replacement add-on is needed
             before release.
           </p>
+        </section>
+
+        <section className={c.block} aria-labelledby="ways">
+          <h2 id="ways" className={c.h2}>
+            Two ways to make it
+          </h2>
+          <div className={c.cards}>
+            <article className={c.card}>
+              <h3>Studio-made</h3>
+              <p>
+                Our automatic studio makes your story from your plan, and our team checks it. The fastest way, and the
+                sample is ₹499.
+              </p>
+            </article>
+            <article className={c.card}>
+              <h3>Varta Vishva Directors</h3>
+              <p lang="gu" className="gu">
+                વાર્તા વિશ્વ દિગ્દર્શકો દ્વારા
+              </p>
+              <p>
+                One of our directors calls you within 2 days, then directs your story scene by scene: every voice, sound,
+                pause and picture. The sample is ₹999. Our directors take a few new stories each week; Premium is always
+                made this way.
+              </p>
+            </article>
+          </div>
         </section>
 
         <section id="examples" className={c.block} aria-labelledby="work">
@@ -129,11 +156,12 @@ export default async function CreatorsPage() {
               <b>You get a one-page plan and a fixed price</b>: voices, music, pictures, length. Change it until it is right.
             </li>
             <li>
-              <b>A 30–60 second sample (₹499)</b> of your own story, so you can hear and see the style before you order the
-              full piece. If you go ahead, the ₹499 is taken off the full price.
+              <b>A 30–60 second sample (₹499; ₹999 with Varta Vishva Directors)</b> of your own story, so you can hear
+              and see the style before you order the full piece. If you go ahead, the sample fee is taken off the full
+              price.
             </li>
             <li>
-              <b>The full piece:</b> you listen or watch, and flag anything to correct. My mistakes are always fixed free.
+              <b>The full piece:</b> you listen or watch, and flag anything to correct. Our mistakes are always fixed free.
             </li>
             <li>
               <b>You download your files</b> and share them wherever you like.
@@ -165,7 +193,7 @@ export default async function CreatorsPage() {
           </h2>
           <p className={c.text}>
             Sign in with your email (we send a short code, no password), paste your story, and answer a few questions
-            about it. You see your plan and fixed price before paying anything; the ₹499 sample comes next.
+            about it. You see your plan and fixed price before paying anything; the sample comes next.
           </p>
           <div className={h.buttons}>
             <Link href="/creators/start" className={h.btnAccent}>
