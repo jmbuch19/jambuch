@@ -744,6 +744,10 @@ first 10), the writer approving or flagging the sample, the order and payment.
 Directed orders may run on a director's own PC. This is the one exception to "no client work
 on the home PC", allowed only under these safeguards:
 
+The full plan for team members using the engine, and for repo security, is in
+`docs/team/`: `ENGINE_ACCESS_PLAN.md` (engine split, key broker, `/studio`, order files),
+`REPO_SECURITY.md` (repos, GitHub, keys, machines) and `JOINING_AND_LEAVING.md` (checklists).
+
 ### Safeguards on the PC
 - **One folder per order, outside every repo:** e.g. `D:\clients\<order id>\`. Never inside a
   git repository (the engine's or any other), never in OneDrive, Google Drive, Dropbox or any

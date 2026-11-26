@@ -400,3 +400,12 @@ Bug (Jaydeep): the title was read as part of the story with no pause.
 - **Migration:** `20261126000000_creator_team_directors.sql` (run before deploying main).
 - **Home PC (engine repo):** `client-import` / `client-export` / `client-purge`, spec in brief
   §6J. Team sign-ins (a `/studio` area, assigned orders only) before the first person joins.
+
+### 26 Nov 2026: team and security plans saved (docs/team/)
+- `ENGINE_ACCESS_PLAN.md`: how future directors use the engine without its secrets (engine
+  split into `vv-engine`, Studio API key broker, `/studio` sign-in, one order's files at a time,
+  build order and open decisions).
+- `REPO_SECURITY.md`: secret scan, making the site repo private (recommended; decision pending),
+  GitHub organisation, two-factor login, push protection, protected `main`, keys, machines.
+- `JOINING_AND_LEAVING.md`: checklists for joining, leaving and the monthly review.
+- Plans only; nothing built. No team member yet.
