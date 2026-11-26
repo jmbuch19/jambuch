@@ -167,7 +167,10 @@ export default async function CreatorsPage() {
               <b>You download your files</b> and share them wherever you like.
             </li>
           </ol>
-          <p className={c.small}>Prices and terms are confirmed in your quote before you pay anything.</p>
+          <p className={c.small}>
+            Prices and terms are confirmed in your quote before you pay anything. More in our{" "}
+            <Link href="/creators/faq">questions and answers</Link>.
+          </p>
         </section>
 
         <section id="guidelines" className={c.block} aria-labelledby="dont">
@@ -204,7 +207,8 @@ export default async function CreatorsPage() {
 
         <p className={c.apart}>
           Creator’s Space is a paid service. It is separate from the <Link href="/courtyard">Courtyard</Link>, where sharing
-          is free and no money is made from your work.
+          is free and no money is made from your work. · <Link href="/creators/faq">Questions and answers</Link> ·{" "}
+          <Link href="/creators/terms">Terms</Link> · <Link href="/creators/privacy">Privacy</Link>
         </p>
       </main>
     </>

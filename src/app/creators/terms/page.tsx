@@ -33,7 +33,8 @@ export default async function TermsPage() {
             {legal.entity}.
           </p>
           <p className={c.small}>
-            Version {TERMS_VERSION}. The English text is the binding version. Each request and order is bound by the
+            Questions in plain words: <Link href="/creators/faq">questions and answers</Link>. Version {TERMS_VERSION}.
+            The English text is the binding version. Each request and order is bound by the
             version accepted at the time.
           </p>
           <p className={c.small}>
