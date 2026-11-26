@@ -528,10 +528,11 @@ function buildSections(c: HomeContent, t: (key: string) => string): (Section | n
                     </div>
                   );
                 })}
-              </div>
-              <div className={s.next}>
-                <p>The next chapter goes here.</p>
-                <span>Space reserved for what comes next</span>
+                {/* An empty slot in the same grid, the size of a note: room for the next one. */}
+                <div className={s.next}>
+                  <p>The next chapter goes here.</p>
+                  <span>Space reserved for what comes next</span>
+                </div>
               </div>
             </>
           ),

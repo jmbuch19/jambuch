@@ -988,23 +988,25 @@
 .videoBody:global(.gu) {
   font-family: var(--font-gujarati);
 }
+/* The empty slot after the notes: a grid cell like a note, dashed, centred text. */
 .next {
-  margin-top: 24px;
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius);
   padding: 24px;
+  min-height: 160px;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 12px;
+  text-align: center;
+  gap: 8px;
   font-size: 14px;
   color: var(--muted);
 }
 .next p {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 22px;
+  font-size: 20px;
   color: var(--ink);
 }
 
