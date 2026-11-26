@@ -22,6 +22,24 @@ export type FlowSettings = {
   // Owner's decision, 25 Nov 2026: the reviewer checks the first 10 orders and every Premium
   // order; then 1 in 5 is audited. Review hours leave the price only after 10 clean orders and a month of audits.
   review: { first_orders_reviewed: number; premium_always: boolean; audit_every: number };
+  // Delivery estimates in days, read by both the quote and the FAQ (owner's decision, 26 Nov
+  // 2026): per service and level, plus days for each extra episode.
+  delivery_days: {
+    studio: Record<"basic" | "standard" | "premium", number>;
+    directed: Record<"basic" | "standard" | "premium", number>;
+    extra_episode: { studio: number; directed: number };
+  };
+  // "The FAQ only promises what is live" (26 Nov 2026): each feature's answer appears only when
+  // its switch is on. voice_notes (above) is the voice-note switch.
+  features: {
+    level_examples: boolean; // the same short story at all three levels on our page
+    voice_previews: boolean; // writers choose character voices from previews
+    studio_saathi: boolean; // the assistant on the page
+    deletion_certificates: boolean; // a certificate sent after deletion
+    series_storage: boolean; // paid storage for continuing stories
+    directed_approvals: boolean; // directors' mood plan, voiced excerpts, picture sheet (2 rounds each)
+    gst: boolean; // GST charged and GST invoices (once the GSTIN is active)
+  };
 };
 export const FLOW_DEFAULTS: FlowSettings = {
   claude_cap_usd: 2,
@@ -31,6 +49,20 @@ export const FLOW_DEFAULTS: FlowSettings = {
   examples: {},
   payments_enabled: false,
   review: { first_orders_reviewed: 10, premium_always: true, audit_every: 5 },
+  delivery_days: {
+    studio: { basic: 5, standard: 10, premium: 21 },
+    directed: { basic: 7, standard: 14, premium: 28 },
+    extra_episode: { studio: 3, directed: 5 },
+  },
+  features: {
+    level_examples: false,
+    voice_previews: false,
+    studio_saathi: false,
+    deletion_certificates: false,
+    series_storage: false,
+    directed_approvals: false,
+    gst: false,
+  },
 };
 
 export const STORY_MAX = 120_000; // six episodes; longer stories go to Varta Vishva Directors by email
@@ -44,7 +76,18 @@ async function setting(key: string) {
 
 export async function flowSettings(): Promise<FlowSettings> {
   const v = ((await setting("creators.flow")) as Partial<FlowSettings> | null) ?? {};
-  return { ...FLOW_DEFAULTS, ...v, review: { ...FLOW_DEFAULTS.review, ...(v.review ?? {}) } };
+  const d = (v.delivery_days ?? {}) as Partial<FlowSettings["delivery_days"]>;
+  return {
+    ...FLOW_DEFAULTS,
+    ...v,
+    review: { ...FLOW_DEFAULTS.review, ...(v.review ?? {}) },
+    delivery_days: {
+      studio: { ...FLOW_DEFAULTS.delivery_days.studio, ...(d.studio ?? {}) },
+      directed: { ...FLOW_DEFAULTS.delivery_days.directed, ...(d.directed ?? {}) },
+      extra_episode: { ...FLOW_DEFAULTS.delivery_days.extra_episode, ...(d.extra_episode ?? {}) },
+    },
+    features: { ...FLOW_DEFAULTS.features, ...(v.features ?? {}) },
+  };
 }
 // The pricing settings with today's USD→INR rate (src/lib/fx.ts) filled in.
 export async function pricingSettings(): Promise<PricingSettings> {

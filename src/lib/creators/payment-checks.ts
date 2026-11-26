@@ -1,3 +1,4 @@
+import { LIMITS } from "./limits";
 import "server-only";
 import { adminClient } from "@/lib/supabase-admin";
 import { sendEmail } from "@/lib/email";
@@ -13,7 +14,7 @@ import { alertTo } from "./team";
 //                in full automatically, and the request closes
 
 const DAY = 86400_000;
-const SAMPLE_REFUND_DAYS = 3;
+const SAMPLE_REFUND_DAYS = LIMITS.sampleRefundDays;
 
 export async function reconcilePayments() {
   if (!razorpayReady()) return { checked: 0, completed: 0, duplicates: 0 };

@@ -1,3 +1,4 @@
+import { LIMITS } from "@/lib/creators/limits";
 import { sendGatheringNotes } from "@/lib/gathering-notes";
 import { adminClient } from "@/lib/supabase-admin";
 import { expired, purge, trash } from "@/lib/trash";
@@ -49,13 +50,13 @@ async function abandonedDrafts(db: ReturnType<typeof adminClient>, now: string) 
     .from("creator_requests")
     .select("id, email, name, language, updated_at, reminded_at")
     .in("state", ["draft", "questions", "plan", "sample_due"])
-    .lt("updated_at", new Date(t - 3 * day).toISOString())
+    .lt("updated_at", new Date(t - LIMITS.unfinishedReminderDays * day).toISOString())
     .limit(200);
   if (error) throw new Error(error.message);
   let reminded = 0;
   let closed = 0;
   for (const r of rows ?? []) {
-    if (Date.parse(r.updated_at) < t - 14 * day) {
+    if (Date.parse(r.updated_at) < t - LIMITS.unfinishedDeleteDays * day) {
       await db.from("creator_requests").update({ state: "withdrawn", files_delete_at: now, updated_at: now }).eq("id", r.id);
       closed++;
       continue;
@@ -72,7 +73,7 @@ async function abandonedDrafts(db: ReturnType<typeof adminClient>, now: string) 
         "Your Creator's Space request is not finished yet. You can continue where you left off:",
         "https://jambuch.in/creators/start",
         "",
-        "Unfinished requests and their stories are deleted 14 days after the last change.",
+        `Unfinished requests and their stories are deleted ${LIMITS.unfinishedDeleteDays} days after the last change.`,
         "",
         ...STUDIO_SIGNATURE,
       ]

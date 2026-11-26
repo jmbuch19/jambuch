@@ -15,7 +15,9 @@
 // 2026-11-26.1: the legal entity is named ("we" = Varta Vishva); two ways to make a story:
 // Studio-made and Varta Vishva Directors (₹999 sample, a director's PC under safeguards,
 // limited weekly starts); the team's confidentiality and access logging.
-export const TERMS_VERSION = "2026-11-26.1";
+// 2026-11-26.2: full refund if a director hasn't started a directed order by the promised start
+// date, effective from the day Varta Vishva Directors opens (creators.flow.directed.opens_on).
+export const TERMS_VERSION = "2026-11-26.2";
 
 export const CONSENT_LANGS = { en: "English", gu: "ગુજરાતી", hi: "हिन्दी" } as const;
 export type ConsentLang = keyof typeof CONSENT_LANGS;

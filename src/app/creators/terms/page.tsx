@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { legalEntity, legalLine } from "@/lib/creators/legal";
+import { directedSettings } from "@/lib/creators/team";
 import { CONSENT_LANGS, CONSENT_TEXT, SUBMISSION_CONSENTS, SUMMARY, TERMS_VERSION, type ConsentLang } from "@/lib/creators/terms";
 import LibraryHeader from "../../library/header";
 import h from "../../home.module.css";
@@ -18,7 +19,8 @@ export const metadata: Metadata = {
 export const revalidate = 300;
 
 export default async function TermsPage() {
-  const legal = await legalEntity();
+  const [legal, directed] = await Promise.all([legalEntity(), directedSettings()]);
+  const opens = new Date(`${directed.opens_on}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
   return (
     <>
       <LibraryHeader cta={{ href: "/creators/start", label: "Start your story" }} />
@@ -111,6 +113,10 @@ export default async function TermsPage() {
               plan is a change, not a mistake.
             </li>
             <li>If you are charged twice for the same thing, the extra payment is refunded automatically.</li>
+            <li>
+              Varta Vishva Directors, from the day it opens ({opens}): if your director has not started your order by the
+              start date we promised you, everything you paid for that order is refunded in full.
+            </li>
             <li>The advance is not refundable once production has started, unless we cannot deliver; then it is refunded in full.</li>
             <li>There is no refund after the clean files are downloaded. You are asked to confirm before downloading.</li>
             <li>Nothing is charged for a story our checks or we refuse before the plan: payment starts only after you approve the plan.</li>

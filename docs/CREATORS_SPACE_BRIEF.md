@@ -1534,18 +1534,34 @@ reviewed by a lawyer before launch; the list below is the content, not legal tex
 
 ## 8. Refund policy (shown before every payment)
 
-- **The sample is free** (22 Nov 2026), so there is nothing to refund before or after it.
-- **Advance (50%):** not refundable once production has started, except if
-  we cannot deliver; then refunded in full.
-- **After the clean files are downloaded:** **no refund.** The download is logged
-  with date and time; the writer is warned in a confirm box before downloading.
-- **Inactivity before the sample** (script not approved in 14 days): order
-  cancelled, files deleted.
-- **Order refused** by screening or by the reviewer before the sample: full refund.
-- **A package withdrawn** because a provider changed or stopped (disclaimer 9):
-  unused payments refunded.
-- **Series Storage:** monthly fee not refundable for the month already started.
-- Refunds go back through Razorpay to the original payment method.
+Matches the live terms (`/creators/terms` §3, TERMS_VERSION 2026-11-26.2). If they ever
+differ, the live terms are what writers agreed to; fix this section.
+
+- **Nothing is charged before the plan:** a story refused by our checks or by the reviewer
+  before the plan costs nothing; payment starts only after the writer approves the plan.
+- **Sample fee** (₹499 studio-made, ₹999 Varta Vishva Directors; settings): paid after the plan
+  is approved, deducted from the full price if the writer goes ahead; **not refunded** if the
+  writer stops after the sample (it paid for the sample).
+- **Sample not delivered within 3 days** of paying for it: the sample fee is refunded in full,
+  **automatically** (daily payment checks).
+- **Sample doesn't follow the approved plan:** made again **once, free** (admin "free remake"). A
+  new wish that isn't in the plan is a change, not a mistake.
+- **Charged twice** for the same thing: the extra payment is refunded **automatically**.
+- **Directed order not started by the promised start date:** everything paid for that order is
+  refunded in full, from the day Varta Vishva Directors opens (`creators.flow.directed.opens_on`).
+  Refunded by the admin's one-click refund (reason "our mistake"); a daily check can automate it
+  once directed production is built.
+- **Advance:** not refundable once production has started, unless we cannot deliver; then
+  refunded in full.
+- **After the clean files are downloaded:** no refund. The download is logged with date and
+  time; the writer confirms in a box before downloading.
+- **Unfinished requests** (before any payment): a reminder on day 3; the request and its story
+  are deleted 14 days after the writer's last change. Nothing to refund.
+- **A package withdrawn** because a provider changed or stopped: unused payments refunded.
+- **Series Storage** (when it exists): the monthly fee is not refundable for a month already
+  started.
+- Refunds go back through Razorpay to the original payment method; a credit note for each
+  (once invoices exist, §9).
 
 ---
 

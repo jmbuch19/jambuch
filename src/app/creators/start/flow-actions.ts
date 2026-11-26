@@ -1,5 +1,6 @@
 "use server";
 
+import { LIMITS as RULES } from "@/lib/creators/limits";
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { sendEmail } from "@/lib/email";
@@ -51,6 +52,7 @@ import {
   overCap,
   pricingSettings,
   type CostLog,
+  type FlowSettings,
 } from "@/lib/creators/flow";
 import { priceOne, inputFrom, isDirected, priceRange, type Quote } from "@/lib/creators/pricing";
 import {
@@ -413,7 +415,7 @@ export async function consentAndScreen(id: string, form: FormData): Promise<Scre
   return screenAndRoute({ ...r, story, d, prices, settings, origin });
 }
 
-const MAX_RECHECKS = 3;
+const MAX_RECHECKS = RULES.rechecks;
 
 // The writer's words when a story can't be made (Gujarati and Hindi: drafts for the admin to check).
 const FRESH_IDEA: Record<ConsentLang, string> = {
@@ -851,11 +853,9 @@ export type PlanResult = {
   stopped?: boolean;
 };
 
-const DELIVERY_DAYS: Record<string, number> = { basic: 5, standard: 10, premium: 21 };
-// Varta Vishva Directors (26 Nov 2026): a director's own pace (audio about a week, video two).
-const DIRECTED_DAYS: Record<string, number> = { basic: 7, standard: 14, premium: 28 };
-
-function quoteSummary(q: Quote, level: string) {
+// Delivery days come from the flow settings (delivery_days), the same numbers the FAQ shows.
+function quoteSummary(q: Quote, level: string, days: FlowSettings["delivery_days"]) {
+  const lv = (["basic", "standard", "premium"].includes(level) ? level : "standard") as "basic" | "standard" | "premium";
   const minutes = q.episodes.reduce((a, e) => a + e.breakdown.minutes, 0);
   return {
     total: q.total,
@@ -867,8 +867,8 @@ function quoteSummary(q: Quote, level: string) {
     // Worst case: the level's days, plus 3 per extra episode (5 when directed).
     days:
       q.input.service === "directed"
-        ? (DIRECTED_DAYS[level] ?? 14) + 5 * (q.episodes.length - 1)
-        : (DELIVERY_DAYS[level] ?? 10) + 3 * (q.episodes.length - 1),
+        ? days.directed[lv] + days.extra_episode.directed * (q.episodes.length - 1)
+        : days.studio[lv] + days.extra_episode.studio * (q.episodes.length - 1),
     directed: q.input.service === "directed",
   };
 }
@@ -885,7 +885,7 @@ export async function makePlanAction(id: string, change?: string): Promise<PlanR
       plan: (await readPlan(id, r.plan_version)) ?? "",
       version: r.plan_version,
       roundsLeft: Math.max(0, settings.max_plan_rounds - r.plan_rounds),
-      quote: quoteSummary(r.quote, level),
+      quote: quoteSummary(r.quote, level, (await flowSettings()).delivery_days),
     };
   }
   if (change && r.plan_rounds >= settings.max_plan_rounds) return { error: "No more changes here. Choose “Let’s discuss” and we’ll talk it through." };
@@ -958,7 +958,7 @@ export async function makePlanAction(id: string, change?: string): Promise<PlanR
     plan_rounds: r.plan_rounds + (change ? 1 : 0),
     style_tags: tags,
   });
-  return { plan, version, roundsLeft: Math.max(0, settings.max_plan_rounds - r.plan_rounds - (change ? 1 : 0)), quote: quoteSummary(q, level) };
+  return { plan, version, roundsLeft: Math.max(0, settings.max_plan_rounds - r.plan_rounds - (change ? 1 : 0)), quote: quoteSummary(q, level, settings.delivery_days) };
 }
 
 export async function discussPlan(id: string): Promise<{ ok: boolean }> {
