@@ -82,7 +82,7 @@ export default async function Home() {
           <div className={s.heroMain}>
             <LogoIntro />
             {g("hero.name") && <p className={`gu ${s.heroGu}`}>{g("hero.name")}</p>}
-            <h1 className={s.heroName}>{t("hero.name") || "Jaydeep Buch"}</h1>
+            <h1 className={s.heroName}>{t("hero.name") || "Vartavishva"}</h1>
             <p className={s.heroIntro}>{inline(t("hero.intro"))}</p>
             <div className={s.buttons}>
               <a href="#projects" className={s.btnDark}>

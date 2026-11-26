@@ -46,7 +46,7 @@ const gujaratiLatin = localFont({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://jambuch.in"),
-  title: "Jaydeep Buch",
+  title: "Vartavishva",
   description:
     "We carry world literature into Gujarati, guide students toward study abroad, and build software for the causes we care about. From Ahmedabad.",
   // Added to an iPhone's home screen, it opens full screen like an app.

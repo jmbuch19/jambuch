@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/",
     name: "jambuch",
     short_name: "jambuch",
-    description: "Jaydeep Buch's translations into Gujarati, to read anywhere, one tap from your home screen.",
+    description: "Vartavishva's translations into Gujarati, to read anywhere, one tap from your home screen.",
     lang: "gu",
     start_url: "/continue",
     scope: "/",
