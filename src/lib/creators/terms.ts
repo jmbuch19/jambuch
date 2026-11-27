@@ -17,7 +17,9 @@
 // limited weekly starts); the team's confidentiality and access logging.
 // 2026-11-26.2: full refund if a director hasn't started a directed order by the promised start
 // date, effective from the day Varta Vishva Directors opens (creators.flow.directed.opens_on).
-export const TERMS_VERSION = "2026-11-26.2";
+// 2026-11-27.1: Gujarati plan-approval tick says "સામગ્રીમાં ફેરફાર" (content change), as the FAQ;
+// meaning unchanged.
+export const TERMS_VERSION = "2026-11-27.1";
 
 export const CONSENT_LANGS = { en: "English", gu: "ગુજરાતી", hi: "हिन्दी" } as const;
 export type ConsentLang = keyof typeof CONSENT_LANGS;
@@ -89,7 +91,7 @@ export const CONSENT_TEXT: Record<ConsentKind, Record<ConsentLang, string>> = {
   },
   plan_baseline: {
     en: "I approve this creative plan and script. They are the baseline for deciding whether a later error is your mistake (fixed free) or my content change.",
-    gu: "હું આ ક્રિએટિવ પ્લાન અને સ્ક્રિપ્ટ મંજૂર કરું છું. પછીની ભૂલ તમારી છે (મફત સુધારો) કે મારો વિષય-ફેરફાર છે, તે આના આધારે નક્કી થશે.",
+    gu: "હું આ ક્રિએટિવ પ્લાન અને સ્ક્રિપ્ટ મંજૂર કરું છું. પછીની ભૂલ તમારી છે (મફત સુધારો) કે મારા તરફથી સામગ્રીમાં ફેરફાર છે, તે આના આધારે નક્કી થશે.",
     hi: "मैं यह क्रिएटिव योजना और स्क्रिप्ट स्वीकार करता/करती हूँ। बाद की कोई गलती आपकी है (मुफ़्त सुधार) या मेरा सामग्री-बदलाव, यह इन्हीं के आधार पर तय होगा।",
   },
   deletion_ack: {

@@ -32,7 +32,7 @@ Fixed today (clear errors only; consent ticks untouched, so TERMS_VERSION unchan
 Owner's answers (27 Nov), applied everywhere in the Creator's Space: 1 હપ્તો / कड़ी; 2 ગુણવત્તા સ્તર
 (Hindi likewise गुणवत्ता स्तर, plain "level" = સ્તર / स्तर); 3 keep સુંદર / सुंदर; 4 પબ્લિક ડોમેન (Hindi
 पब्लिक डोमेन, as the FAQ); 5 ધીમા સ્વર; 6 keep તીખો; 7 ઑડિયો, ઇમેઇલ, હલતાં ચિત્રો. Item 8 (consent
-tick wording) not answered: left unchanged.
+tick wording): yes, "સામગ્રીમાં ફેરફાર" in the Gujarati plan-approval tick; TERMS_VERSION 2026-11-27.1.
 
 The questions as asked:
 1. Episode: GU "એપિસોડ" (question flow) or "હપ્તો" (FAQ)? HI "एपिसोड" or "कड़ी"?

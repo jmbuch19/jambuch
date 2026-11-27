@@ -1583,7 +1583,7 @@ reviewed by a lawyer before launch; the list below is the content, not legal tex
 
 ## 8. Refund policy (shown before every payment)
 
-Matches the live terms (`/creators/terms` §3, TERMS_VERSION 2026-11-26.2). If they ever
+Matches the live terms (`/creators/terms` §3, TERMS_VERSION 2026-11-27.1). If they ever
 differ, the live terms are what writers agreed to; fix this section.
 
 - **Nothing is charged before the plan:** a story refused by our checks or by the reviewer
