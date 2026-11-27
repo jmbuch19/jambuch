@@ -789,6 +789,55 @@ The full plan for team members using the engine, and for repo security, is in
 - `client-purge`: daily, deletes order folders 7 days after delivery (date from the site),
   logging each deletion for the certificate.
 
+## 6K. The decision board: the creator dashboard (owner's decision, 26 Nov 2026)
+
+**The spec is the engine repo's `docs/decision-board.md`** (private repo; read it there, never
+copy it into this public repo). It gives the writer the same workflow the owner has with
+Claude on the home PC: the engine shows its work, the writer decides, the decision is locked,
+the next stage starts. This section only records what the site must do and in what order.
+
+**Order of work:** engine portability comes first (§6F "Engine work needed": no `D:/` paths,
+library on R2, an open font). **The website build of the board comes after that.** For now
+this section and the screen plan below are the whole deliverable; nothing is built yet.
+
+### What the spec fixes (the site follows it, does not redesign it)
+- **Six cards, in order:** 1 Plan · 2 How it will feel · 3 Voices · 4 Listen to these
+  moments · 5 Pictures · 6 Final. A card opens only when the card before it is locked.
+- **One review pack per card** (`review/<card>.json`, written by the engine): a common header
+  (version, status ready / failed / locked, finish level, questions with the recommended
+  answer first) plus that card's fields. The site only reads packs; it never invents content.
+- **`decisions.json` is the lock:** one file per project, append-only. A change is a new
+  decision that supersedes the old one, never an edit. Each decision records the pack
+  version the writer saw, so no one decides on a stale pack. A redo after a locked card is a
+  content change (the writer's); a result that contradicts a locked decision is ours (§6E).
+- **One agent run per card:** a run does that card's work, writes its pack and ends. The
+  next run starts from `decisions.json`. No run spends beyond the locked plan and quote;
+  per-job and per-day caps are enforced by the engine, not by the agent's judgment.
+- **Sample and clip counts are settings per finish level**, never the agent's choice
+  (mood samples, voice samples per character, flagged clips, picture approvals: Basic fewest,
+  Premium most; numbers in the spec, stored in `settings`).
+- **Two views of every card:** the **writer view** (default) is plain language, ▶ for
+  everything audible, one decision per question, no engine words (no hold, bed, trigger, dB,
+  LUFS); moods are described, never named. The **director view** is a toggle showing the
+  engine's fields, for the owner, a Varta Vishva Director (§6J) or an advanced creator.
+  Gujarati, Hindi and English, like the rest of the Creator's Space.
+
+### Screen plan (to build later, after engine portability)
+| Screen | Where | What it does |
+|---|---|---|
+| Board | `/creators/order/<id>` (replaces the progress bar in §4 step 6 once production starts) | Six cards in a row (a list on a phone); each shows locked ✓ / ready for you / being made / failed. Only the current card is open. |
+| Card | `/creators/order/<id>/<card>` | Reads that card's pack: the plain fields, ▶ players, the questions with the recommended answer first and what happens if skipped. "Approve all as suggested" where the spec allows it. |
+| Voices card extra | same | "How do you say these names?": a text box and a 🎙 record button per word (recording is guidance only, deleted with the project, §6B). |
+| Final card extra | same | The video with "flag a moment" (timestamp + note), feeding §6E. |
+| Director toggle | every card | Shows the pack's `director` fields read-only; editing stays on the engine side. Shown only to the owner, directors and creators who turn it on. |
+| Decision history | `/creators/order/<id>/history` | Every decision in plain words: what, by whom, when, what it replaced. Also on `/admin/creators/<id>`. |
+| Admin | `/admin/creators/<id>` | The same board, the director view on, with "retry this card" and the run log (cost per run). |
+
+Site rules: a writer's answer is written as a new decision through a server action (checked
+against the pack version, rejected if stale), and that starts the next card's run. Packs,
+clips and pictures live under `creators/<id>/` on private R2 and are played by signed links.
+Watermarking (§4 step 7) applies to every clip and picture on the board.
+
 ## 6G. Batch mode for full-production Claude steps (LATER: Phase 3, after the first 50 orders)
 
 Owner's decision, 24 Nov 2026: **not for launch.** Switch it on only after the first 50

@@ -1,5 +1,12 @@
 # Creator's Space — progress
 
+## 27 Nov 2026 — decision board referenced in the brief (§6K)
+
+- Brief §6K added: the creator dashboard follows the engine repo's `docs/decision-board.md`
+  (six cards, review pack per card, append-only `decisions.json`, one agent run per card,
+  sample limits per finish level, writer view + director view), plus a screen plan.
+- Nothing built. The website board comes **after engine portability** (§6F).
+
 ## 24 Nov 2026 — safeguards before any Claude work (branch `creators-space`)
 
 Built (brief §6A "Safeguards", §7A "Screening"):
