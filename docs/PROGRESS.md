@@ -7,6 +7,39 @@
   sample limits per finish level, writer view + director view), plus a screen plan.
 - Nothing built. The website board comes **after engine portability** (§6F).
 
+## 27 Nov 2026 — go-live list checked; Gujarati/Hindi first pass
+
+Status of "Still open before going live" (24 Nov list):
+- Story copy in the studio email: **done** (story is in private R2 with automatic deletion; emails carry only a link).
+- First live test of the Claude calls: **done** (3 live requests: screening, plan, quote, one sample sent, 24–25 Nov).
+- Merge `creators-space` into main: **done** (25 Nov).
+- Real asset-catalog words: **site side done** (library.ts maps the style words to catalog cards);
+  waits for the home PC to export `media/assets/catalog.json`. Until then sounds fall back to Freesound.
+- Gujarati/Hindi wording: **first pass done today** (all 496 lines read); owner's choices below still open.
+- Not built, each waiting on something outside the code: final 50% payment (production preview),
+  GST invoices (CA), 15-second example clips (the clips), own-voice upload (after the sample).
+
+Fixed today (clear errors only; consent ticks untouched, so TERMS_VERSION unchanged):
+- FAQ Gujarati: "કયી" → "કઈ"; "ચૂકવણી" → "ચુકવણી"; lip-sync was "હોઠનું મેળવણું" (મેળવણ = curd
+  starter) → "શબ્દો સાથે હોઠ મેળવીને બોલતા ચહેરા (લિપ-સિંક)"; mood plan "ભાવ-યોજના" → "લાગણી-યોજના"
+  (ભાવ also means price on the same pages); Anthropic training sentence and "can't pass our content
+  guidelines" made grammatical (GU and HI).
+- Hindi: "श्रृंखला" → "शृंखला" (4×); whispers "धीमी आवाज़" → "फुसफुसाहट" (as in the question flow);
+  voice label Warm "गर्म" (= hot) → "गर्मजोशी भरी".
+- Question flow GU: "નિર્દેશિત" → "દિગ્દર્શિત" (as everywhere else).
+- Payment emails (sample paid, advance paid) had no Hindi: Hindi-story writers got English only. Now Hindi first.
+
+Owner's choices (one word each; then they are applied everywhere):
+1. Episode: GU "એપિસોડ" (question flow) or "હપ્તો" (FAQ)? HI "एपिसोड" or "कड़ी"?
+2. Finish level: GU "ફિનિશ લેવલ" (FAQ), "ગુણવત્તા સ્તર" (question) or "સ્તર" (level picker)?
+3. Standard = "સુંદર / सुंदर" (means "beautiful"): keep, or e.g. "માનક / मानक"?
+4. Public domain: "સાર્વજનિક" (question) or "પબ્લિક ડોમેન" (FAQ)? Same in Hindi.
+5. Whispers in Gujarati: "ધીમા સ્વર / ધીમો અવાજ" (= soft voice) or "ગુસપુસ"?
+6. Sharp voice: GU "તીખો" or "તીણો"?
+7. Spellings: "ઓડિયો" or "ઑડિયો"; "ઇમેલ" or "ઇમેઇલ"; "ચાલતાં" or "હલતાં ચિત્રો".
+8. Consent tick (plan approval): GU says "વિષય-ફેરફાર", FAQ says "સામગ્રીમાં ફેરફાર" for a content
+   change. Changing a tick's words needs a new TERMS_VERSION; say if you want it.
+
 ## 24 Nov 2026 — safeguards before any Claude work (branch `creators-space`)
 
 Built (brief §6A "Safeguards", §7A "Screening"):

@@ -608,7 +608,7 @@ export function LookStep({ id, lang, answers, cd, setCd, onDone }: StepProps) {
 // ---------------------------------------------------------------- 6.1 characters
 
 const VOICE_LABEL: Record<string, L> = {
-  warm: { en: "Warm", gu: "હૂંફાળો", hi: "गर्म" },
+  warm: { en: "Warm", gu: "હૂંફાળો", hi: "गर्मजोशी भरी" },
   deep: { en: "Deep", gu: "ઘેરો", hi: "गहरी" },
   young: { en: "Young", gu: "યુવાન", hi: "युवा" },
   old: { en: "Old", gu: "વૃદ્ધ", hi: "वृद्ध" },

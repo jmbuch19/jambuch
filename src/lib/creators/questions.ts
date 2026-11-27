@@ -528,7 +528,7 @@ export const QUESTIONS: Question[] = [
       {
         id: "dramatised",
         label: { en: "Dramatised (emotion, pauses, whispers)", gu: "નાટ્યાત્મક (લાગણી, વિરામ, ધીમા સ્વર)", hi: "नाटकीय (भाव, विराम, फुसफुसाहट)" },
-        hint: { en: "You approve the directed script first", gu: "પહેલાં તમે નિર્દેશિત સ્ક્રિપ્ટ મંજૂર કરો", hi: "पहले आप निर्देशित स्क्रिप्ट स्वीकार करें" },
+        hint: { en: "You approve the directed script first", gu: "પહેલાં તમે દિગ્દર્શિત સ્ક્રિપ્ટ મંજૂર કરો", hi: "पहले आप निर्देशित स्क्रिप्ट स्वीकार करें" },
       },
     ],
   },

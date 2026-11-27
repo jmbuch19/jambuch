@@ -130,7 +130,7 @@ export function faqSections(c: FaqCtx): FaqSection[] {
                 t(
                   "Video with moving paintings: a series of illustrations with gentle camera movement, music, sound and captions.",
                   "ચાલતાં ચિત્રોવાળો વીડિયો: હળવી કૅમેરા-ગતિ, સંગીત, ધ્વનિ અને કૅપ્શન સાથે ચિત્રોની શ્રેણી.",
-                  "चलते चित्रों वाला वीडियो: हल्की कैमरा-गति, संगीत, ध्वनि और कैप्शन के साथ चित्रों की श्रृंखला।",
+                  "चलते चित्रों वाला वीडियो: हल्की कैमरा-गति, संगीत, ध्वनि और कैप्शन के साथ चित्रों की शृंखला।",
                 ),
                 t(
                   "Shorts pack: 3 or 5 vertical clips for YouTube Shorts, Reels or WhatsApp status (with any video).",
@@ -172,7 +172,7 @@ export function faqSections(c: FaqCtx): FaqSection[] {
                 f.directed_approvals
                   ? t(
                       "Varta Vishva Directors: a director from our team works on your story personally: a call within 2 days, a mood plan for you to approve, voiced excerpts for you to approve, and a sheet of the pictures before the final, with up to 2 rounds of changes at each step. It takes longer and costs more. Premium is always made by our directors.",
-                      "વાર્તા વિશ્વ દિગ્દર્શકો દ્વારા: અમારી ટીમના દિગ્દર્શક તમારી વાર્તા પર જાતે કામ કરે છે: 2 દિવસમાં ફોન, તમારી મંજૂરી માટે ભાવ-યોજના, મંજૂરી માટે વાચનના અંશો, અને અંતિમ પહેલાં ચિત્રોની શીટ; દરેક પગલે 2 વખત સુધી ફેરફાર. વધુ સમય અને વધુ કિંમત. શ્રેષ્ઠ (Premium) હંમેશાં અમારા દિગ્દર્શકો બનાવે છે.",
+                      "વાર્તા વિશ્વ દિગ્દર્શકો દ્વારા: અમારી ટીમના દિગ્દર્શક તમારી વાર્તા પર જાતે કામ કરે છે: 2 દિવસમાં ફોન, તમારી મંજૂરી માટે લાગણી-યોજના, મંજૂરી માટે વાચનના અંશો, અને અંતિમ પહેલાં ચિત્રોની શીટ; દરેક પગલે 2 વખત સુધી ફેરફાર. વધુ સમય અને વધુ કિંમત. શ્રેષ્ઠ (Premium) હંમેશાં અમારા દિગ્દર્શકો બનાવે છે.",
                       "वार्ता विश्व के निर्देशकों द्वारा: हमारी टीम के निर्देशक आपकी कहानी पर खुद काम करते हैं: 2 दिन में फ़ोन, आपकी मंज़ूरी के लिए भाव-योजना, मंज़ूरी के लिए वाचन के अंश, और अंतिम से पहले चित्रों की शीट; हर चरण पर 2 बार तक बदलाव। ज़्यादा समय और ज़्यादा कीमत। श्रेष्ठ (Premium) हमेशा हमारे निर्देशक बनाते हैं।",
                     )
                   : t(
@@ -221,7 +221,7 @@ export function faqSections(c: FaqCtx): FaqSection[] {
             { p: t("We tell you up front, so there are no surprises:", "અમે પહેલેથી કહી દઈએ છીએ, જેથી પછી કોઈ આશ્ચર્ય ન થાય:", "हम पहले ही बता देते हैं, ताकि बाद में कोई हैरानी न हो:") },
             {
               ul: [
-                t("lip-synced talking faces;", "બોલતા ચહેરા સાથે હોઠનું મેળવણું;", "बोलते चेहरों के साथ होंठों का मेल;"),
+                t("lip-synced talking faces;", "શબ્દો સાથે હોઠ મેળવીને બોલતા ચહેરા (લિપ-સિંક);", "बोलते चेहरों के साथ होंठों का मेल;"),
                 t("an exact likeness of a real person;", "કોઈ સાચી વ્યક્તિનો હૂબહૂ ચહેરો;", "किसी असली व्यक्ति का हूबहू चेहरा;"),
                 t(
                   "readable text drawn inside paintings (we add text separately, clearly);",
@@ -343,7 +343,7 @@ export function faqSections(c: FaqCtx): FaqSection[] {
                 ({
                   en: `Yes. Stories over ${c.episodeChars.toLocaleString("en-IN")} characters are made as a series of episodes. We suggest where to split; you decide.`,
                   gu: `હા. ${c.episodeChars.toLocaleString("en-IN")}થી વધુ અક્ષરોની વાર્તાઓ હપ્તાઓની શ્રેણી તરીકે બને છે. ક્યાં ભાગ પાડવા તે અમે સૂચવીએ; નક્કી તમે કરો.`,
-                  hi: `हाँ। ${c.episodeChars.toLocaleString("en-IN")} से अधिक अक्षरों की कहानियाँ कड़ियों की श्रृंखला के रूप में बनती हैं। कहाँ बाँटना है हम सुझाते हैं; तय आप करते हैं।`,
+                  hi: `हाँ। ${c.episodeChars.toLocaleString("en-IN")} से अधिक अक्षरों की कहानियाँ कड़ियों की शृंखला के रूप में बनती हैं। कहाँ बाँटना है हम सुझाते हैं; तय आप करते हैं।`,
                 })[l],
               ),
             },
@@ -482,7 +482,7 @@ export function faqSections(c: FaqCtx): FaqSection[] {
                   ({
                     en: `Each extra episode of a series adds ${c.days.extra_episode.studio} days (${c.days.extra_episode.directed} with our directors).`,
                     gu: `શ્રેણીનો દરેક વધારાનો હપ્તો ${c.days.extra_episode.studio} દિવસ ઉમેરે છે (અમારા દિગ્દર્શકો સાથે ${c.days.extra_episode.directed}).`,
-                    hi: `श्रृंखला की हर अतिरिक्त कड़ी ${c.days.extra_episode.studio} दिन जोड़ती है (हमारे निर्देशकों के साथ ${c.days.extra_episode.directed})।`,
+                    hi: `शृंखला की हर अतिरिक्त कड़ी ${c.days.extra_episode.studio} दिन जोड़ती है (हमारे निर्देशकों के साथ ${c.days.extra_episode.directed})।`,
                   })[l],
                 ),
               ],
@@ -549,7 +549,7 @@ export function faqSections(c: FaqCtx): FaqSection[] {
                 t(
                   "Dramatised: emotion, pauses, whispers, characters acting their lines. You approve the directed script first.",
                   "નાટ્યાત્મક: ભાવ, વિરામ, ધીમો અવાજ, પાત્રો પોતાના સંવાદ ભજવે. પહેલાં તમે દિગ્દર્શિત સ્ક્રિપ્ટ મંજૂર કરો છો.",
-                  "नाटकीय: भाव, विराम, धीमी आवाज़, पात्र अपने संवाद निभाते हैं। पहले आप निर्देशित स्क्रिप्ट स्वीकार करते हैं।",
+                  "नाटकीय: भाव, विराम, फुसफुसाहट, पात्र अपने संवाद निभाते हैं। पहले आप निर्देशित स्क्रिप्ट स्वीकार करते हैं।",
                 ),
               ],
             },
@@ -606,7 +606,7 @@ export function faqSections(c: FaqCtx): FaqSection[] {
         },
         {
           id: "styles",
-          q: t("Which picture styles can I choose?", "કયી ચિત્ર-શૈલીઓ પસંદ કરી શકું?", "कौन-सी चित्र-शैलियाँ चुन सकता/सकती हूँ?"),
+          q: t("Which picture styles can I choose?", "કઈ ચિત્ર-શૈલીઓ પસંદ કરી શકું?", "कौन-सी चित्र-शैलियाँ चुन सकता/सकती हूँ?"),
           a: [
             {
               p: all((l) =>
@@ -761,7 +761,7 @@ export function faqSections(c: FaqCtx): FaqSection[] {
             {
               p: t(
                 "Your story is processed by Anthropic (Claude) and ElevenLabs to make your order. Anthropic deletes what we send within 30 days (content its safety systems flag may be kept up to 2 years) and may not train its models on our content. ElevenLabs keeps the text and audio in our account until we delete it: we delete your order's history when your order closes, and we keep its data-use setting off.",
-                "તમારો ઓર્ડર બનાવવા તમારી વાર્તા Anthropic (Claude) અને ElevenLabs પ્રોસેસ કરે છે. Anthropic અમે મોકલેલું 30 દિવસમાં ડિલીટ કરે છે (તેની સુરક્ષા-વ્યવસ્થા જેને ચિહ્નિત કરે તે 2 વર્ષ સુધી રહી શકે) અને અમારી સામગ્રી પર તેના મૉડલ તાલીમ ન આપી શકે. ElevenLabs લખાણ અને ઓડિયો અમે ડિલીટ ન કરીએ ત્યાં સુધી અમારા એકાઉન્ટમાં રાખે છે: ઓર્ડર બંધ થાય ત્યારે અમે તમારા ઓર્ડરનો ઇતિહાસ ડિલીટ કરીએ છીએ, અને તેનું ડેટા-ઉપયોગ સેટિંગ બંધ રાખીએ છીએ.",
+                "તમારો ઓર્ડર બનાવવા તમારી વાર્તા Anthropic (Claude) અને ElevenLabs પ્રોસેસ કરે છે. Anthropic અમે મોકલેલું 30 દિવસમાં ડિલીટ કરે છે (તેની સુરક્ષા-વ્યવસ્થા જેને ચિહ્નિત કરે તે 2 વર્ષ સુધી રહી શકે) અને અમારી સામગ્રીથી પોતાના મૉડલને તાલીમ આપી શકતું નથી. ElevenLabs લખાણ અને ઓડિયો અમે ડિલીટ ન કરીએ ત્યાં સુધી અમારા એકાઉન્ટમાં રાખે છે: ઓર્ડર બંધ થાય ત્યારે અમે તમારા ઓર્ડરનો ઇતિહાસ ડિલીટ કરીએ છીએ, અને તેનું ડેટા-ઉપયોગ સેટિંગ બંધ રાખીએ છીએ.",
                 "आपका ऑर्डर बनाने के लिए आपकी कहानी Anthropic (Claude) और ElevenLabs प्रोसेस करते हैं। Anthropic हमारा भेजा 30 दिनों में मिटा देता है (उसकी सुरक्षा-व्यवस्था जिसे चिह्नित करे वह 2 वर्ष तक रह सकता है) और हमारी सामग्री पर अपने मॉडल को प्रशिक्षित नहीं कर सकता। ElevenLabs लेख और ऑडियो हमारे मिटाने तक हमारे खाते में रखता है: ऑर्डर बंद होने पर हम आपके ऑर्डर का इतिहास मिटाते हैं, और उसकी डेटा-उपयोग सेटिंग बंद रखते हैं।",
               ),
               link: { href: "/creators/privacy", label: t("Full details in our privacy policy", "પૂરી વિગત અમારી ગોપનીયતા નીતિમાં", "पूरी जानकारी हमारी गोपनीयता नीति में") },
@@ -798,7 +798,7 @@ export function faqSections(c: FaqCtx): FaqSection[] {
           ? [
               {
                 id: "series",
-                q: t("My story is a series. Do you delete each episode?", "મારી વાર્તા શ્રેણી છે. શું તમે દરેક હપ્તો ડિલીટ કરો છો?", "मेरी कहानी श्रृंखला है। क्या आप हर कड़ी मिटाते हैं?"),
+                q: t("My story is a series. Do you delete each episode?", "મારી વાર્તા શ્રેણી છે. શું તમે દરેક હપ્તો ડિલીટ કરો છો?", "मेरी कहानी शृंखला है। क्या आप हर कड़ी मिटाते हैं?"),
                 a: [
                   {
                     p: t(
@@ -907,8 +907,8 @@ export function faqSections(c: FaqCtx): FaqSection[] {
               ul: [
                 t(
                   "If we can't make your story at all (for example, it can't pass our content guidelines), nothing is charged: payment starts only after you approve the plan.",
-                  "જો અમે તમારી વાર્તા બનાવી જ ન શકીએ (જેમ કે અમારી સામગ્રી-માર્ગદર્શિકા પાર ન કરે), તો કોઈ ચાર્જ નથી: ચુકવણી યોજના મંજૂર કર્યા પછી જ શરૂ થાય છે.",
-                  "अगर हम आपकी कहानी बना ही न सकें (जैसे हमारी सामग्री-दिशानिर्देश पार न करे), तो कोई शुल्क नहीं: भुगतान योजना स्वीकार करने के बाद ही शुरू होता है।",
+                  "જો અમે તમારી વાર્તા બનાવી જ ન શકીએ (જેમ કે અમારી સામગ્રી-માર્ગદર્શિકામાં બંધબેસતી ન હોય), તો કોઈ ચાર્જ નથી: ચુકવણી યોજના મંજૂર કર્યા પછી જ શરૂ થાય છે.",
+                  "अगर हम आपकी कहानी बना ही न सकें (जैसे हमारे सामग्री-दिशानिर्देशों पर खरी न उतरे), तो कोई शुल्क नहीं: भुगतान योजना स्वीकार करने के बाद ही शुरू होता है।",
                 ),
                 t(
                   "The sample fee is not refunded if you decide to stop after the sample: it paid for the sample.",
@@ -918,7 +918,7 @@ export function faqSections(c: FaqCtx): FaqSection[] {
                 all((l) =>
                   ({
                     en: `If your sample isn't delivered within ${c.sampleRefundDays} days of paying for it, the sample fee is refunded in full, automatically.`,
-                    gu: `ચૂકવણીના ${c.sampleRefundDays} દિવસમાં તમારો નમૂનો ન મળે તો નમૂનાની પૂરી ફી આપમેળે પાછી મળે છે.`,
+                    gu: `ચુકવણીના ${c.sampleRefundDays} દિવસમાં તમારો નમૂનો ન મળે તો નમૂનાની પૂરી ફી આપમેળે પાછી મળે છે.`,
                     hi: `भुगतान के ${c.sampleRefundDays} दिनों में आपका नमूना न मिले तो पूरा नमूना शुल्क अपने आप वापस मिलता है।`,
                   })[l],
                 ),

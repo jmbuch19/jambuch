@@ -151,18 +151,31 @@ export async function paymentPaid(razorpayOrderId: string, paymentId: string, so
   const { data: r } = await db.from("creator_requests").select("id, name, email, language").eq("id", p.request_id).maybeSingle();
   if (r) {
     const rupees = `₹${(p.amount_paise / 100).toLocaleString("en-IN")}`;
-    const gu = r.language === "gu";
+    // Gujarati or Hindi first for a story in that language, with the English below.
+    const lang: "gu" | "hi" | null = r.language === "gu" || r.language === "hi" ? r.language : null;
     const what =
       p.kind === "sample"
-        ? { gu: `તમારા નમૂનાના ${rupees} મળી ગયા. નમૂનો હવે બને છે; તૈયાર થશે ત્યારે ઇમેલ કરીશું.`, en: `We have received ${rupees} for your sample. It is being made now; we'll email you when it is ready.` }
-        : { gu: `તમારું ${rupees}નું એડવાન્સ મળી ગયું. તમારી વાર્તાનું કામ હવે શરૂ થાય છે.`, en: `We have received your advance of ${rupees}. Work on your story now begins.` };
+        ? {
+            gu: `તમારા નમૂનાના ${rupees} મળી ગયા. નમૂનો હવે બને છે; તૈયાર થશે ત્યારે ઇમેલ કરીશું.`,
+            hi: `आपके नमूने के ${rupees} मिल गए। नमूना अब बन रहा है; तैयार होने पर हम ईमेल करेंगे।`,
+            en: `We have received ${rupees} for your sample. It is being made now; we'll email you when it is ready.`,
+          }
+        : {
+            gu: `તમારું ${rupees}નું એડવાન્સ મળી ગયું. તમારી વાર્તાનું કામ હવે શરૂ થાય છે.`,
+            hi: `आपका ${rupees} का अग्रिम मिल गया। आपकी कहानी का काम अब शुरू होता है।`,
+            en: `We have received your advance of ${rupees}. Work on your story now begins.`,
+          };
+    const subjects = {
+      sample: { gu: "નમૂનાની ચુકવણી મળી · Sample payment received", hi: "नमूने का भुगतान मिला · Sample payment received", en: "Creator's Space: sample payment received" },
+      advance: { gu: "એડવાન્સ મળી ગયું · Advance received", hi: "अग्रिम मिल गया · Advance received", en: "Creator's Space: your advance is received" },
+    }[p.kind === "sample" ? "sample" : "advance"];
     await sendEmail({
       to: r.email,
-      subject: p.kind === "sample" ? (gu ? "નમૂનાની ચુકવણી મળી · Sample payment received" : "Creator's Space: sample payment received") : gu ? "એડવાન્સ મળી ગયું · Advance received" : "Creator's Space: your advance is received",
+      subject: subjects[lang ?? "en"],
       text: [
         `Dear ${r.name || "writer"},`,
         "",
-        gu ? what.gu : "",
+        lang ? what[lang] : "",
         what.en,
         `Razorpay payment: ${paymentId}`,
         "",
