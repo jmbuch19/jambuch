@@ -180,10 +180,15 @@ export default async function CreatorRequestsPage() {
       <p className={a.intro}>
         {lib.cards ? (
           <>
-            <b>{lib.cards} client-safe sounds</b> in the shared library (the engine’s export, media/assets/catalog.json).
+            <b>{lib.cards} client-safe sounds</b> in the shared library (the engine’s export, media/assets/catalog.json
+            {lib.exported_at ? `, exported ${lib.exported_at.slice(0, 16).replace("T", " ")} UTC` : ""}
+            {lib.in_file > lib.cards ? `; ${lib.in_file - lib.cards} in the file did not pass the site's checks` : ""}).
           </>
         ) : (
-          <b>No library export yet: samples use Freesound (CC0, or CC BY with a credit line) until the home PC exports it.</b>
+          <>
+            <b>No library export yet: samples use Freesound (CC0, or CC BY with a credit line) until the home PC exports it.</b>{" "}
+            {lib.problem ? `Why: ${lib.problem}.` : ""}
+          </>
         )}{" "}
         Style words with no client-safe sound yet: music {lib.music.join(", ") || "none"}; moods {lib.moods.join(", ") || "none"};
         effects {lib.sounds.join(", ") || "none"}.

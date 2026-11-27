@@ -38,14 +38,28 @@ export type Card = {
 const CATALOG_KEY = "media/assets/catalog.json";
 const ROTATE_RECENT = 20; // the uniqueness rule's 20-order window
 
-let cache: { at: number; cards: Card[] } | null = null;
+// What the last read found, for the admin page: why there are no cards, if there are none.
+type Status = { exported_at: string | null; in_file: number; problem: string | null };
+let cache: { at: number; cards: Card[]; status: Status } | null = null;
 
 // Client-safe cards only (checked again here, whatever the export contains).
 export async function catalog(): Promise<Card[]> {
-  if (cache && Date.now() - cache.at < 10 * 60_000) return cache.cards;
+  return (await load()).cards;
+}
+
+export async function catalogStatus(): Promise<Status> {
+  return (await load()).status;
+}
+
+async function load() {
+  // A good catalog is re-read every 10 minutes; a missing or broken one every minute.
+  if (cache && Date.now() - cache.at < (cache.cards.length ? 10 : 1) * 60_000) return cache;
   let cards: Card[] = [];
+  const status: Status = { exported_at: null, in_file: 0, problem: null };
   try {
-    const raw = JSON.parse(new TextDecoder().decode(await readPrivate(CATALOG_KEY))) as { cards?: Card[] };
+    const raw = JSON.parse(new TextDecoder().decode(await readPrivate(CATALOG_KEY))) as { exported_at?: string; cards?: Card[] };
+    status.exported_at = raw.exported_at ?? null;
+    status.in_file = raw.cards?.length ?? 0;
     cards = (raw.cards ?? []).filter(
       (c) =>
         (c.kind === "music" || c.kind === "sfx") &&
@@ -57,11 +71,13 @@ export async function catalog(): Promise<Card[]> {
         // CC BY needs its credit line; a card without one is not used.
         (!/\bCC BY\b|creativecommons\.org\/licenses\/by\//i.test(c.licence ?? "") || !!c.attribution),
     );
-  } catch {
+    if (status.in_file && !cards.length) status.problem = `the file has ${status.in_file} cards, but none passes the site's checks`;
+  } catch (e) {
     cards = []; // no export yet: everything falls back to Freesound
+    status.problem = e instanceof Error ? e.message : String(e);
   }
-  cache = { at: Date.now(), cards };
-  return cards;
+  cache = { at: Date.now(), cards, status };
+  return cache;
 }
 
 // The site's style words (vocabulary.ts) → what a card must show. Words of the cards come
@@ -201,5 +217,5 @@ export async function emptyTags() {
   const music = Object.keys(INSTRUMENT_TO_CARD).filter((m) => !cards.some((c) => musicMatches(c, [m], null) > 0));
   const moods = Object.keys(MOOD_TO_CARD).filter((m) => !cards.some((c) => musicMatches(c, [], m) > 0));
   const sounds = Object.keys(SOUND_WORDS).filter((s) => !cards.some((c) => soundMatches(c, s)));
-  return { cards: cards.length, music, moods, sounds };
+  return { cards: cards.length, music, moods, sounds, ...(await catalogStatus()) };
 }
