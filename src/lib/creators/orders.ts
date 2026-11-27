@@ -156,7 +156,7 @@ export async function paymentPaid(razorpayOrderId: string, paymentId: string, so
     const what =
       p.kind === "sample"
         ? {
-            gu: `તમારા નમૂનાના ${rupees} મળી ગયા. નમૂનો હવે બને છે; તૈયાર થશે ત્યારે ઇમેલ કરીશું.`,
+            gu: `તમારા નમૂનાના ${rupees} મળી ગયા. નમૂનો હવે બને છે; તૈયાર થશે ત્યારે ઇમેઇલ કરીશું.`,
             hi: `आपके नमूने के ${rupees} मिल गए। नमूना अब बन रहा है; तैयार होने पर हम ईमेल करेंगे।`,
             en: `We have received ${rupees} for your sample. It is being made now; we'll email you when it is ready.`,
           }

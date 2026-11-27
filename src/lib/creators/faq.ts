@@ -66,7 +66,7 @@ export function faqSections(c: FaqCtx): FaqSection[] {
             {
               p: t(
                 "We turn your written stories into narrated audio stories and illustrated videos, in Gujarati, Hindi or English. You write; we give your story a voice, pictures, music and sound.",
-                "અમે તમારી લખેલી વાર્તાઓને વાચન સાથેની ઓડિયો વાર્તાઓ અને ચિત્રો સાથેના વીડિયોમાં ફેરવીએ છીએ, ગુજરાતી, હિન્દી કે અંગ્રેજીમાં. તમે લખો; અમે તમારી વાર્તાને અવાજ, ચિત્રો, સંગીત અને ધ્વનિ આપીએ છીએ.",
+                "અમે તમારી લખેલી વાર્તાઓને વાચન સાથેની ઑડિયો વાર્તાઓ અને ચિત્રો સાથેના વીડિયોમાં ફેરવીએ છીએ, ગુજરાતી, હિન્દી કે અંગ્રેજીમાં. તમે લખો; અમે તમારી વાર્તાને અવાજ, ચિત્રો, સંગીત અને ધ્વનિ આપીએ છીએ.",
                 "हम आपकी लिखी कहानियों को वाचन वाली ऑडियो कहानियों और चित्रों वाले वीडियो में बदलते हैं, गुजराती, हिन्दी या अंग्रेज़ी में। आप लिखें; हम आपकी कहानी को आवाज़, चित्र, संगीत और ध्वनि देते हैं।",
               ),
             },
@@ -105,7 +105,7 @@ export function faqSections(c: FaqCtx): FaqSection[] {
             {
               p: t(
                 "No. The Courtyard on jambuch.in is a free space for sharing writing. The studio is a paid service that produces finished audio and video.",
-                "ના. jambuch.in પરનું Courtyard લખાણ વહેંચવાની મફત જગ્યા છે. સ્ટુડિયો એક પેઇડ સેવા છે, જે તૈયાર ઓડિયો અને વીડિયો બનાવે છે.",
+                "ના. jambuch.in પરનું Courtyard લખાણ વહેંચવાની મફત જગ્યા છે. સ્ટુડિયો એક પેઇડ સેવા છે, જે તૈયાર ઑડિયો અને વીડિયો બનાવે છે.",
                 "नहीं। jambuch.in पर Courtyard लेखन साझा करने की मुफ़्त जगह है। स्टूडियो एक सशुल्क सेवा है, जो तैयार ऑडियो और वीडियो बनाती है।",
               ),
             },
@@ -125,11 +125,11 @@ export function faqSections(c: FaqCtx): FaqSection[] {
           a: [
             {
               ul: [
-                t("Audio story: narration, with or without music and sound effects.", "ઓડિયો વાર્તા: વાચન, સંગીત અને ધ્વનિ-અસરો સાથે કે વગર.", "ऑडियो कहानी: वाचन, संगीत और ध्वनि-प्रभावों के साथ या बिना।"),
+                t("Audio story: narration, with or without music and sound effects.", "ઑડિયો વાર્તા: વાચન, સંગીત અને ધ્વનિ-અસરો સાથે કે વગર.", "ऑडियो कहानी: वाचन, संगीत और ध्वनि-प्रभावों के साथ या बिना।"),
                 t("Video with one picture: your narration over a single illustration.", "એક ચિત્રવાળો વીડિયો: એક જ ચિત્ર પર તમારી વાર્તાનું વાચન.", "एक चित्र वाला वीडियो: एक ही चित्र पर आपकी कहानी का वाचन।"),
                 t(
                   "Video with moving paintings: a series of illustrations with gentle camera movement, music, sound and captions.",
-                  "ચાલતાં ચિત્રોવાળો વીડિયો: હળવી કૅમેરા-ગતિ, સંગીત, ધ્વનિ અને કૅપ્શન સાથે ચિત્રોની શ્રેણી.",
+                  "હલતાં ચિત્રોવાળો વીડિયો: હળવી કૅમેરા-ગતિ, સંગીત, ધ્વનિ અને કૅપ્શન સાથે ચિત્રોની શ્રેણી.",
                   "चलते चित्रों वाला वीडियो: हल्की कैमरा-गति, संगीत, ध्वनि और कैप्शन के साथ चित्रों की शृंखला।",
                 ),
                 t(
@@ -143,13 +143,13 @@ export function faqSections(c: FaqCtx): FaqSection[] {
         },
         {
           id: "levels",
-          q: t("What are the finish levels?", "ફિનિશ લેવલ શું છે?", "फ़िनिश लेवल क्या हैं?"),
+          q: t("What are the finish levels?", "ગુણવત્તા સ્તર શું છે?", "गुणवत्ता स्तर क्या हैं?"),
           a: [
             {
               p: t(
                 `Basic (સરળ), Standard (સુંદર) and Premium (શ્રેષ્ઠ). Each level sets how many pictures, voices and extras you get.${f.level_examples ? " You can see the same short story at all three levels on our page before choosing." : ""}`,
-                `સરળ, સુંદર અને શ્રેષ્ઠ. દરેક લેવલ નક્કી કરે છે કે તમને કેટલાં ચિત્રો, અવાજો અને વધારાનું મળે.${f.level_examples ? " પસંદ કરતાં પહેલાં અમારા પેજ પર એક જ નાની વાર્તા ત્રણેય લેવલમાં જોઈ શકો છો." : ""}`,
-                `सरल, सुंदर और श्रेष्ठ। हर लेवल तय करता है कि आपको कितने चित्र, आवाज़ें और अतिरिक्त चीज़ें मिलें।${f.level_examples ? " चुनने से पहले हमारे पेज पर एक ही छोटी कहानी तीनों लेवल में देख सकते हैं।" : ""}`,
+                `સરળ, સુંદર અને શ્રેષ્ઠ. દરેક સ્તર નક્કી કરે છે કે તમને કેટલાં ચિત્રો, અવાજો અને વધારાનું મળે.${f.level_examples ? " પસંદ કરતાં પહેલાં અમારા પેજ પર એક જ નાની વાર્તા ત્રણેય સ્તરમાં જોઈ શકો છો." : ""}`,
+                `सरल, सुंदर और श्रेष्ठ। हर स्तर तय करता है कि आपको कितने चित्र, आवाज़ें और अतिरिक्त चीज़ें मिलें।${f.level_examples ? " चुनने से पहले हमारे पेज पर एक ही छोटी कहानी तीनों स्तरों में देख सकते हैं।" : ""}`,
               ),
             },
           ],
@@ -365,8 +365,8 @@ export function faqSections(c: FaqCtx): FaqSection[] {
               p: all((l) =>
                 ({
                   en: `Orders start at ${rs(c.minimum)}. Your exact price depends on length, format, finish level and extras, and you see a fixed quote before paying anything. The quote doesn't change unless you change your order.`,
-                  gu: `ઓર્ડર ${rs(c.minimum)}થી શરૂ થાય છે. ચોક્કસ કિંમત લંબાઈ, પ્રકાર, ફિનિશ લેવલ અને વધારાની પસંદગી પર આધાર રાખે છે, અને કંઈ ચૂકવતાં પહેલાં તમે નક્કી ભાવ જુઓ છો. તમે ઓર્ડર ન બદલો ત્યાં સુધી ભાવ બદલાતો નથી.`,
-                  hi: `ऑर्डर ${rs(c.minimum)} से शुरू होते हैं। सही कीमत लंबाई, प्रकार, फ़िनिश लेवल और अतिरिक्त चुनाव पर निर्भर है, और कुछ भी देने से पहले आप तय कीमत देखते हैं। आप ऑर्डर न बदलें तो कीमत नहीं बदलती।`,
+                  gu: `ઓર્ડર ${rs(c.minimum)}થી શરૂ થાય છે. ચોક્કસ કિંમત લંબાઈ, પ્રકાર, ગુણવત્તા સ્તર અને વધારાની પસંદગી પર આધાર રાખે છે, અને કંઈ ચૂકવતાં પહેલાં તમે નક્કી ભાવ જુઓ છો. તમે ઓર્ડર ન બદલો ત્યાં સુધી ભાવ બદલાતો નથી.`,
+                  hi: `ऑर्डर ${rs(c.minimum)} से शुरू होते हैं। सही कीमत लंबाई, प्रकार, गुणवत्ता स्तर और अतिरिक्त चुनाव पर निर्भर है, और कुछ भी देने से पहले आप तय कीमत देखते हैं। आप ऑर्डर न बदलें तो कीमत नहीं बदलती।`,
                 })[l],
               ),
             },
@@ -548,7 +548,7 @@ export function faqSections(c: FaqCtx): FaqSection[] {
                 t("Plain: clear, steady reading, like an audiobook.", "સાદું: સ્પષ્ટ, સ્થિર વાચન, ઑડિયોબુક જેવું.", "सादा: साफ़, स्थिर वाचन, ऑडियोबुक जैसा।"),
                 t(
                   "Dramatised: emotion, pauses, whispers, characters acting their lines. You approve the directed script first.",
-                  "નાટ્યાત્મક: ભાવ, વિરામ, ધીમો અવાજ, પાત્રો પોતાના સંવાદ ભજવે. પહેલાં તમે દિગ્દર્શિત સ્ક્રિપ્ટ મંજૂર કરો છો.",
+                  "નાટ્યાત્મક: ભાવ, વિરામ, ધીમા સ્વર, પાત્રો પોતાના સંવાદ ભજવે. પહેલાં તમે દિગ્દર્શિત સ્ક્રિપ્ટ મંજૂર કરો છો.",
                   "नाटकीय: भाव, विराम, फुसफुसाहट, पात्र अपने संवाद निभाते हैं। पहले आप निर्देशित स्क्रिप्ट स्वीकार करते हैं।",
                 ),
               ],
@@ -563,13 +563,13 @@ export function faqSections(c: FaqCtx): FaqSection[] {
               p: f.voice_previews
                 ? t(
                     "Yes. Depending on the level, your main characters can each have their own voice; you choose from voice previews.",
-                    "હા. લેવલ પ્રમાણે તમારાં મુખ્ય પાત્રોનો દરેકનો પોતાનો અવાજ હોઈ શકે; તમે અવાજના નમૂનામાંથી પસંદ કરો છો.",
-                    "हाँ। लेवल के अनुसार आपके मुख्य पात्रों की अपनी-अपनी आवाज़ हो सकती है; आप आवाज़ के नमूनों में से चुनते हैं।",
+                    "હા. સ્તર પ્રમાણે તમારાં મુખ્ય પાત્રોનો દરેકનો પોતાનો અવાજ હોઈ શકે; તમે અવાજના નમૂનામાંથી પસંદ કરો છો.",
+                    "हाँ। स्तर के अनुसार आपके मुख्य पात्रों की अपनी-अपनी आवाज़ हो सकती है; आप आवाज़ के नमूनों में से चुनते हैं।",
                   )
                 : t(
                     "Yes. Depending on the level, your main characters can each have their own voice; we choose voices that suit them.",
-                    "હા. લેવલ પ્રમાણે તમારાં મુખ્ય પાત્રોનો દરેકનો પોતાનો અવાજ હોઈ શકે; તેમને અનુરૂપ અવાજ અમે પસંદ કરીએ છીએ.",
-                    "हाँ। लेवल के अनुसार आपके मुख्य पात्रों की अपनी-अपनी आवाज़ हो सकती है; उनके अनुरूप आवाज़ें हम चुनते हैं।",
+                    "હા. સ્તર પ્રમાણે તમારાં મુખ્ય પાત્રોનો દરેકનો પોતાનો અવાજ હોઈ શકે; તેમને અનુરૂપ અવાજ અમે પસંદ કરીએ છીએ.",
+                    "हाँ। स्तर के अनुसार आपके मुख्य पात्रों की अपनी-अपनी आवाज़ हो सकती है; उनके अनुरूप आवाज़ें हम चुनते हैं।",
                   ),
             },
           ],
@@ -761,7 +761,7 @@ export function faqSections(c: FaqCtx): FaqSection[] {
             {
               p: t(
                 "Your story is processed by Anthropic (Claude) and ElevenLabs to make your order. Anthropic deletes what we send within 30 days (content its safety systems flag may be kept up to 2 years) and may not train its models on our content. ElevenLabs keeps the text and audio in our account until we delete it: we delete your order's history when your order closes, and we keep its data-use setting off.",
-                "તમારો ઓર્ડર બનાવવા તમારી વાર્તા Anthropic (Claude) અને ElevenLabs પ્રોસેસ કરે છે. Anthropic અમે મોકલેલું 30 દિવસમાં ડિલીટ કરે છે (તેની સુરક્ષા-વ્યવસ્થા જેને ચિહ્નિત કરે તે 2 વર્ષ સુધી રહી શકે) અને અમારી સામગ્રીથી પોતાના મૉડલને તાલીમ આપી શકતું નથી. ElevenLabs લખાણ અને ઓડિયો અમે ડિલીટ ન કરીએ ત્યાં સુધી અમારા એકાઉન્ટમાં રાખે છે: ઓર્ડર બંધ થાય ત્યારે અમે તમારા ઓર્ડરનો ઇતિહાસ ડિલીટ કરીએ છીએ, અને તેનું ડેટા-ઉપયોગ સેટિંગ બંધ રાખીએ છીએ.",
+                "તમારો ઓર્ડર બનાવવા તમારી વાર્તા Anthropic (Claude) અને ElevenLabs પ્રોસેસ કરે છે. Anthropic અમે મોકલેલું 30 દિવસમાં ડિલીટ કરે છે (તેની સુરક્ષા-વ્યવસ્થા જેને ચિહ્નિત કરે તે 2 વર્ષ સુધી રહી શકે) અને અમારી સામગ્રીથી પોતાના મૉડલને તાલીમ આપી શકતું નથી. ElevenLabs લખાણ અને ઑડિયો અમે ડિલીટ ન કરીએ ત્યાં સુધી અમારા એકાઉન્ટમાં રાખે છે: ઓર્ડર બંધ થાય ત્યારે અમે તમારા ઓર્ડરનો ઇતિહાસ ડિલીટ કરીએ છીએ, અને તેનું ડેટા-ઉપયોગ સેટિંગ બંધ રાખીએ છીએ.",
                 "आपका ऑर्डर बनाने के लिए आपकी कहानी Anthropic (Claude) और ElevenLabs प्रोसेस करते हैं। Anthropic हमारा भेजा 30 दिनों में मिटा देता है (उसकी सुरक्षा-व्यवस्था जिसे चिह्नित करे वह 2 वर्ष तक रह सकता है) और हमारी सामग्री पर अपने मॉडल को प्रशिक्षित नहीं कर सकता। ElevenLabs लेख और ऑडियो हमारे मिटाने तक हमारे खाते में रखता है: ऑर्डर बंद होने पर हम आपके ऑर्डर का इतिहास मिटाते हैं, और उसकी डेटा-उपयोग सेटिंग बंद रखते हैं।",
               ),
               link: { href: "/creators/privacy", label: t("Full details in our privacy policy", "પૂરી વિગત અમારી ગોપનીયતા નીતિમાં", "पूरी जानकारी हमारी गोपनीयता नीति में") },
@@ -1013,7 +1013,7 @@ export function faqSections(c: FaqCtx): FaqSection[] {
             {
               p: t(
                 "Video: MP4 (1920×1080; Shorts 1080×1920). Audio: MP3 (WAV on request). Also captions (SRT), a thumbnail, a credits file, and for YouTube a ready title, description and tags if you chose that extra.",
-                "વીડિયો: MP4 (1920×1080; Shorts 1080×1920). ઓડિયો: MP3 (માંગો તો WAV). ઉપરાંત કૅપ્શન (SRT), થંબનેલ, શ્રેયની ફાઇલ, અને તે વધારાનું પસંદ કર્યું હોય તો YouTube માટે તૈયાર શીર્ષક, વર્ણન અને ટૅગ.",
+                "વીડિયો: MP4 (1920×1080; Shorts 1080×1920). ઑડિયો: MP3 (માંગો તો WAV). ઉપરાંત કૅપ્શન (SRT), થંબનેલ, શ્રેયની ફાઇલ, અને તે વધારાનું પસંદ કર્યું હોય તો YouTube માટે તૈયાર શીર્ષક, વર્ણન અને ટૅગ.",
                 "वीडियो: MP4 (1920×1080; Shorts 1080×1920)। ऑडियो: MP3 (माँगने पर WAV)। साथ में कैप्शन (SRT), थंबनेल, श्रेय की फ़ाइल, और वह अतिरिक्त चुना हो तो YouTube के लिए तैयार शीर्षक, विवरण और टैग।",
               ),
             },

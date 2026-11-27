@@ -476,7 +476,7 @@ function SignInStep({ lang, signedIn, age18, setAge18 }: { lang: Lang; signedIn:
   const AGE: Record<Lang, string> = { en: "I am 18 or older.", gu: "મારી ઉંમર 18 વર્ષ કે તેથી વધુ છે.", hi: "मेरी उम्र 18 वर्ष या उससे अधिक है।" };
   const WHY: Record<Lang, string> = {
     en: "We send a short code to your email; no password is needed. Nothing is read or made until you have signed in.",
-    gu: "અમે તમારા ઇમેલ પર એક નાનો કોડ મોકલીએ છીએ; પાસવર્ડની જરૂર નથી. સાઇન ઇન પહેલાં કંઈ વંચાતું કે બનતું નથી.",
+    gu: "અમે તમારા ઇમેઇલ પર એક નાનો કોડ મોકલીએ છીએ; પાસવર્ડની જરૂર નથી. સાઇન ઇન પહેલાં કંઈ વંચાતું કે બનતું નથી.",
     hi: "हम आपके ईमेल पर एक छोटा कोड भेजते हैं; पासवर्ड की ज़रूरत नहीं। साइन इन से पहले कुछ पढ़ा या बनाया नहीं जाता।",
   };
   const WAIT: Record<Lang, string> = { en: "Signed in. Preparing your request…", gu: "સાઇન ઇન થયું. તમારી વિનંતી તૈયાર કરીએ છીએ…", hi: "साइन इन हो गया। आपका अनुरोध तैयार कर रहे हैं…" };

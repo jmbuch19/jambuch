@@ -178,7 +178,7 @@ export const QUESTIONS: Question[] = [
       { id: "short", label: { en: "A short piece (up to 1 page)", gu: "ટૂંકી (1 પાના સુધી)", hi: "छोटी (1 पेज तक)" } },
       { id: "pages_2_5", label: { en: "2–5 pages", gu: "2–5 પાનાં", hi: "2–5 पेज" } },
       { id: "pages_6_10", label: { en: "6–10 pages", gu: "6–10 પાનાં", hi: "6–10 पेज" } },
-      { id: "longer", label: { en: "Longer (we’ll make it as episodes)", gu: "વધુ લાંબી (એપિસોડમાં બનાવીશું)", hi: "और लंबी (एपिसोड में बनाएँगे)" } },
+      { id: "longer", label: { en: "Longer (we’ll make it as episodes)", gu: "વધુ લાંબી (હપ્તામાં બનાવીશું)", hi: "और लंबी (कड़ियों में बनाएँगे)" } },
     ],
   },
   {
@@ -246,7 +246,7 @@ export const QUESTIONS: Question[] = [
     label: { en: "Do you have permission from the rights holder?", gu: "હક ધરાવનારની પરવાનગી તમારી પાસે છે?", hi: "क्या आपके पास अधिकार-धारक की अनुमति है?" },
     options: [
       { id: "written", label: { en: "Yes, in writing", gu: "હા, લેખિતમાં", hi: "हाँ, लिखित में" } },
-      { id: "public_domain", label: { en: "The author died more than 60 years ago (public domain)", gu: "લેખકના અવસાનને 60 વર્ષથી વધુ થયાં છે (સાર્વજનિક)", hi: "लेखक के निधन को 60 वर्ष से अधिक हो गए हैं (सार्वजनिक)" } },
+      { id: "public_domain", label: { en: "The author died more than 60 years ago (public domain)", gu: "લેખકના અવસાનને 60 વર્ષથી વધુ થયાં છે (પબ્લિક ડોમેન)", hi: "लेखक के निधन को 60 वर्ष से अधिक हो गए हैं (पब्लिक डोमेन)" } },
       { id: "no", label: { en: "No", gu: "ના", hi: "नहीं" } },
     ],
     showIf: (a) => ["translation", "adaptation", "permission"].includes(String(a.origin)),
@@ -725,7 +725,7 @@ export const QUESTIONS: Question[] = [
     stage: 6,
     kind: "special",
     special: "episodes",
-    label: { en: "Episodes", gu: "એપિસોડ", hi: "एपिसोड" },
+    label: { en: "Episodes", gu: "હપ્તા", hi: "कड़ियाँ" },
     showIf: (_a, ctx) => ctx.storyChars > LONG,
   },
   {

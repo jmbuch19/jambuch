@@ -420,7 +420,7 @@ const MAX_RECHECKS = RULES.rechecks;
 // The writer's words when a story can't be made (Gujarati and Hindi: drafts for the admin to check).
 const FRESH_IDEA: Record<ConsentLang, string> = {
   en: "We’re sorry: we can’t make this story as it is. You’re very welcome to come back with a fresh idea or a different story; we’d love to hear it. If you’d like to talk it over, reply to our email.",
-  gu: "માફ કરશો: આ વાર્તા જેમ છે તેમ અમે બનાવી શકતા નથી. નવા વિચાર કે બીજી વાર્તા સાથે ફરી આવજો; અમને સાંભળવું ગમશે. વાત કરવી હોય તો અમારા ઇમેલનો જવાબ આપજો.",
+  gu: "માફ કરશો: આ વાર્તા જેમ છે તેમ અમે બનાવી શકતા નથી. નવા વિચાર કે બીજી વાર્તા સાથે ફરી આવજો; અમને સાંભળવું ગમશે. વાત કરવી હોય તો અમારા ઇમેઇલનો જવાબ આપજો.",
   hi: "क्षमा करें: यह कहानी जैसी है वैसी हम नहीं बना सकते। नए विचार या दूसरी कहानी के साथ फिर आइए; हमें सुनना अच्छा लगेगा। बात करनी हो तो हमारे ईमेल का जवाब दें।",
 };
 
